@@ -1,12 +1,21 @@
 # MASTER PLAN — PHẦN MỀM QUẢN LÝ NHÀ TRỌ
 
-**Phiên bản:** 2.3 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
+**Phiên bản:** 2.4 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
 **Ngày:** 06/10/2026  
 **Ngôn ngữ UI:** Tiếng Việt  
 **Tiền tệ:** VND  
 **Múi giờ nghiệp vụ:** Asia/Ho_Chi_Minh
 
 > Đọc toàn bộ tài liệu trước khi triển khai. Đây là nguồn yêu cầu nghiệp vụ chính thức. Những mặc định kỹ thuật được ghi rõ bên dưới dùng để triển khai mà không phải tự đoán. Nếu có yêu cầu mới của chủ dự án, cập nhật tài liệu và ghi lại quyết định trước khi thay đổi nghiệp vụ.
+
+### Thay đổi so với v2.3 (yêu cầu mới của chủ dự án, 06/10/2026)
+
+| # | Mục | Thay đổi |
+|---|---|---|
+| 1 | 1.2, 9.6, 6.5 | **Mã VietQR đóng tiền** đưa vào MVP. QR có sẵn số tiền và nội dung chuyển khoản; chủ trọ **xác nhận tay** khi thấy tiền vào. QR không bao giờ tự đánh dấu đã thu. Link xem thông báo có thời hạn cũng đưa vào MVP để khách mở được QR. |
+| 2 | 1.2, 9.7, 6.7, Phase 8B | **Nhắc đóng tiền qua Zalo/SMS tới người thuê** đưa vào MVP (trước đây Zalo nằm ngoài phạm vi). Gửi theo mốc trước hạn / đúng hạn / quá hạn, chống gửi trùng, có nhật ký gửi. Nhà cung cấp và tài khoản cần chủ dự án chốt (mục 2.3). |
+| 3 | 8.5, 12, Phase 4 | **Điện nước:** đơn giá điện (đ/kWh) và nước (đ/m³) **đặt riêng cho từng tòa**, nhập một lần, có nút “Thay đổi giá”. Chỉ số đầu nhập một lần; mỗi tháng chỉ nhập chỉ số mới, hệ thống tự lấy chỉ số trước và tự tính tiền. |
+| 4 | 13, Phase 8A | **Báo cáo doanh thu theo tháng** (đã phát hành / đã thu / còn nợ, kèm thực thu trong tháng) đưa vào MVP. |
 
 ### Thay đổi so với v2.2
 
@@ -82,13 +91,14 @@ Phần mềm lưu điều khoản do hai bên thỏa thuận. Phần mềm khôn
 | Thuê | Người thuê, thành viên, nhận phòng, cọc, **trạng thái tạm trú** | **Chuyển phòng**, ẩn danh dữ liệu cá nhân theo chính sách lưu trữ |
 | Hợp đồng | Nháp/ký, kỳ tương lai, hết hạn suy ra từ ngày, thuê tiếp theo tháng, gia hạn, chặn chồng kỳ, hủy kỳ chưa bắt đầu có lý do | Phụ lục/revision, thông báo theo mốc 30/15/7 ngày |
 | Điện nước, dịch vụ | Dịch vụ và lịch sử giá, đồng hồ, chỉ số, thay đồng hồ, sửa chỉ số; màn hình nhập ưu tiên điện thoại | Ảnh đồng hồ |
-| Tính phí | **Thu trước tiền phòng, thu sau điện nước**, đối soát điều chỉnh, credit, trang in/lưu PDF | Đóng/mở lại kỳ, link xem có thời hạn, VietQR |
+| Tính phí | **Thu trước tiền phòng, thu sau điện nước**, đối soát điều chỉnh, credit, trang in/lưu PDF, **mã VietQR**, **link xem thông báo có thời hạn** | Đóng/mở lại kỳ |
+| Nhắc đóng tiền | **Zalo/SMS tới người thuê** theo mốc trước hạn / đúng hạn / quá hạn, nhật ký gửi | — |
 | Thu tiền | Thu nhiều lần, đảo thanh toán, công nợ, **hoàn tiền dư (ghi thủ công)** | — |
 | Trả phòng | Báo trả, wizard trả phòng, quyết toán, áp cọc, hoàn cọc, khoản còn phải thu/hoàn | — |
-| Báo cáo | Dashboard, công nợ, cọc và khoản phải hoàn, thu tiền theo ngày, xuất CSV ba báo cáo này | Chi phí, báo cáo doanh thu/dòng tiền/lấp đầy đầy đủ, báo cáo phục vụ kê khai thuế |
+| Báo cáo | Dashboard, công nợ, cọc và khoản phải hoàn, thu tiền theo ngày, **doanh thu theo tháng**, xuất CSV các báo cáo này | Chi phí, doanh thu theo tòa/phòng/khoản thu, dòng tiền, lấp đầy đầy đủ, báo cáo phục vụ kê khai thuế |
 | Vận hành | Backup/restore database, runbook | Yêu cầu bảo trì, tệp đính kèm riêng tư (hợp đồng scan, ảnh CCCD) |
 
-**Ngoài V1.1:** ứng dụng mobile native, cổng người thuê, đối soát ngân hàng tự động, Zalo OA, smart meter/lock, ký điện tử, AI, multi-owner SaaS, hóa đơn điện tử.
+**Ngoài V1.1:** ứng dụng mobile native, cổng người thuê, **đối soát ngân hàng tự động** (tự ghi nhận tiền vào), Zalo/SMS cho mục đích khác ngoài nhắc đóng tiền, smart meter/lock, ký điện tử, AI, multi-owner SaaS, hóa đơn điện tử.
 
 **Phải đúng ngay từ MVP**, vì sửa về sau rất tốn kém: mô hình dữ liệu, ràng buộc database, idempotency, bất biến của chứng từ đã phát hành, audit backend, tiền lưu bằng số nguyên.
 
@@ -116,6 +126,9 @@ QR chỉ là hình thức ghi nhận thanh toán thủ công. Tạo QR không ph
 | Chứng từ đã phát hành | Bất biến nội dung tiền; sửa bằng chứng từ hoặc dòng điều chỉnh có liên kết |
 | Tiền và lịch sử | Không hard-delete chứng từ tài chính, hợp đồng đã ký hoặc tenancy |
 | Tên gọi trên UI | “Thông báo tiền phòng” (invoice), “Thông báo điều chỉnh” (adjustment), “Phiếu thu” (payment), “Biên bản quyết toán trả phòng”. Đây là chứng từ nội bộ, không phải hóa đơn GTGT/hóa đơn điện tử. Backend giữ tên `invoice`. |
+| **Mã QR đóng tiền** | VietQR chứa tài khoản nhận, số tiền còn phải trả, nội dung chuyển khoản theo mã thông báo. Khách quét bằng app ngân hàng. Chủ trọ/nhân viên **tự ghi nhận phiếu thu** khi thấy tiền vào. Tạo hay quét QR không bao giờ làm thông báo thành “đã thu”. |
+| **Nhắc đóng tiền** | Hệ thống tự gửi Zalo/SMS tới người thuê theo mốc ngày đến hạn. Chỉ gửi cho thông báo đã phát hành và còn nợ. Mỗi mốc gửi tối đa một lần. Gửi tin không thay đổi trạng thái tiền. |
+| **Giá điện nước** | Đơn giá điện (đ/kWh) và nước (đ/m³) đặt **riêng cho từng tòa**, có lịch sử phiên bản. Đổi giá áp dụng từ kỳ đọc số tiếp theo. |
 
 ### 2.1 Những chỗ dễ hiểu sai
 
@@ -138,11 +151,21 @@ QR chỉ là hình thức ghi nhận thanh toán thủ công. Tạo QR không ph
 | Chia ngày | Theo số ngày thực tế của tháng (`ACTUAL_DAYS`) |
 | Làm tròn | HALF_UP đến 1 VND, áp dụng cho từng dòng |
 | STAFF ghi thu tiền | Được ghi thu; không được đảo, hoàn hoặc duyệt |
+| Nội dung chuyển khoản VietQR | `<mã thông báo> <mã phòng>`, không dấu, tối đa 25 ký tự, ví dụ `TB2611-0012 A101` |
+| Mốc nhắc đóng tiền | Trước hạn 3 ngày, đúng ngày đến hạn, quá hạn 3 ngày; mỗi thông báo tối đa 3 tin |
+| Giờ gửi nhắc | 9:00 giờ Việt Nam; không gửi từ 21:00 đến 7:00 |
+| Hạn của link xem thông báo | 60 ngày, hoặc tới khi bị thu hồi; vẫn xem được sau khi đã trả đủ (QR ẩn khi hết nợ) |
 
 ### 2.3 Cần chủ dự án xác nhận (không chặn việc bắt đầu MVP)
 
 1. Yêu cầu pháp lý cụ thể về đăng ký tạm trú và thời gian lưu dữ liệu cá nhân. Cần kiểm chứng riêng trước khi chốt chính sách ẩn danh ở V1.1.
 2. Mẫu báo cáo phục vụ kê khai thuế cho thuê nhà (V1.1).
+3. **Nhắc đóng tiền (chặn Phase 8B, không chặn các phase trước):**
+   - N-1. Chọn kênh và nhà cung cấp: Zalo ZNS (cần Zalo Official Account đã xác thực và mẫu tin được Zalo duyệt), SMS brandname, hay cả hai với SMS làm dự phòng khi Zalo gửi lỗi.
+   - N-2. Chủ trọ tự đăng ký tài khoản với nhà cung cấp và tự nhập khóa API vào cấu hình server. AI agent không đăng ký hay nhập khóa thay.
+   - N-3. Chấp nhận chi phí tin nhắn (tính theo tin, do nhà cung cấp quy định).
+   - N-4. Cách lấy và ghi nhận đồng ý nhận tin của người thuê; kiểm tra quy định về tin nhắn chăm sóc khách hàng trước khi bật gửi thật.
+   - N-5. Nội dung mẫu tin (phải khớp mẫu đã đăng ký với nhà cung cấp).
 
 ## 3. Stack, cấu trúc thư mục và quy ước kỹ thuật
 
@@ -496,7 +519,7 @@ Cột ghi chú **MVP/V1.1** ở các bảng dưới cho biết bảng cần có 
 | rooms | building_id, code, floor, area, default_rent_vnd, max_occupants, amenities, operational_status, version; unique(building_id, code) | MVP |
 | reservations | room_id, hold_from, expected_move_in, hold_until, status ACTIVE/CONVERTED/CANCELLED, contact_name, contact_phone, note, converted_tenancy_id?, cancelled_reason?, version; CHECK hold_from ≤ expected_move_in ≤ hold_until | MVP |
 | holding_transactions | reservation_id, type RECEIVED/CONVERTED_TO_DEPOSIT/REFUND/FORFEIT/REVERSAL, amount_vnd > 0, reason, paid_at?, method?, reference?, linked_deposit_transaction_id?, reverses_transaction_id? unique, idempotency_key, created_by | MVP |
-| tenants | workspace_id, full_name, birth_date?, gender?, phone?, email?, identity_number?, issue_date?, issue_place?, permanent_address?, hometown?, archived_at | MVP |
+| tenants | workspace_id, full_name, birth_date?, gender?, phone?, email?, identity_number?, issue_date?, issue_place?, permanent_address?, hometown?, reminder_opt_in (mặc định false), reminder_consent_at?, reminder_consent_note?, archived_at | MVP |
 | tenancies | workspace_id, room_id, code, start_date, charge_end_exclusive?, actual_move_out_date?, status, billing_due_day, initial_deposit_required_vnd, notice_days_snapshot, reservation_id?, version | MVP |
 | tenancy_tenants | tenancy_id, tenant_id, role PRIMARY/MEMBER, joined_on, left_on_exclusive?, residence_status NOT_REGISTERED/REGISTERED/NOT_APPLICABLE, residence_registered_on?, residence_note? | MVP |
 | contracts | tenancy_id, code, term_start, term_end, lifecycle DRAFT/SIGNED/CANCELLED, signed_at?, terminated_on?, previous_contract_id?, terms_snapshot, cancelled_at?, cancellation_reason?, document_file_id? (V1.1) | MVP |
@@ -515,11 +538,12 @@ Cột ghi chú **MVP/V1.1** ở các bảng dưới cho biết bảng cần có 
 | meter_readings | meter_id, tenancy_id?, read_on, value decimal, kind INITIAL/PERIODIC/FINAL, statement_period_id?, photo_file_id? (V1.1), version; unique(meter_id, read_on) | MVP |
 | meter_events | meter_id, kind REPLACEMENT/CORRECTION, reason, old_value?, new_value?, created_by | MVP |
 | services | workspace_id, code, name, type FIXED_ROOM/PER_PERSON/QUANTITY/METER, unit, charge_timing ADVANCE/ARREARS, archived_at | MVP |
-| service_price_history | service_id, building_id?, effective_from, unit_price decimal | MVP |
+| service_price_history | service_id, building_id?, effective_from, unit_price decimal, created_by, reason?; dịch vụ METER bắt buộc có `building_id` (giá riêng từng tòa); unique(service_id, building_id, effective_from) | MVP |
 | tenancy_services | tenancy_id, service_id, effective_from, end_exclusive?, quantity decimal, billing_policy_snapshot, source_contract_id?, reason?, status ACTIVE/VOIDED, voided_at?, voided_by?, void_reason? | MVP |
 | room_service_defaults | room_id, service_id, quantity; mẫu được copy khi nhận phòng | MVP |
 
 - Dịch vụ loại METER luôn thu sau (`ARREARS`).
+- MVP có sẵn hai dịch vụ METER: **Điện** (kWh) và **Nước** (m³). Mỗi tòa phải có đơn giá cho từng dịch vụ METER mà phòng trong tòa đang dùng. Thiếu giá thì chặn phát hành và báo lỗi rõ cho tòa đó.
 - Subscription của tenancy là nguồn tính phí. Đổi dịch vụ mặc định của phòng không ảnh hưởng tenancy cũ. Đổi số xe/số lượng tạo phiên bản có ngày hiệu lực.
 
 ### 6.5 Tính phí và thu tiền
@@ -530,6 +554,11 @@ Cột ghi chú **MVP/V1.1** ở các bảng dưới cho biết bảng cần có 
 | invoices | tenancy_id, statement_period_id?, type, number?, issue_date, due_date, lifecycle, subtotal_vnd, discount_vnd, total_vnd, published_at?, source_invoice_id?, version | MVP |
 | invoice_items | invoice_id, charge_kind RENT/SERVICE/METER/DAMAGE/OTHER, charge_timing, direction DEBIT/CREDIT, label_snapshot, quantity decimal, unit_price decimal, amount_vnd ≥ 0, charge_start, charge_end_exclusive, source_type, source_id?, corrects_item_id?, policy_snapshot, calculation_snapshot | MVP |
 | payments | tenancy_id, amount_vnd > 0, method, paid_at, reference?, note?, status POSTED/REVERSED, reversed_at?, reversed_by?, reversal_reason?, idempotency_key, created_by | MVP |
+| payment_accounts | workspace_id, bank_bin (mã ngân hàng NAPAS), bank_name, account_number, account_name (không dấu, chữ hoa), is_active, version; tối đa một tài khoản active mỗi workspace (partial unique) | MVP |
+| share_links | invoice_id, token_hash unique, expires_at, revoked_at?, revoked_by?, created_by, last_viewed_at?, view_count | MVP |
+| reminder_settings | workspace_id unique, enabled (mặc định false), channel_order (ví dụ `[ZALO_ZNS, SMS]`), offsets_days (mặc định `[-3, 0, 3]`), send_hour, quiet_start, quiet_end, version. **Không lưu khóa API** (khóa nằm ở biến môi trường server) | MVP |
+| reminder_messages | workspace_id, invoice_id, tenant_id, milestone BEFORE_DUE/DUE/OVERDUE, scheduled_for, status PENDING/SENDING/SENT/FAILED/SKIPPED/CANCELLED, skip_reason?, channel_used?, recipient_masked, content_snapshot (số tiền, hạn, mã thông báo, link), sent_at?; **unique(invoice_id, milestone)** | MVP |
+| reminder_attempts | reminder_message_id, channel, attempted_at, result SUCCESS/FAILED, provider_message_id?, error_code?, error_message? (đã che số điện thoại và khóa) | MVP |
 | payment_allocations | payment_id, invoice_id, amount_vnd > 0; unique(payment_id, invoice_id) | MVP |
 | credit_applications | credit_invoice_id, target_invoice_id, amount_vnd > 0, status ACTIVE/REVERSED, created_by | MVP |
 | credit_refunds | tenancy_id, credit_invoice_id, amount_vnd > 0, paid_at, method, reference?, status POSTED/REVERSED, reversed_at?, reversal_reason?, idempotency_key, created_by | MVP |
@@ -560,7 +589,6 @@ Cột ghi chú **MVP/V1.1** ở các bảng dưới cho biết bảng cần có 
 | maintenance_requests | room_id, tenancy_id?, title, description, priority, status, assignee_id?, resolved_at? |
 | files | workspace_id, storage_key, original_name, mime, size_bytes, access_scope, owner_entity_type/id, uploaded_by |
 | notifications | recipient_id, type, entity_id, milestone_date, read_at; unique(recipient, type, entity, milestone) |
-| share_links | invoice_id, token_hash, expires_at, revoked_at |
 
 ### 6.8 Ràng buộc SQL thủ công bắt buộc
 
@@ -797,12 +825,25 @@ Có thể cấu hình dịch vụ tính đủ tháng; phải có nhãn, cần x�
 
 ### 8.5 Điện nước theo đồng hồ
 
+**Luồng thao tác của chủ trọ (yêu cầu v2.4):**
+
+1. **Đặt giá một lần cho mỗi tòa:** trong trang tòa có mục “Giá điện nước”, nhập đơn giá điện (đ/kWh) và nước (đ/m³). Giá được lưu và dùng cho mọi kỳ sau, không phải nhập lại.
+2. **Nút “Thay đổi giá”:** nhập giá mới và lý do. Hệ thống tạo phiên bản giá mới, áp dụng từ kỳ đọc số tiếp theo; không sửa giá của các kỳ đã tính. Màn hình hiển thị lịch sử giá (ai đổi, khi nào, từ kỳ nào).
+3. **Chỉ số đầu nhập một lần:** khi gắn đồng hồ cho phòng (`initial_reading`) hoặc khi nhận phòng (chỉ số INITIAL). Từ đó **chỉ số trước luôn được hệ thống tự lấy** từ lần đọc gần nhất, người dùng không nhập lại.
+4. **Sửa chỉ số đầu/chỉ số trước:** có nút “Sửa chỉ số”, bắt buộc nhập lý do. Chỉ số chưa dùng trên thông báo đã phát hành thì sửa trực tiếp, có ghi audit. Chỉ số đã dùng trên thông báo đã phát hành thì tạo `meter_event CORRECTION` và đối soát (theo quyết định B-4).
+5. **Mỗi tháng chỉ nhập chỉ số mới** cho điện và nước của từng phòng. Màn hình tự hiện chỉ số trước, số tiêu thụ, đơn giá của tòa và **tiền tạm tính** ngay khi gõ. Tiền tạm tính chỉ để xem; tiền chính thức do billing engine tính khi tạo thông báo.
+6. Khi tạo thông báo tháng, tiền điện nước được tính tự động: `(chỉ số mới − chỉ số trước) × đơn giá của tòa`, làm tròn theo chính sách (mục 4.3).
+
+**Quy tắc:**
+
 - Usage = chỉ số hiện tại − chỉ số trước của cùng đồng hồ. Bằng 0 hợp lệ; âm bị từ chối.
+- Đơn giá lấy theo **tòa của phòng**, phiên bản có hiệu lực cho kỳ đọc đó. Tòa chưa đặt giá thì chặn phát hành và báo rõ tòa nào thiếu giá.
+- Số tiêu thụ cao hoặc thấp bất thường (ví dụ gấp 3 lần trung bình 3 kỳ trước, hoặc bằng 0 khi phòng có người ở) chỉ hiện cảnh báo để kiểm tra lại, không chặn lưu.
 - Chỉ số chốt nhập theo đợt cho tháng phát hành (`statement_period_id`); lưu ngày đọc thực tế.
 - Chỉ số nhận phòng và trả phòng tách tiêu thụ giữa khách cũ và khách mới.
 - Thiếu chỉ số bắt buộc: vẫn tạo được nháp nhưng có lỗi chặn phát hành rõ ràng. Không phát hành bằng cách mặc định usage = 0.
 - Thay đồng hồ: ngưng đồng hồ cũ, chốt chỉ số, tạo đồng hồ mới. Không nhập số âm để “sửa”.
-- Đơn giá điện nước đổi ở kỳ đọc tiếp theo. Đổi giữa hai lần đọc thì cần chỉ số tại ngày đổi; thiếu thì chặn tính, không chia usage theo ngày.
+- Đơn giá điện nước đổi ở kỳ đọc tiếp theo (mặc định của nút “Thay đổi giá”). Nếu người có quyền chọn đổi giữa hai lần đọc thì cần chỉ số tại ngày đổi; thiếu thì chặn tính, không chia usage theo ngày.
 - Sửa chỉ số đã dùng trên thông báo đã phát hành: tạo `meter_event CORRECTION`, chênh lệch được đối soát; không ghi đè lịch sử.
 - Nước tính theo người/phòng dùng dịch vụ tương ứng; không thu thêm nước theo đồng hồ cùng lúc trừ khi cấu hình nêu rõ hai khoản độc lập và đã xác nhận.
 
@@ -997,11 +1038,57 @@ Bắt buộc có `Idempotency-Key` cho: nhận phòng, tiền giữ chỗ, gener
 - Lock và unique constraint là lớp bảo vệ cuối cùng; disable nút trên frontend không đủ.
 - Đảo bất kỳ giao dịch tài chính nào (payment, cọc, giữ chỗ, credit application, credit refund) cũng cần `Idempotency-Key`. Unique `reverses_transaction_id` hoặc kiểm tra `status` dưới khóa bảo đảm không đảo hai lần.
 
+### 9.6 Mã VietQR để khách đóng tiền
+
+**Cấu hình:** chủ trọ nhập một tài khoản nhận tiền (`payment_accounts`): ngân hàng (chọn từ danh sách mã NAPAS), số tài khoản, tên chủ tài khoản. Chỉ một tài khoản active cho cả nhà trọ trong MVP.
+
+**Tạo QR:**
+
+- Chỉ tạo cho thông báo **PUBLISHED** còn `remaining > 0`. Thông báo đã trả đủ hoặc đã hủy thì không hiện QR.
+- Payload theo chuẩn VietQR (EMVCo QR + NAPAS 247), sinh bằng **hàm thuần** trong `domain/payments/vietqr.ts`: mã ngân hàng, số tài khoản, số tiền = `remaining` **tại thời điểm hiển thị**, nội dung chuyển khoản (mục 2.2), CRC16 đúng chuẩn.
+- Server trả payload; web vẽ ảnh QR. Không gọi dịch vụ bên ngoài để tạo ảnh QR, nên không lộ dữ liệu.
+- QR xuất hiện ở: trang chi tiết thông báo, trang in/lưu PDF, trang xem công khai qua link (bên dưới), và link trong tin nhắc đóng tiền.
+- Bên cạnh QR luôn ghi rõ ngân hàng, số tài khoản, tên chủ tài khoản, số tiền, nội dung, để khách chuyển tay nếu không quét được.
+
+**Ghi nhận tiền:** QR **không** làm thay đổi trạng thái. Khi thấy tiền vào tài khoản, chủ trọ/nhân viên bấm “Ghi nhận thu” (mục 9.1), chọn phương thức QR, nhập mã giao dịch ngân hàng vào `reference`. Màn hình thu tiền gợi ý sẵn số tiền và nội dung theo thông báo để đối chiếu nhanh.
+
+**Link xem thông báo** (`share_links`):
+
+- Tạo từ trang chi tiết thông báo (“Sao chép link gửi khách”). Token ngẫu nhiên 32 byte, DB chỉ lưu hash.
+- Hết hạn theo mục 2.2; thu hồi được bất cứ lúc nào.
+- Trang công khai `/p/<token>` chỉ hiển thị: tên nhà trọ, mã phòng, tháng, các dòng phí, tổng, đã trả, còn phải trả, hạn đóng, QR. **Không** hiển thị CCCD, số điện thoại, địa chỉ hay thông tin người khác.
+- Token sai, hết hạn hoặc bị thu hồi đều trả cùng một trang “Link không còn hiệu lực”. Có giới hạn số lần truy cập theo IP. Trang có `noindex`, không cache công khai.
+
+### 9.7 Nhắc đóng tiền qua Zalo/SMS
+
+**Kiến trúc:**
+
+- Interface `MessageChannel` với các adapter: `ZaloZnsChannel`, `SmsChannel`, và `LogOnlyChannel`. `LogOnlyChannel` chỉ ghi log, không gửi gì; đây là **mặc định ở dev/test**.
+- Khóa API của nhà cung cấp chỉ nằm trong biến môi trường server, không lưu DB, không ghi log.
+- Gửi thật chỉ khi đủ cả ba điều kiện: `NODE_ENV=production`, `reminder_settings.enabled = true`, và adapter thật đã được cấu hình.
+
+**Lập lịch** (job chạy mỗi 15 phút, có khóa để không chạy chồng):
+
+1. Với mỗi thông báo PUBLISHED còn nợ của người thuê có `reminder_opt_in = true` và số điện thoại hợp lệ, tính các mốc theo `offsets_days` so với `due_date`.
+2. Tạo `reminder_messages` PENDING cho mốc đã đến giờ gửi (`send_hour`, ngoài giờ yên lặng). Unique `(invoice_id, milestone)` bảo đảm mỗi mốc chỉ có một tin, kể cả khi job chạy lại hoặc chạy song song.
+3. **Ngay trước khi gửi**, kiểm tra lại: thông báo đã trả đủ, bị hủy, tenancy đã ENDED (còn nợ thì vẫn gửi nếu được cấu hình), hoặc người thuê đã tắt nhận tin → SKIPPED kèm lý do.
+4. Gửi theo `channel_order`; kênh đầu lỗi thì thử kênh sau. Mỗi lần thử ghi `reminder_attempts`. Lỗi tạm thời thì thử lại tối đa 3 lần, giãn cách tăng dần; vẫn lỗi thì FAILED và hiện trong “việc cần xử lý”.
+5. Nội dung tin: tên nhà trọ, mã phòng, tháng, số tiền còn phải trả, hạn đóng, link xem thông báo kèm QR (mục 9.6). Nội dung lấy từ `content_snapshot` lúc tạo tin.
+
+**Quy tắc:**
+
+- Gửi tin **không** thay đổi trạng thái tiền.
+- Không gửi cho thông báo DRAFT. Không gửi khi `remaining = 0`.
+- Mỗi mốc tối đa một tin, mỗi thông báo tối đa số mốc cấu hình.
+- Người thuê bật nhận tin phải có ghi nhận đồng ý (`reminder_consent_at`, ghi chú cách đồng ý). Tắt nhận tin có hiệu lực ngay với các tin chưa gửi.
+- Màn hình “Nhắc đóng tiền” cho chủ trọ: danh sách tin theo trạng thái, lý do bỏ qua/lỗi, nút gửi lại thủ công (cần quyền, có audit, vẫn tôn trọng unique theo mốc; gửi lại = thêm một lần thử cho cùng tin).
+- Số điện thoại trong log/audit/attempts luôn được che (`09******89`).
+
 ## 10. API contract
 
 ### Quy ước
 
-- Prefix `/api/v1`. Mặc định cần đăng nhập; chỉ login/refresh/health là public.
+- Prefix `/api/v1`. Mặc định cần đăng nhập; chỉ login/refresh/logout/health và `GET /public/invoices/:token` (mục 9.6) là public.
 - Danh sách có pagination, filter, sort theo whitelist, `page_size ≤ 100`.
 - DTO kiểm tra kiểu, độ dài, ngày, tiền; từ chối field ngoài whitelist.
 - Mutation trên aggregate nhận `expected_version`; sai version trả 409.
@@ -1041,20 +1128,24 @@ Bắt buộc có `Idempotency-Key` cho: nhận phòng, tiền giữ chỗ, gener
 | Move-out | POST /tenancies/:id/move-out-settlements; POST /settlements/:id/preview, /approve, /complete, /cancel | MVP |
 | Settlement cash | POST /settlements/:id/receipts, /credit-refunds, /deposit-refunds | MVP |
 | Dashboard | GET /dashboard | MVP |
-| Reports | GET /reports/debts, /deposits, /collections; GET /reports/:type/export | MVP |
-| Reports mở rộng | GET /reports/occupancy, /revenue, /cash-flow, /expenses | V1.1 |
+| Reports | GET /reports/debts, /deposits, /collections, /revenue-monthly; GET /reports/:type/export | MVP |
+| Reports mở rộng | GET /reports/occupancy, /revenue (theo tòa/phòng/khoản thu), /cash-flow, /expenses | V1.1 |
+| Payment account | GET/PUT /settings/payment-account | MVP |
+| VietQR | GET /invoices/:id/vietqr (payload + thông tin chuyển khoản; 422 nếu không còn nợ) | MVP |
+| Meter prices | GET /buildings/:id/meter-prices; POST /buildings/:id/meter-prices (tạo phiên bản giá mới) | MVP |
+| Reminders | GET/PUT /settings/reminders; GET /reminders; POST /reminders/:id/resend; PUT /tenants/:id/reminder-consent | MVP |
 | Transfers | POST /tenancies/:id/transfer | V1.1 |
 | Expense | GET/POST /expenses; POST /expenses/:id/reverse | V1.1 |
 | Maintenance | GET/POST /maintenance-requests; PATCH /maintenance-requests/:id | V1.1 |
 | Files | POST /files; GET /files/:id/download; POST /files/:id/archive | V1.1 |
-| Share links | POST /invoices/:id/share-links; GET /public/invoices/:token | V1.1 |
+| Share links | POST /invoices/:id/share-links; POST /share-links/:id/revoke; GET /public/invoices/:token (public, rate limit) | MVP |
 | Audit | GET /audit-logs | V1.1 |
 
 ## 11. RBAC và dữ liệu cá nhân
 
 ### 11.1 Permission
 
-Permission chi tiết theo dạng `module.action`, gồm thêm: `sensitive_data.view`, `files.identity.view`, `finance.reverse`, `settlement.approve`, `deposit.refund`, `credit.refund`, `holding.forfeit`, `contracts.cancel_signed`, `period.reopen`.
+Permission chi tiết theo dạng `module.action`, gồm thêm: `sensitive_data.view`, `files.identity.view`, `finance.reverse`, `settlement.approve`, `deposit.refund`, `credit.refund`, `holding.forfeit`, `contracts.cancel_signed`, `period.reopen`, `meter_prices.manage`, `payment_accounts.manage`, `invoices.share`, `reminders.view`, `reminders.manage`.
 
 ### 11.2 MVP: OWNER và STAFF
 
@@ -1064,7 +1155,9 @@ Permission chi tiết theo dạng `module.action`, gồm thêm: `sensitive_data.
 | Giữ phòng, tiền giữ chỗ | Có | Tạo giữ phòng, ghi nhận tiền giữ chỗ đã thu |
 | Nhận phòng/hợp đồng | Có | Không |
 | Chỉ số điện nước | Có | Nhập trong tòa được giao |
-| Thông báo tiền phòng | Tạo, phát hành, điều chỉnh | Xem |
+| Thông báo tiền phòng | Tạo, phát hành, điều chỉnh | Xem; xem QR; tạo link gửi khách trong tòa được giao |
+| Giá điện nước theo tòa | Đặt và thay đổi giá | Xem |
+| Nhắc đóng tiền | Cấu hình, xem nhật ký, gửi lại | Xem nhật ký trong tòa được giao |
 | Thu tiền | Có | Ghi phiếu thu trong tòa được giao |
 | Đảo, hoàn tiền, khấu trừ, giữ lại tiền giữ chỗ | Có | Không |
 | Quyết toán | Tạo, duyệt, hoàn tất | Xem |
@@ -1095,6 +1188,7 @@ Refresh token lưu hash, xoay vòng, phát hiện dùng lại; logout thu hồi 
 - Log không chứa mật khẩu, token, ảnh CCCD, số CCCD đầy đủ.
 - CSV escape formula injection (`=`, `+`, `-`, `@` ở đầu ô text).
 - Tạm trú: lưu trạng thái theo từng người trong từng lần thuê; dashboard liệt kê người chưa đăng ký.
+- Nhắc đóng tiền gửi số điện thoại người thuê cho nhà cung cấp Zalo/SMS. Chỉ gửi khi người thuê đã đồng ý (`reminder_opt_in`), chỉ gửi số điện thoại và nội dung tin, không gửi CCCD hay địa chỉ.
 - V1.1: chính sách lưu trữ và ẩn danh. Sau khi tenancy ENDED và hết công nợ/khoản phải hoàn quá thời hạn cấu hình, thay thông tin cá nhân bằng dữ liệu ẩn danh, giữ nguyên chứng từ tài chính. Thời hạn và yêu cầu cụ thể phải được chủ dự án xác nhận theo quy định pháp luật hiện hành trước khi bật.
 
 ## 12. UI và trải nghiệm
@@ -1111,7 +1205,11 @@ Sidebar: Tổng quan, Tòa/khu & Phòng, Giữ phòng, Người thuê, Lần thu
 - Wizard nhận phòng có bước xem lại trước khi gửi.
 - Tenant Detail: thành viên, tạm trú, lịch sử các lần thuê.
 - Danh sách/chi tiết hợp đồng và form gia hạn. Badge EXPIRED không dùng màu đỏ như lỗi thanh toán.
-- **Nhập chỉ số hàng loạt ưu tiên điện thoại:** đi lần lượt từng phòng, hiện chỉ số trước, bàn phím số, hiện usage và cảnh báo bất thường ngay, lưu từng dòng, chạy tốt ở chiều rộng 360px. Desktop dùng dạng bảng.
+- **Nhập chỉ số hàng loạt ưu tiên điện thoại:** đi lần lượt từng phòng; chỉ số trước tự điền sẵn (không cho gõ đè, muốn sửa thì bấm “Sửa chỉ số”); chỉ nhập chỉ số mới bằng bàn phím số; hiện ngay số tiêu thụ, đơn giá của tòa và tiền tạm tính; cảnh báo bất thường; lưu từng dòng; chạy tốt ở chiều rộng 360px. Desktop dùng dạng bảng. Cuối màn hình có tổng tạm tính của đợt.
+- **Giá điện nước theo tòa:** trong trang tòa, hiện giá đang áp dụng, nút “Thay đổi giá” (giá mới, lý do, áp dụng từ kỳ đọc tiếp theo) và lịch sử giá.
+- **Thanh toán qua QR:** cấu hình tài khoản nhận tiền; QR và thông tin chuyển khoản trên chi tiết thông báo và trang in; nút “Sao chép link gửi khách”; nút “Ghi nhận thu” đặt cạnh QR.
+- **Nhắc đóng tiền:** cấu hình (bật/tắt, mốc, giờ gửi, thứ tự kênh); bật/tắt nhận tin và ghi nhận đồng ý trên trang người thuê; nhật ký tin theo trạng thái, kèm nút gửi lại.
+- **Báo cáo doanh thu theo tháng** (mục 13).
 - Tính phí: preview → tạo nháp → xem diff và dòng đối soát → phát hành; kết quả theo từng phòng.
 - Chi tiết thông báo: tách nhóm “Thu trước”, “Thu sau”, “Điều chỉnh”; ghi khoảng phí của từng dòng.
 - **Trang in** (URL `/print/invoices/:id`, `/print/payments/:id`, `/print/settlements/:id`; thư mục `(print)/print/…`) cho thông báo, phiếu thu, biên bản quyết toán: khổ A4/A5, dùng “In → Lưu PDF” của trình duyệt để gửi thủ công. Chân trang ghi “Chứng từ nội bộ, không phải hóa đơn GTGT”.
@@ -1142,11 +1240,26 @@ Xác nhận thao tác tài chính phải nêu số tiền, phòng/người nhậ
 - Cọc: đang giữ (là nghĩa vụ phải trả, không phải lợi nhuận), còn phải hoàn.
 - Khoản phải hoàn: tách hoàn cọc, hoàn tiền dư (credit), tiền giữ chỗ chưa xử lý.
 - Thu tiền theo ngày = payment POSTED còn hiệu lực. Cọc áp vào invoice và credit cấn trừ trình bày riêng vì không phải tiền mặt vừa nhận.
-- Xuất CSV cho công nợ, cọc, thu tiền; cùng filter và phạm vi như màn hình.
+- **Báo cáo doanh thu theo tháng** (yêu cầu v2.4): mỗi dòng là một tháng phát hành M, lọc theo tòa trong phạm vi, có thể chọn khoảng 12 tháng.
+
+  | Cột | Định nghĩa |
+  |---|---|
+  | Phát sinh | Σ `total` của thông báo loại nợ (MONTHLY, FINAL, DEBIT_ADJUSTMENT) PUBLISHED thuộc tháng M |
+  | Giảm trừ | Σ `total` của CREDIT_ADJUSTMENT PUBLISHED thuộc tháng M |
+  | Doanh thu thuần | Phát sinh − Giảm trừ |
+  | Đã thu | Phần đã thanh toán của chính các thông báo loại nợ tháng M, tách thành: tiền thực nhận (phiếu thu còn hiệu lực), trừ từ cọc, cấn trừ credit |
+  | Còn nợ | Σ `remaining` hiện tại của các thông báo loại nợ tháng M |
+  | Thực thu trong tháng | Σ phiếu thu POSTED có `paid_at` trong tháng M, cho mọi thông báo (cơ sở dòng tiền, khác cột “Đã thu”) |
+
+  - “Tháng M” của một thông báo là tháng phát hành (`statement_period`). Thông báo không có tháng phát hành (FINAL, ADJUSTMENT) tính theo tháng của `issue_date`.
+  - Tiền cọc, tiền giữ chỗ và hoàn cọc **không** tính vào doanh thu.
+  - Đối chiếu bắt buộc cho từng tháng (có test): **Phát sinh = Đã thu + Còn nợ**. Credit được cấn trừ nằm trong “Đã thu” của thông báo nhận cấn trừ, và đồng thời nằm trong “Giảm trừ” của tháng phát hành credit đó.
+  - Ghi chú dưới bảng giải thích khác nhau giữa “Đã thu” (theo tháng của thông báo) và “Thực thu trong tháng” (theo ngày nhận tiền).
+- Xuất CSV cho công nợ, cọc, thu tiền, doanh thu theo tháng; cùng filter và phạm vi như màn hình.
 
 **V1.1:**
 
-- Doanh thu theo tháng phát hành = invoice loại nợ đã phát hành − credit; tách khỏi thực thu.
+- Doanh thu theo tòa, theo phòng, theo khoản thu (tiền phòng, điện, nước, từng dịch vụ).
 - Chi phí = expense POSTED. Thu nhập vận hành = doanh thu − chi phí, ghi rõ cơ sở số liệu; không gọi dòng tiền là lợi nhuận.
 - Tiền giữ chỗ bị giữ lại báo cáo là thu nhập khác.
 - Báo cáo phục vụ kê khai thuế theo mẫu chủ dự án xác nhận.
@@ -1214,6 +1327,15 @@ Mỗi case cần assertion trên database và API/domain tương ứng; các lu�
 | T54 | Chia đoạn và làm tròn | FIXED_30 nhiều đoạn không vượt giá tháng (ví dụ 2 mục 8.3); tổng các dòng = M của u; đổi cách chia dòng không tạo chênh lệch đối soát | MVP |
 | T55 | Reservation chồng lịch | Tạo hoặc đổi ngày chồng lịch bị database chặn; hai request đồng thời chỉ một thành công; nhận phòng trong lịch giữ của reservation khác bị chặn; báo trả bị hủy thì reservation hiện “xung đột lịch”, không tự hủy | MVP |
 | T56 | Đảo việc chuyển tiền giữ chỗ thành cọc | Chỉ đảo được cả cặp, trong một transaction; API từ chối đảo riêng một phía; bị chặn khi cọc đó đã áp dụng hoặc đã hoàn; lỗi giữa chừng thì rollback cả hai sổ | MVP |
+| T57 | Payload VietQR | Đúng chuẩn EMVCo/VietQR (CRC16, mã ngân hàng, số tài khoản, số tiền = `remaining` lúc hiển thị, nội dung ≤ 25 ký tự không dấu); app ngân hàng quét được (kiểm tay một lần với tài khoản thật của chủ trọ); không tạo QR cho DRAFT, đã trả đủ hoặc đã hủy | MVP |
+| T58 | QR không đổi trạng thái tiền | Tạo/xem QR không tạo payment, không đổi `remaining`; chỉ “Ghi nhận thu” (method QR, có `reference`) mới giảm nợ | MVP |
+| T59 | Link xem thông báo | DB chỉ lưu hash token; hết hạn, thu hồi, sai token trả cùng một trang; không lộ CCCD, số điện thoại, địa chỉ hay dữ liệu thông báo khác; QR ẩn khi hết nợ; có giới hạn truy cập | MVP |
+| T60 | Giá điện nước theo tòa | Hai tòa khác giá tính đúng; “Thay đổi giá” áp dụng từ kỳ đọc tiếp theo, kỳ đã tính không đổi; tòa thiếu giá bị chặn phát hành và báo đúng tòa; lịch sử giá có người đổi và lý do | MVP |
+| T61 | Chỉ nhập chỉ số mới mỗi tháng | Chỉ số trước tự lấy từ lần đọc gần nhất; sửa chỉ số cần lý do và có audit; tiền tạm tính trên màn hình bằng tiền chính thức khi dữ liệu không đổi | MVP |
+| T62 | Nhắc đóng tiền không gửi trùng | Job chạy lặp hoặc song song chỉ tạo một tin cho mỗi (thông báo, mốc) | MVP |
+| T63 | Nhắc đóng tiền đúng đối tượng | Không gửi cho DRAFT, đã trả đủ, đã hủy, người thuê chưa đồng ý hoặc đã tắt; trả đủ sau khi đã lập lịch thì tin thành SKIPPED; tôn trọng giờ yên lặng | MVP |
+| T64 | Nhắc đóng tiền khi lỗi | Kênh đầu lỗi thì chuyển kênh dự phòng; lỗi tạm thời thử lại có giới hạn; FAILED hiện trong việc cần xử lý; dev/test chỉ dùng `LogOnlyChannel`; log che số điện thoại, không lộ khóa API | MVP |
+| T65 | Doanh thu theo tháng | Khớp fixture; Phát sinh = Đã thu + Còn nợ từng tháng; cọc/giữ chỗ không vào doanh thu; Thực thu trong tháng theo `paid_at`; đúng phạm vi tòa; CSV khớp màn hình | MVP |
 
 Integration test dùng PostgreSQL riêng, seed deterministic, clock inject được. Test idempotency gồm cả key trùng với payload khác.
 
@@ -1268,21 +1390,21 @@ Nháp/ký, kỳ tương lai, trạng thái suy ra từ ngày + SQL view, `rental
 
 #### Phase 4 — Utilities và Services
 
-Giá dịch vụ, `charge_timing`, subscription, lịch sử thành viên/số lượng, đồng hồ, chỉ số theo đợt chốt, sửa chỉ số, thay đồng hồ, màn hình nhập chỉ số ưu tiên điện thoại.
+Giá dịch vụ, `charge_timing`, subscription, lịch sử thành viên/số lượng, đồng hồ, chỉ số theo đợt chốt, sửa chỉ số, thay đồng hồ. **Giá điện nước theo từng tòa với nút “Thay đổi giá” và lịch sử giá; chỉ số trước tự lấy; tiền tạm tính trên màn hình nhập** (mục 8.5). Màn hình nhập chỉ số ưu tiên điện thoại.
 
-**Đạt:** T12 phần lịch sử dữ liệu (tính tiền: Phase 5); T13; T14 phần thay đồng hồ và chốt chỉ số; màn hình nhập dùng được ở chiều rộng 360px; cấu hình chặn việc bật đồng thời nước đồng hồ và nước theo người nếu chưa xác nhận.
+**Đạt:** T12 phần lịch sử dữ liệu (tính tiền: Phase 5); T13; T14 phần thay đồng hồ và chốt chỉ số; T60 phần giá và lịch sử giá; T61 phần nhập và sửa chỉ số; màn hình nhập dùng được ở chiều rộng 360px; cấu hình chặn việc bật đồng thời nước đồng hồ và nước theo người nếu chưa xác nhận.
 
 #### Phase 5 — Billing Engine
 
 Domain tính phí (thu trước/thu sau, mục 8.3 ở cấp tháng × nguồn phí, phân bổ phần dư lớn nhất, chốt chính sách theo u), đối soát (mục 8.6, chỉ PUBLISHED), một nháp mỗi tenancy, preview/generate/recalculate/publish, cấp số chứng từ, DEBIT/CREDIT_ADJUSTMENT, tách tổng âm, thêm bước 8 vào luồng nhận phòng, chi tiết thông báo và trang in `/print/invoices/:id`.
 
-**Đạt:** chạy lại toàn bộ test của Phase 0–4; T01 phần thông báo đầu tiên; T04 phần sinh phí; T09 phần tính phí; T10; T12 phần tính tiền; T14–T15 phần tính phí; T16; T19 phần sửa; T39–T42; T45–T47; T49; T50 phần dòng điều chỉnh; T54; invoice thật từ DB; PUBLISHED bất biến.
+**Đạt:** chạy lại toàn bộ test của Phase 0–4; T01 phần thông báo đầu tiên; T04 phần sinh phí; T09 phần tính phí; T10; T12 phần tính tiền; T14–T15 phần tính phí; T16; T19 phần sửa; T39–T42; T45–T47; T49; T50 phần dòng điều chỉnh; T54; T60 phần tính tiền và chặn tòa thiếu giá; T61 phần tạm tính = chính thức; invoice thật từ DB; PUBLISHED bất biến.
 
 #### Phase 6 — Payment, Credit và công nợ
 
-Phiếu thu và allocation, thu từng phần, quá hạn, đảo payment, credit application, credit refund, sao kê, danh sách công nợ, trang in `/print/payments/:id`.
+Phiếu thu và allocation, thu từng phần, quá hạn, đảo payment, credit application, credit refund, sao kê, danh sách công nợ, trang in `/print/payments/:id`. **Tài khoản nhận tiền, mã VietQR, link xem thông báo và trang công khai `/p/<token>`** (mục 9.6).
 
-**Đạt:** chạy lại toàn bộ integration test; T17–T19; T29; T37 phần payment/credit; thanh toán đồng thời không vượt nợ; PAID không sửa trực tiếp.
+**Đạt:** chạy lại toàn bộ integration test; T17–T19; T29; T37 phần payment/credit; T57–T59; thanh toán đồng thời không vượt nợ; PAID không sửa trực tiếp.
 
 #### Phase 7 — Trả phòng và quyết toán
 
@@ -1290,11 +1412,17 @@ Báo trả/hủy, wizard trả phòng, đối soát cuối kỳ với mốc FINA
 
 **Đạt:** chạy lại toàn bộ integration test; T11; T20–T28; T30–T33; T37 phần cọc; T44; T51–T53; T55 phần báo trả bị hủy gây “xung đột lịch”; trả phòng không phụ thuộc việc đã chuyển tiền hoàn; không tính phí sau ngày cuối; không nhân đôi phí/cọc/credit.
 
-#### Phase 8 — Dashboard và báo cáo MVP
+#### Phase 8A — Dashboard và báo cáo MVP
 
-Dashboard, việc cần xử lý, báo cáo công nợ/cọc/thu tiền, CSV.
+Dashboard, việc cần xử lý, báo cáo công nợ/cọc/thu tiền, **báo cáo doanh thu theo tháng** (mục 13), CSV.
 
-**Đạt:** T34 (export, dashboard), T38 phần MVP; số liệu đối chiếu khớp với fixture; công nợ và khoản phải hoàn của tenancy ENDED vẫn hiện.
+**Đạt:** T34 (export, dashboard), T38 phần MVP, T65; số liệu đối chiếu khớp với fixture; công nợ và khoản phải hoàn của tenancy ENDED vẫn hiện.
+
+#### Phase 8B — Nhắc đóng tiền qua Zalo/SMS
+
+Cấu hình nhắc, đồng ý nhận tin của người thuê, job lập lịch, `MessageChannel` + `LogOnlyChannel`, nhật ký và gửi lại, việc cần xử lý cho tin lỗi (mục 9.7). Adapter thật (Zalo ZNS/SMS) chỉ viết khi chủ dự án đã chốt N-1…N-5 (mục 2.3) và tự cấu hình khóa API. Chưa chốt thì Phase 8B vẫn hoàn thành phần còn lại với `LogOnlyChannel`, và ghi rõ là chưa gửi thật.
+
+**Đạt:** T62–T64 (với `LogOnlyChannel` và adapter giả lập lỗi); nếu đã có adapter thật: chủ dự án tự gửi thử tới số của mình trên môi trường thử và xác nhận nhận được tin đúng mẫu.
 
 #### Phase 9 — MVP release readiness
 
@@ -1324,9 +1452,9 @@ Chi phí và đảo chi phí, báo cáo doanh thu/dòng tiền/lấp đầy/chi 
 
 #### Phase 13 — Vận hành
 
-Yêu cầu bảo trì, tệp riêng tư (hợp đồng scan, ảnh CCCD, ảnh đồng hồ), link xem thông báo có thời hạn, VietQR, backup kèm tệp.
+Yêu cầu bảo trì, tệp riêng tư (hợp đồng scan, ảnh CCCD, ảnh đồng hồ), backup kèm tệp. (Link xem thông báo và VietQR đã chuyển lên MVP Phase 6 từ v2.4.)
 
-**Đạt:** T34 cho file; link hết hạn hoặc bị thu hồi thì không xem được; backup/restore gồm cả tệp.
+**Đạt:** T34 cho file; backup/restore gồm cả tệp.
 
 #### Phase 14 — Chuyển phòng và dữ liệu cá nhân
 
@@ -1382,6 +1510,11 @@ Backup gồm database (V1.1 thêm tệp riêng tư), có retention và diễn t�
 - Để tenant mới nhận cọc, nợ, credit hoặc usage của tenant cũ.
 - Để Prisma xóa ràng buộc SQL thủ công trong migration mà không có chủ đích thay thế.
 - Chỉ làm UI đẹp nhưng nghiệp vụ vẫn mock hoặc database thiếu ràng buộc.
+- Đánh dấu “đã thu” vì đã tạo/quét QR hoặc đã gửi tin nhắc; tạo ảnh QR bằng dịch vụ bên ngoài.
+- Gửi tin nhắc thật từ môi trường dev/test, hoặc tới người thuê chưa đồng ý; gửi hai tin cho cùng một mốc.
+- Lưu khóa API Zalo/SMS trong DB, code hay log; để số điện thoại đầy đủ trong log.
+- Bắt chủ trọ nhập lại chỉ số trước mỗi tháng; sửa giá điện nước làm thay đổi tiền của kỳ đã tính.
+- Hiển thị CCCD, số điện thoại hay dữ liệu người khác trên trang xem thông báo công khai.
 
 ## 19. Prompt dùng với Claude Code
 
@@ -1446,6 +1579,10 @@ main khi tôi chưa đồng ý.
 - [ ] READY/MAINTENANCE sau bàn giao đúng; khách mới không nhận nợ cũ.
 - [ ] Phạm vi theo tòa và audit enforce ở backend.
 - [ ] Trang in thông báo/phiếu thu/biên bản lưu được PDF.
+- [ ] Mã VietQR đúng chuẩn trên thông báo, trang in và link gửi khách; ghi nhận thu vẫn làm tay.
+- [ ] Giá điện nước đặt theo tòa, có “Thay đổi giá”; mỗi tháng chỉ nhập chỉ số mới và tiền được tính tự động.
+- [ ] Nhắc đóng tiền theo mốc, không gửi trùng, có nhật ký (gửi thật khi đã chốt nhà cung cấp).
+- [ ] Báo cáo doanh thu theo tháng đối chiếu khớp: Phát sinh = Đã thu + Còn nợ.
 - [ ] Test matrix MVP, E2E và cài sạch đạt; hạn chế còn lại được ghi rõ.
 - [ ] Có backup/restore database, runbook và tài liệu chạy local.
 
@@ -1454,7 +1591,8 @@ main khi tôi chưa đồng ý.
 - [ ] Vai trò MANAGER/ACCOUNTANT và quyền theo người dùng.
 - [ ] Phụ lục hợp đồng, đóng/mở kỳ, thông báo theo mốc.
 - [ ] Chi phí và báo cáo tài chính đầy đủ, tách doanh thu/thực thu/cọc/chi phí.
-- [ ] Tệp riêng tư, bảo trì, link xem có thời hạn, VietQR.
+- [ ] Tệp riêng tư, bảo trì.
+- [ ] Doanh thu theo tòa/phòng/khoản thu.
 - [ ] Chuyển phòng; chính sách lưu trữ và ẩn danh dữ liệu cá nhân.
 
 **Điểm chốt:** Hợp đồng quản lý thời hạn cam kết. Tenancy quản lý lần thuê. Thông báo tiền phòng quản lý khoản phải thu; mỗi dòng mang khoảng phí riêng. Đối soát bảo đảm mỗi ngày phí được tính đúng một lần. Payment, sổ cọc và sổ giữ chỗ quản lý tiền thực tế. Trả phòng chốt khoảng ở; quyết toán xác định khoản phải thu/hoàn; chỉ giao dịch thực mới chứng minh tiền đã được nhận hoặc trả.

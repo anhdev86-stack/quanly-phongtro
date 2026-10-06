@@ -7,7 +7,7 @@ import { useMe } from '@/features/auth/api';
 
 /**
  * Tổng quan — Phase 0 chỉ hiển thị thông tin phiên và phạm vi tòa, đọc từ API thật.
- * Chỉ số phòng, công nợ, việc cần xử lý được bổ sung ở Phase 8.
+ * Chỉ số phòng, công nợ, việc cần xử lý được bổ sung ở Phase 8A.
  */
 export default function DashboardPage() {
   const { data: me } = useMe();

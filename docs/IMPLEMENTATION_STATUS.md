@@ -1,6 +1,6 @@
 # Tiến độ triển khai
 
-Nguồn yêu cầu: [MASTER_PLAN.md](../MASTER_PLAN.md) v2.3. Quyết định kỹ thuật: [DECISIONS.md](DECISIONS.md).
+Nguồn yêu cầu: [MASTER_PLAN.md](../MASTER_PLAN.md) v2.4. Quyết định kỹ thuật: [DECISIONS.md](DECISIONS.md).
 
 Quy ước: ✅ đã triển khai **và** đã kiểm thử · 🟡 đã triển khai, chưa kiểm thử đầy đủ · ⛔ bị chặn · ⬜ chưa làm.
 
@@ -111,6 +111,20 @@ Số liệu chi tiết từng lần chạy cuối cùng nằm ở báo cáo nghi
 2. Endpoint `/users` đưa vào Phase 1? (xem trên)
 3. Danh tính git của repo đang là `aiagent <aiagent@hecatech.vn>` (D-019). Có muốn đổi không?
 4. Các mục ở MASTER_PLAN 2.3 (pháp lý tạm trú/dữ liệu cá nhân, mẫu báo cáo thuế) vẫn chờ, chưa chặn MVP.
+5. **Nhắc đóng tiền Zalo/SMS (N-1…N-5, MASTER_PLAN 2.3):** nhà cung cấp, tài khoản và khóa API, chi phí, cách ghi nhận đồng ý, mẫu tin. Chặn phần gửi thật ở Phase 8B.
+
+---
+
+## Yêu cầu mới v2.4 (06/10/2026)
+
+Chủ dự án bổ sung; đã ghi vào MASTER_PLAN v2.4, **chưa triển khai** (Phase 0 chưa có module nghiệp vụ):
+
+| Yêu cầu | Lựa chọn của chủ dự án | Triển khai ở |
+|---|---|---|
+| Mã QR để khách đóng tiền | VietQR, chủ trọ xác nhận tay | Phase 6 (cần thông báo tiền phòng từ Phase 5) |
+| Nhắc tới ngày đóng tiền | Zalo/SMS tới người thuê | Phase 8B; gửi thật cần chốt N-1…N-5 |
+| Điện nước: giá nhập một lần, nút thay đổi, mỗi tháng chỉ nhập chỉ số | Giá riêng từng tòa; điện đ/kWh, nước đ/m³ | Phase 4 (nhập, giá) + Phase 5 (tính tiền) |
+| Báo cáo doanh thu | Theo tháng: phát sinh/giảm trừ/đã thu/còn nợ + thực thu trong tháng | Phase 8A |
 
 ---
 
@@ -135,16 +149,29 @@ Số liệu chi tiết từng lần chạy cuối cùng nằm ở báo cáo nghi
 ## Phase 4 — Utilities và Services ⬜
 
 - [ ] Dịch vụ, `charge_timing`, subscription, đồng hồ, chỉ số, màn hình nhập trên điện thoại
-- [ ] T12 (phần), T13, T14 (phần)
+- [ ] Giá điện nước theo tòa + nút “Thay đổi giá” + lịch sử; chỉ số trước tự lấy; tiền tạm tính (v2.4)
+- [ ] T12 (phần), T13, T14 (phần), T60 (phần), T61 (phần)
 
 ## Phase 5 — Billing Engine ⬜ (bị chặn bởi B-1…B-4)
 
 - [ ] Chốt B-1, B-2, B-3, B-4 với chủ dự án
 - [ ] Domain tính phí, đối soát, generate/publish, trang in
-- [ ] Chạy lại toàn bộ test Phase 0–4; T01, T04, T09, T10, T12, T14–T16, T19, T39–T42, T45–T47, T49, T50, T54
+- [ ] Chạy lại toàn bộ test Phase 0–4; T01, T04, T09, T10, T12, T14–T16, T19, T39–T42, T45–T47, T49, T50, T54, T60 (phần), T61 (phần)
 
 ## Phase 6 — Payment, Credit và công nợ ⬜
+
+- [ ] Phiếu thu, công nợ, credit
+- [ ] Tài khoản nhận tiền, VietQR, link xem thông báo, trang công khai (v2.4) — T57–T59
+
 ## Phase 7 — Trả phòng và quyết toán ⬜
-## Phase 8 — Dashboard và báo cáo MVP ⬜
+
+## Phase 8A — Dashboard và báo cáo MVP ⬜
+
+- [ ] Báo cáo doanh thu theo tháng (v2.4) — T65
+
+## Phase 8B — Nhắc đóng tiền qua Zalo/SMS ⬜ (gửi thật chờ N-1…N-5)
+
+- [ ] Lập lịch, nhật ký, `LogOnlyChannel`, đồng ý nhận tin — T62–T64
+- [ ] Adapter Zalo ZNS / SMS khi chủ dự án đã chốt nhà cung cấp
 ## Phase 9 — MVP release readiness ⬜
 ## Phase 10–14 — V1.1 ⬜
