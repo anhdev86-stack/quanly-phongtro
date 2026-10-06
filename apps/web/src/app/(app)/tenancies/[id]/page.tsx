@@ -1,7 +1,7 @@
 'use client';
 
 import { PERMISSIONS } from '@ql-tro/shared';
-import { Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, Td, Th, Tr } from '@/components/ui/table';
 import { useCan } from '@/features/auth/permissions';
+import { RentPriceDialog } from '@/features/contracts/contract-dialogs';
 import { useDepositLedger, useTenancy } from '@/features/tenancy/api';
 import { LedgerTable, LedgerTxDialog } from '@/features/tenancy/ledger';
 import { MembersSection } from '@/features/tenancy/members-section';
@@ -25,6 +26,7 @@ export default function TenancyDetailPage() {
   const tenancy = useTenancy(id);
   const ledger = useDepositLedger(id);
   const [recording, setRecording] = useState(false);
+  const [changingPrice, setChangingPrice] = useState(false);
 
   if (tenancy.isPending) return <LoadingState />;
   if (tenancy.isError) return <ErrorState error={tenancy.error} onRetry={() => void tenancy.refetch()} />;
@@ -106,8 +108,14 @@ export default function TenancyDetailPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex items-center justify-between">
           <CardTitle>Giá thuê và dịch vụ</CardTitle>
+          {can(PERMISSIONS.CONTRACTS_MANAGE) && t.status !== 'ENDED' ? (
+            <Button size="sm" variant="outline" onClick={() => setChangingPrice(true)}>
+              <Pencil className="size-4" aria-hidden />
+              Đổi giá thuê
+            </Button>
+          ) : null}
         </CardHeader>
         <Table>
           <thead>
@@ -124,7 +132,10 @@ export default function TenancyDetailPage() {
                 <Td>Tiền phòng</Td>
                 <Td className="tabular">{formatBusinessDate(p.effective_from)}</Td>
                 <Td className="text-right tabular">{formatVnd(p.monthly_rent_vnd)}</Td>
-                <Td className="hidden text-slate-600 sm:table-cell">{p.status === 'VOIDED' ? `Vô hiệu: ${p.void_reason ?? ''}` : p.reason}</Td>
+                <Td className="hidden text-slate-600 sm:table-cell">
+                  {p.status === 'VOIDED' ? `Vô hiệu: ${p.void_reason ?? ''}` : p.reason}
+                  {p.source_contract_id ? <span className="ml-1 text-xs text-slate-400">(theo hợp đồng)</span> : null}
+                </Td>
               </Tr>
             ))}
             {t.services.map((s) => (
@@ -155,6 +166,7 @@ export default function TenancyDetailPage() {
         </Link>
       </p>
 
+      <RentPriceDialog open={changingPrice} onClose={() => setChangingPrice(false)} tenancy={t} />
       <LedgerTxDialog open={recording} onClose={() => setRecording(false)} kind="deposit" path={`/tenancies/${t.id}/deposit-transactions`} allowed={depositTypes} />
     </div>
   );

@@ -1,9 +1,7 @@
 'use client';
 
 import { Field, TextInput, Textarea } from '@/components/ui/form';
-
-/** Bật khi API hỗ trợ hợp đồng kèm nhận phòng (Phase 3). */
-export const CONTRACT_SUPPORTED = false;
+import { termEndAfterMonths } from '@/lib/format';
 
 export interface ContractDraft {
   enabled: boolean;
@@ -15,17 +13,10 @@ export interface ContractDraft {
   terms_note: string;
 }
 
-function addMonths(date: string, months: number): string {
-  const [y, m, d] = date.split('-').map(Number) as [number, number, number];
-  const dt = new Date(Date.UTC(y, m - 1 + months, d));
-  dt.setUTCDate(dt.getUTCDate() - 1);
-  return dt.toISOString().slice(0, 10);
-}
-
 export const emptyContract = (start: string): ContractDraft => ({
   enabled: false,
   term_start: start,
-  term_end: addMonths(start, 6),
+  term_end: termEndAfterMonths(start, 6),
   signed: true,
   signed_at: start,
   notice_days: '30',
@@ -55,9 +46,6 @@ export function ContractStep({
   startDate: string;
   errors: Record<string, string>;
 }) {
-  if (!CONTRACT_SUPPORTED) {
-    return <p className="text-sm text-slate-600">Hợp đồng được quản lý ở module Hợp đồng (Phase 3). Lần thuê sẽ là thuê theo tháng cho tới khi có hợp đồng.</p>;
-  }
   return (
     <div className="flex flex-col gap-4">
       <label className="flex items-center gap-2 text-sm">
@@ -65,7 +53,12 @@ export function ContractStep({
           type="checkbox"
           className="size-4 accent-brand-600"
           checked={value.enabled}
-          onChange={(e) => onChange({ ...value, enabled: e.target.checked, term_start: value.term_start || startDate })}
+          onChange={(e) =>
+            onChange(
+              // Ngày nhận phòng có thể đã đổi ở bước 1: lấy lại kỳ mặc định theo ngày mới.
+              e.target.checked && value.term_start !== startDate ? { ...emptyContract(startDate), enabled: true } : { ...value, enabled: e.target.checked },
+            )
+          }
         />
         Tạo hợp đồng có thời hạn
       </label>

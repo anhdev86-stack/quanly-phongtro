@@ -6,3 +6,4 @@ export * from './auth.js';
 export * from './property.js';
 export * from './users.js';
 export * from './tenancy.js';
+export * from './contracts.js';

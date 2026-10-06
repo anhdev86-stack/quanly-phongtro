@@ -1,29 +1,6 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { dialog, loginAs } from '../fixtures/session';
-
-async function openRoom(page: Page, code: string) {
-  await page.goto('/rooms');
-  await page.getByLabel('Tìm mã phòng / tên khách').fill(code);
-  await page.getByTestId('room-grid').getByRole('link', { name: new RegExp(`^${code}`) }).click();
-  await expect(page.getByRole('heading', { name: new RegExp(`Phòng ${code}`) })).toBeVisible();
-}
-
-async function finishWizard(page: Page, opts: { tenant: string; deposit: string }) {
-  await page.getByRole('button', { name: 'Tiếp' }).click(); // → Người thuê
-  await page.locator('#mi-p-full_name').fill(opts.tenant);
-  await page.locator('#mi-p-phone').fill('0987654321');
-  await page.getByRole('button', { name: 'Tiếp' }).click(); // → Hợp đồng
-  await page.getByRole('button', { name: 'Tiếp' }).click(); // → Dịch vụ & chỉ số
-  await page.getByLabel('Internet').check();
-  await page.getByLabel('Chỉ số điện').fill('1520');
-  await page.getByLabel('Chỉ số nước').fill('85');
-  await page.getByRole('button', { name: 'Tiếp' }).click(); // → Cọc
-  if (opts.deposit) await page.getByLabel('Tiền cọc thực nhận hôm nay').fill(opts.deposit);
-  await page.getByRole('button', { name: 'Tiếp' }).click(); // → Xem lại
-  await expect(page.getByText(opts.tenant, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Xác nhận nhận phòng' }).click();
-  await expect(page.getByRole('heading', { name: /Lần thuê LT\d{4}-\d{4}/ })).toBeVisible();
-}
+import { finishWizard, openRoom } from '../fixtures/tenancy';
 
 test.describe('Phase 2 — nhận phòng, cọc, tiền giữ chỗ', () => {
   test('OWNER nhận phòng qua wizard, ghi nhận thêm cọc; phòng chuyển Đang thuê', async ({ page }, info) => {
@@ -35,7 +12,7 @@ test.describe('Phase 2 — nhận phòng, cọc, tiền giữ chỗ', () => {
     await finishWizard(page, { tenant: `Khách E2E ${code}`, deposit: '3000000' });
 
     await expect(page.getByText(`Đại diện: Khách E2E ${code}`)).toBeVisible();
-    await expect(page.getByText('Thuê theo tháng')).toBeVisible();
+    await expect(page.getByText('Thuê theo tháng', { exact: true })).toBeVisible();
     await expect(page.getByText('Chỉ số lúc nhận phòng: Điện 1520 · Nước 85')).toBeVisible();
 
     await page.getByRole('button', { name: 'Ghi giao dịch cọc' }).click();

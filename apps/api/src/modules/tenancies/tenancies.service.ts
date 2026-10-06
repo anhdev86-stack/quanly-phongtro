@@ -305,9 +305,6 @@ export class TenanciesService {
     }
 
     // 9. Hợp đồng (Phase 3), thông báo đầu tiên (Phase 5).
-    if (input.contract && this.extensions.length === 0) {
-      throw new AppError('BUSINESS_RULE_VIOLATION', 'Chưa hỗ trợ tạo hợp đồng kèm khi nhận phòng.');
-    }
     for (const ext of this.extensions) await ext.afterMoveIn(tx, user, tenancy, input);
 
     await this.audit.record(tx, {

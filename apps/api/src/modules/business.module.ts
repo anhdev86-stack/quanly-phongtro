@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ContractDepositRequirement, ContractMoveInExtension, ContractRentalMode } from './contracts/contract-providers.js';
+import { ContractsController } from './contracts/contracts.controller.js';
+import { ContractsService } from './contracts/contracts.service.js';
 import { BuildingsController } from './buildings/buildings.controller.js';
 import { BuildingsService } from './buildings/buildings.service.js';
 import { LedgersController } from './ledgers/ledgers.controller.js';
@@ -9,7 +12,6 @@ import { RESERVATION_EXTRAS, ReservationsService } from './reservations/reservat
 import { RoomsController } from './rooms/rooms.controller.js';
 import { RoomsService } from './rooms/rooms.service.js';
 import { ServicesCatalogController } from './services/services.controller.js';
-import { InitialDepositRequirement, NoContractRentalMode } from './tenancies/defaults.js';
 import { MembersService } from './tenancies/members.service.js';
 import { TenanciesController } from './tenancies/tenancies.controller.js';
 import { MOVE_IN_EXTENSIONS, RENTAL_MODE, TenanciesService } from './tenancies/tenancies.service.js';
@@ -32,6 +34,7 @@ import { UsersService } from './users/users.service.js';
     TenanciesController,
     LedgersController,
     ServicesCatalogController,
+    ContractsController,
   ],
   providers: [
     BuildingsService,
@@ -42,10 +45,12 @@ import { UsersService } from './users/users.service.js';
     TenanciesService,
     MembersService,
     LedgersService,
+    ContractsService,
+    ContractMoveInExtension,
     { provide: RESERVATION_EXTRAS, useClass: DefaultReservationExtras },
-    { provide: DEPOSIT_REQUIREMENT, useClass: InitialDepositRequirement },
-    { provide: RENTAL_MODE, useClass: NoContractRentalMode },
-    { provide: MOVE_IN_EXTENSIONS, useValue: [] },
+    { provide: DEPOSIT_REQUIREMENT, useClass: ContractDepositRequirement },
+    { provide: RENTAL_MODE, useClass: ContractRentalMode },
+    { provide: MOVE_IN_EXTENSIONS, useFactory: (contract: ContractMoveInExtension) => [contract], inject: [ContractMoveInExtension] },
   ],
 })
 export class BusinessModule {}

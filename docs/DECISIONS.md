@@ -193,3 +193,14 @@ nghiệp vụ. Module này chỉ được nạp trong integration test, không b
 (`--trace-deprecation`): nguồn là `@prisma/adapter-pg` 7.10 (bộ thông dịch query của Prisma tải quan hệ song song
 trong interactive transaction), không phải code dự án. Code dự án không dùng `Promise.all` với transaction client
 (các hàm nhận `db` chạy tuần tự). **Không nâng `pg` lên 9.x** cho tới khi Prisma hỗ trợ; khi nâng Prisma phải kiểm tra lại.
+
+## D-027 — Trạng thái hợp đồng suy ra từ ngày; lọc danh sách trong bộ nhớ
+
+- Bảng `contracts` chỉ lưu `lifecycle` (DRAFT/SIGNED/CANCELLED) và `terminated_on`. Trạng thái hiển thị
+  (SCHEDULED/ACTIVE/EXPIRED/TERMINATED_EARLY) tính bằng hàm thuần `contractStatus` theo ngày nghiệp vụ hôm nay (Clock).
+  Hàm SQL `contract_effective_status` cho cùng kết quả (T05), dùng khi cần lọc/báo cáo bằng SQL.
+- `GET /contracts` lọc theo trạng thái và “sắp hết hạn trong N ngày” bằng hàm domain sau khi lấy các hợp đồng trong phạm vi
+  tòa. Quy mô mục tiêu (vài trăm phòng) đủ nhỏ; khi vượt ~10.000 hợp đồng thì chuyển sang lọc bằng hàm SQL.
+- “Sắp hết hạn” chỉ gồm hợp đồng ACTIVE chưa có kỳ đã ký bắt đầu sau ngày kết thúc (đã gia hạn thì không nhắc).
+- Hủy hợp đồng đã ký chỉ khi chưa bắt đầu. Phiên bản giá/dịch vụ có `source_contract_id` = hợp đồng đó chuyển VOIDED;
+  phiên bản tạo độc lập giữ nguyên. Hợp đồng đang hiệu lực kết thúc qua trả phòng (Phase 7).

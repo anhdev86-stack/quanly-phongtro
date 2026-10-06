@@ -12,7 +12,7 @@ import { Table, Td, Th, Tr } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { ReasonDialog } from '@/features/property/reservation-forms';
 import { ApiError } from '@/lib/api-client';
-import { formatBusinessDate, formatVnd } from '@/lib/format';
+import { formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
 import { useIdempotencyKey } from '@/lib/use-idempotency-key';
 import { useLedgerPost } from './api';
 
@@ -121,11 +121,6 @@ const TYPE_OPTIONS: Record<LedgerKind, { value: string; label: string }[]> = {
     { value: 'FORFEIT', label: 'Giữ lại theo thỏa thuận' },
   ],
 };
-
-function todayLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 /** Ghi một giao dịch tiền thực tế. Chỉ ghi khi tiền đã thực nhận/thực chi. */
 export function LedgerTxDialog({ open, onClose, kind, path, allowed }: { open: boolean; onClose: () => void; kind: LedgerKind; path: string; allowed: string[] }) {

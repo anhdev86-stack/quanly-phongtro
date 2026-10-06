@@ -13,17 +13,12 @@ import { Table, Td, Th, Tr } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useCan } from '@/features/auth/permissions';
 import { ApiError } from '@/lib/api-client';
-import { formatBusinessDate } from '@/lib/format';
+import { formatBusinessDate, todayLocal } from '@/lib/format';
 import { useMemberAction } from './api';
 import { newPerson, PersonPicker, type PersonChoice, personToRef } from './person-picker';
 import { scopedErrors } from './tenant-fields';
 
 type Member = TenancyDetail['members'][number];
-
-function todayLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 export function MembersSection({ tenancy }: { tenancy: TenancyDetail }) {
   const can = useCan();
