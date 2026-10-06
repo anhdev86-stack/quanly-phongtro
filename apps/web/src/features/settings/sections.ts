@@ -1,5 +1,5 @@
 import { PERMISSIONS, type PermissionCode } from '@ql-tro/shared';
-import { Calculator, Landmark, type LucideIcon } from 'lucide-react';
+import { BellRing, Calculator, Landmark, type LucideIcon } from 'lucide-react';
 
 /** Các mục cấu hình bổ sung theo phase (tài khoản nhận tiền, nhắc đóng tiền, chính sách tính phí…). */
 export const SETTINGS_SECTIONS: { href: string; title: string; description: string; icon: LucideIcon; perm: PermissionCode }[] = [
@@ -16,5 +16,12 @@ export const SETTINGS_SECTIONS: { href: string; title: string; description: stri
     description: 'Ngân hàng, số tài khoản, chủ tài khoản dùng cho mã QR trên thông báo.',
     icon: Landmark,
     perm: PERMISSIONS.PAYMENT_ACCOUNTS_MANAGE,
+  },
+  {
+    href: '/settings/reminders',
+    title: 'Nhắc đóng tiền (Zalo/SMS)',
+    description: 'Bật/tắt, kênh gửi, mốc nhắc, giờ gửi và giờ yên lặng.',
+    icon: BellRing,
+    perm: PERMISSIONS.REMINDERS_VIEW,
   },
 ];

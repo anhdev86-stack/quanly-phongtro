@@ -117,14 +117,20 @@ export class SharingService {
   async createLink(user: AuthUser, invoiceId: string) {
     const inv = await this.invoiceInScope(user, invoiceId);
     if (inv.lifecycle !== 'PUBLISHED') throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ chia sẻ thông báo đã phát hành.');
-    const token = randomBytes(32).toString('base64url');
-    const expires = new Date(this.clock.now().getTime() + SHARE_LINK_DAYS * 86_400_000);
-    const link = await runInTransaction(this.prisma, async (tx) => {
-      const l = await tx.shareLink.create({ data: { workspaceId: user.workspaceId, invoiceId, tokenHash: hashToken(token), expiresAt: expires, createdBy: user.id } });
-      await this.audit.record(tx, { workspaceId: user.workspaceId, actorId: user.id, action: 'share_link.create', entityType: 'invoice', entityId: invoiceId, after: { link_id: l.id, expires_at: expires } });
-      return l;
+    const { link, token } = await runInTransaction(this.prisma, async (tx) => {
+      const r = await this.createLinkInTx(tx, user.workspaceId, invoiceId, user.id);
+      await this.audit.record(tx, { workspaceId: user.workspaceId, actorId: user.id, action: 'share_link.create', entityType: 'invoice', entityId: invoiceId, after: { link_id: r.link.id, expires_at: r.link.expiresAt } });
+      return r;
     });
     return { ...(await this.linkDtos([link]))[0]!, token, path: `/p/${token}` };
+  }
+
+  /** Tạo link mới; chỉ lưu hash, token chỉ trả về một lần (dùng cả cho tin nhắc đóng tiền). */
+  async createLinkInTx(db: Db, workspaceId: string, invoiceId: string, createdBy: string) {
+    const token = randomBytes(32).toString('base64url');
+    const expires = new Date(this.clock.now().getTime() + SHARE_LINK_DAYS * 86_400_000);
+    const link = await db.shareLink.create({ data: { workspaceId, invoiceId, tokenHash: hashToken(token), expiresAt: expires, createdBy } });
+    return { link, token };
   }
 
   async listLinks(user: AuthUser, invoiceId: string) {

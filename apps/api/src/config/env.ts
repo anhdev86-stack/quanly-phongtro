@@ -15,6 +15,16 @@ export const envSchema = z
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
     COOKIE_SECURE: booleanString.default(false),
     BUSINESS_TIMEZONE: z.string().default('Asia/Ho_Chi_Minh'),
+    /** Địa chỉ web công khai để ghép link xem thông báo trong tin nhắc. */
+    PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
+    /** Job nhắc đóng tiền chạy mỗi 15 phút trong tiến trình API (tắt ở test). */
+    REMINDER_JOB_ENABLED: booleanString.default(true),
+    // Khóa nhà cung cấp tin nhắn: chỉ ở biến môi trường server, không lưu DB, không ghi log (MASTER_PLAN 9.7).
+    ZALO_ZNS_ACCESS_TOKEN: z.string().min(1).optional(),
+    ZALO_ZNS_TEMPLATE_ID: z.string().min(1).optional(),
+    SMS_API_URL: z.string().url().optional(),
+    SMS_API_KEY: z.string().min(1).optional(),
+    SMS_BRANDNAME: z.string().min(1).optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;

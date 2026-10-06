@@ -675,6 +675,28 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       await expectRejected((tx) => item(tx, 'DAMAGE', 0n), 'settlement_items_amount_chk');
       await expectRejected((tx) => item(tx, 'INVOICE_BALANCE', -1n), 'settlement_items_amount_chk');
     },
+
+    // ---------------- Phase 8B ----------------
+    reminder_settings_hours_chk: async () => {
+      const mk = (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
+        tx.reminderSettings.upsert({ where: { workspaceId: W }, update: extra, create: { workspaceId: W, ...extra } as never });
+      await expectAccepted((tx) => mk(tx, { sendHour: 23, quietStart: 0, quietEnd: 23 }));
+      await expectRejected((tx) => mk(tx, { sendHour: 24 }), 'reminder_settings_hours_chk');
+      await expectRejected((tx) => mk(tx, { quietEnd: -1 }), 'reminder_settings_hours_chk');
+    },
+    reminder_messages_state_chk: async () => {
+      const msg = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) => {
+        const inv = await invoice(tx, await mkTenancy(tx, await mkRoom(tx)), { statementPeriodId: await period(tx, '2031-06-01') });
+        return tx.reminderMessage.create({
+          data: { workspaceId: W, invoiceId: inv.id, tenantId: await mkTenant(tx), milestone: 'DUE', offsetDays: 0, scheduledFor: new Date(), recipientMasked: '09******89', contentSnapshot: {}, ...extra } as never,
+        });
+      };
+      await expectAccepted((tx) => msg(tx, { status: 'SENT', sentAt: new Date(), channelUsed: 'LOG_ONLY' }));
+      await expectAccepted((tx) => msg(tx, { status: 'SKIPPED', skipReason: 'PAID' }));
+      await expectRejected((tx) => msg(tx, { status: 'SENT' }), 'reminder_messages_state_chk');
+      await expectRejected((tx) => msg(tx, { status: 'SKIPPED' }), 'reminder_messages_state_chk');
+      await expectRejected((tx) => msg(tx, { attemptCount: -1 }), 'reminder_messages_state_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
 
   const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>

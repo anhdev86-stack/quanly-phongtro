@@ -1,0 +1,91 @@
+// Phase 8B: nhắc đóng tiền qua Zalo/SMS (MASTER_PLAN 9.7). Không lưu khóa API trong DB.
+
+/// Cấu hình nhắc đóng tiền của nhà trọ. Mặc định tắt.
+model ReminderSettings {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  workspaceId  String   @unique @map("workspace_id") @db.Uuid
+  enabled      Boolean  @default(false)
+  /// Thứ tự kênh, VD ["ZALO_ZNS","SMS"].
+  channelOrder Json     @default("[\"ZALO_ZNS\",\"SMS\"]") @map("channel_order")
+  /// Mốc so với hạn đóng (ngày), VD [-3, 0, 3]: tối đa một mốc trước hạn, một mốc đúng hạn, một mốc quá hạn.
+  offsetsDays  Json     @default("[-3,0,3]") @map("offsets_days")
+  sendHour     Int      @default(9) @map("send_hour")
+  quietStart   Int      @default(21) @map("quiet_start")
+  quietEnd     Int      @default(7) @map("quiet_end")
+  /// Vẫn nhắc nợ của lần thuê đã kết thúc.
+  sendToEnded  Boolean  @default(true) @map("send_to_ended")
+  version      Int      @default(1)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("reminder_settings")
+}
+
+enum ReminderMilestone {
+  BEFORE_DUE
+  DUE
+  OVERDUE
+}
+
+enum ReminderStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  SKIPPED
+  CANCELLED
+}
+
+/// Một tin nhắc cho một (thông báo, mốc). Unique (invoice_id, milestone): job chạy lại/song song không tạo trùng (T62).
+model ReminderMessage {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  workspaceId     String            @map("workspace_id") @db.Uuid
+  invoiceId       String            @map("invoice_id") @db.Uuid
+  tenantId        String            @map("tenant_id") @db.Uuid
+  milestone       ReminderMilestone
+  offsetDays      Int               @map("offset_days")
+  scheduledFor    DateTime          @map("scheduled_for") @db.Timestamptz(3)
+  status          ReminderStatus    @default(PENDING)
+  skipReason      String?           @map("skip_reason")
+  channelUsed     String?           @map("channel_used")
+  /// Số điện thoại đã che (09******89); số thật lấy từ hồ sơ người thuê lúc gửi.
+  recipientMasked String            @map("recipient_masked")
+  /// Số tiền, hạn, mã thông báo, phòng, tháng lúc tạo tin.
+  contentSnapshot Json              @map("content_snapshot")
+  attemptCount    Int               @default(0) @map("attempt_count")
+  nextAttemptAt   DateTime?         @map("next_attempt_at") @db.Timestamptz(3)
+  sentAt          DateTime?         @map("sent_at") @db.Timestamptz(3)
+  shareLinkId     String?           @map("share_link_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  invoice  Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  attempts ReminderAttempt[]
+
+  @@unique([invoiceId, milestone])
+  @@index([workspaceId, status])
+  @@map("reminder_messages")
+}
+
+enum AttemptResult {
+  SUCCESS
+  FAILED
+}
+
+/// Mỗi lần thử gửi qua một kênh. Thông báo lỗi đã che số điện thoại, không chứa khóa API.
+model ReminderAttempt {
+  id                String        @id @default(uuid(7)) @db.Uuid
+  messageId         String        @map("message_id") @db.Uuid
+  channel           String
+  attemptedAt       DateTime      @map("attempted_at") @db.Timestamptz(3)
+  result            AttemptResult
+  providerMessageId String?       @map("provider_message_id")
+  errorCode         String?       @map("error_code")
+  errorMessage      String?       @map("error_message")
+  /// Do người dùng bấm “Gửi lại”.
+  manual            Boolean       @default(false)
+
+  message ReminderMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("reminder_attempts")
+}

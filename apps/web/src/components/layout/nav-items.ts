@@ -40,7 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Thu tiền & Công nợ', href: '/payments', icon: HandCoins, availableFromPhase: 6 },
   { label: 'Cọc & Trả phòng', href: '/move-outs', icon: Receipt, availableFromPhase: 7 },
   { label: 'Báo cáo', href: '/reports', icon: BarChart3, availableFromPhase: 8, anyPermission: ['reports.view'] },
-  { label: 'Nhắc đóng tiền', href: '/reminders', icon: Bell, availableFromPhase: 8.5 },
+  { label: 'Nhắc đóng tiền', href: '/reminders', icon: Bell, availableFromPhase: 8.5, anyPermission: ['reminders.view'] },
   { label: 'Chi phí', href: '/expenses', icon: Wallet, availableFromPhase: 12, anyPermission: ['reports.view'] },
   { label: 'Bảo trì', href: '/maintenance', icon: Wrench, availableFromPhase: 13 },
   { label: 'Nhật ký', href: '/audit', icon: ClipboardList, availableFromPhase: 10, anyPermission: ['audit.view'] },
@@ -48,4 +48,4 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 /** Phase đã hoàn thành của bản build hiện tại. */
-export const CURRENT_PHASE = 8;
+export const CURRENT_PHASE = 8.5;

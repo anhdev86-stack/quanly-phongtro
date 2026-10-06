@@ -292,3 +292,26 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - Khi ghép điều kiện Prisma với `roomWhere(user)` thì dùng `AND`, không spread rồi đặt lại khóa `building` (sẽ mất phạm vi).
 - Nav: Phase 8B ký hiệu 8.5 trong `availableFromPhase` (hiển thị “8B”).
 
+
+## D-034 — Nhắc đóng tiền (Phase 8B)
+
+- **Chưa gửi tin thật.** Chủ dự án chưa chốt N-1…N-5 (nhà cung cấp, tài khoản, mẫu tin). `ZaloZnsChannel` và `SmsChannel` chỉ là
+  khung: đọc khóa từ biến môi trường (`ZALO_ZNS_*`, `SMS_*`), `ready()` luôn false cho tới khi viết lời gọi API thật và chủ dự án
+  gửi thử thành công. Vì vậy mọi môi trường hiện dùng `LogOnlyChannel` (trạng thái SENT, kênh `LOG_ONLY`, UI ghi rõ “chỉ ghi log”).
+- Gửi thật chỉ khi đủ: `NODE_ENV=production` + `reminder_settings.enabled` + có adapter `ready()`. Quyết định nằm ở `ChannelRegistry.resolve`;
+  test thay kênh bằng `vi.spyOn(registry, 'resolve')` (không có đường tắt riêng cho test trong mã chạy thật).
+- Mốc gửi = (ngày đến hạn + offset) lúc `send_hour` giờ Việt Nam (UTC+7 cố định). Tin chỉ được tạo trong 24 giờ sau mốc và ngoài giờ
+  yên lặng; job chạy lại sau giờ yên lặng vẫn kịp tạo tin nếu còn trong 24 giờ. Mỗi loại mốc (trước hạn / đúng hạn / quá hạn) tối đa một,
+  khớp unique `(invoice_id, milestone)`.
+- Người nhận = người đại diện (PRIMARY) của lần thuê, có `reminder_opt_in` và số di động hợp lệ. Thông báo CREDIT_ADJUSTMENT không nhắc.
+- Chống trùng: unique + `createMany(skipDuplicates)`; lập lịch trong transaction có `pg_try_advisory_xact_lock`. Gửi: “giành” tin bằng
+  `updateMany PENDING → SENDING` (có thời hạn giữ 10 phút, quá hạn thì quay về PENDING) nên chạy song song không gửi hai lần.
+- Kiểm tra lại ngay trước khi gửi: hủy → SKIPPED/CANCELLED, chưa phát hành, đã trả đủ → PAID, lần thuê kết thúc (khi cấu hình không nhắc),
+  tắt nhận tin, mất số. Tắt nhận tin đổi ngay các tin PENDING của người đó thành SKIPPED; tắt nhắc hủy các tin PENDING (CANCELLED, DISABLED).
+- Kênh đầu lỗi thì thử kênh sau trong cùng lượt. Lượt lỗi có lỗi tạm thời thì thử lại sau 5, 15 phút; lượt thứ 3 vẫn lỗi → FAILED (hiện trong
+  “Việc cần xử lý”). Gửi lại thủ công cần `reminders.manage`, có audit, là một lượt thử mới cho cùng tin, bị chặn trong giờ yên lặng.
+- Link trong tin là link xem thông báo (D-031) tạo lúc gửi; chỉ lưu hash. Lượt gửi sau thu hồi link của lượt trước. Link do job tạo ghi
+  `created_by` là chủ trọ.
+- Không lưu số điện thoại thật trong `reminder_messages`/`reminder_attempts`/log: lưu `recipient_masked`, lỗi qua `maskPhonesIn`; log của
+  `LogOnlyChannel` không in nội dung tin (có token link).
+- Job chạy mỗi 15 phút trong tiến trình API (`REMINDER_JOB_ENABLED`, tắt ở test); nút “Chạy nhắc ngay” gọi `POST /reminders/run`.

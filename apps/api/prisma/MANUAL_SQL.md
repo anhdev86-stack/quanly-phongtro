@@ -98,6 +98,8 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `move_out_settlements_workflow_chk` | move_out_settlements | CHECK | `20261006155140_phase7_move_out` | Duyệt/hoàn tất có người duyệt và input_hash; COMPLETED ⇔ có completed_at |
 | `move_out_settlements_deposit_chk` | move_out_settlements | CHECK | `20261006155140_phase7_move_out` | Cọc đề xuất áp không âm |
 | `settlement_items_amount_chk` | settlement_items | CHECK | `20261006155140_phase7_move_out` | Khoản phí trả phòng > 0; dòng số dư ≥ 0 |
+| `reminder_settings_hours_chk` | reminder_settings | CHECK | `20261006164950_phase8b_reminders` | Giờ gửi/giờ yên lặng 0–23 |
+| `reminder_messages_state_chk` | reminder_messages | CHECK | `20261006164950_phase8b_reminders` | SENT ⇔ có thời điểm + kênh; SKIPPED có lý do |
 
 ```json manual-constraints
 [
@@ -496,6 +498,18 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "settlement_items",
     "definition": "CHECK (((amount_vnd >= 0) AND ((kind = ANY (ARRAY['INVOICE_BALANCE'::\"SettlementItemKind\", 'CREDIT_BALANCE'::\"SettlementItemKind\"])) OR (amount_vnd > 0))))"
+  },
+  {
+    "name": "reminder_settings_hours_chk",
+    "kind": "check",
+    "table": "reminder_settings",
+    "definition": "CHECK ((((send_hour >= 0) AND (send_hour <= 23)) AND ((quiet_start >= 0) AND (quiet_start <= 23)) AND ((quiet_end >= 0) AND (quiet_end <= 23))))"
+  },
+  {
+    "name": "reminder_messages_state_chk",
+    "kind": "check",
+    "table": "reminder_messages",
+    "definition": "CHECK ((((status = 'SENT'::\"ReminderStatus\") = ((sent_at IS NOT NULL) AND (channel_used IS NOT NULL))) AND ((status <> 'SKIPPED'::\"ReminderStatus\") OR (skip_reason IS NOT NULL)) AND (attempt_count >= 0)))"
   }
 ]
 ```

@@ -94,6 +94,7 @@ export const tenantSchema = z.object({
   note: z.string().nullable(),
   reminder_opt_in: z.boolean(),
   reminder_consent_at: z.string().nullable(),
+  reminder_consent_note: z.string().nullable(),
   archived_at: z.string().nullable(),
   version: z.number(),
   current_room: z.string().nullable(),
