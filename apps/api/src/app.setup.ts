@@ -5,14 +5,16 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { AllExceptionsFilter } from './common/errors/all-exceptions.filter.js';
+import { APP_CONFIG, type AppConfig } from './config/env.js';
 
 export const API_PREFIX = 'api/v1';
 
 /** Cấu hình dùng chung cho main.ts và integration test, để test chạy đúng như production. */
 export function configureApp(app: NestExpressApplication, options: { swagger?: boolean } = {}): void {
   app.useLogger(app.get(Logger));
-  // API nằm sau Next.js rewrite (dev) hoặc Caddy (production) trên cùng máy: chỉ tin proxy loopback.
-  app.set('trust proxy', 'loopback');
+  // API nằm sau Next.js rewrite (dev) hoặc Caddy (production): chỉ tin proxy được cấu hình (mặc định loopback).
+  const trustProxy = app.get<AppConfig>(APP_CONFIG).TRUST_PROXY;
+  app.set('trust proxy', trustProxy.split(',').map((s) => s.trim()));
   app.use(helmet());
   app.use(cookieParser());
   app.setGlobalPrefix(API_PREFIX);

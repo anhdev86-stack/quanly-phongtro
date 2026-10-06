@@ -20,7 +20,11 @@
     "db:migrate": "pnpm --filter @ql-tro/api db:migrate",
     "db:deploy": "pnpm --filter @ql-tro/api db:deploy",
     "db:seed": "pnpm --filter @ql-tro/api db:seed",
-    "db:reset": "pnpm --filter @ql-tro/api db:reset"
+    "db:reset": "pnpm --filter @ql-tro/api db:reset",
+    "db:bootstrap": "pnpm --filter @ql-tro/api db:bootstrap",
+    "db:backup": "node scripts/db-backup.mjs",
+    "db:restore": "node scripts/db-restore.mjs",
+    "db:restore:drill": "node scripts/db-restore.mjs --drill"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

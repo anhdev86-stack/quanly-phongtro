@@ -6,6 +6,9 @@ import { APP_CONFIG, type AppConfig } from '../../config/env.js';
 
 const REQUEST_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
 
+/** `/api/v1/public/invoices/<token>` → `/api/v1/public/invoices/[REDACTED]`. */
+export const maskPublicToken = (url: string | undefined): string | undefined => url?.replace(/(\/public\/invoices\/)[^/?#]+/, '$1[REDACTED]');
+
 /**
  * Log JSON có request ID. Không bao giờ log cookie, header xác thực, mật khẩu hay token (MASTER_PLAN 11.4).
  */
@@ -35,6 +38,10 @@ const REQUEST_ID_RE = /^[A-Za-z0-9_-]{8,64}$/;
               '*.refreshToken',
             ],
             censor: '[REDACTED]',
+          },
+          // Token của link xem thông báo nằm trong URL: che trong `url` và bỏ `params` (Express có thể đưa token vào params/splat).
+          serializers: {
+            req: (req: { url?: string; params?: unknown }) => ({ ...req, url: maskPublicToken(req.url), params: undefined }),
           },
           autoLogging: { ignore: (req) => req.url?.startsWith('/api/v1/health') ?? false },
           ...(config.NODE_ENV === 'development'

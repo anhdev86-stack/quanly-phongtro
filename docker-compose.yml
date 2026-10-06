@@ -10,7 +10,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-ql_tro}
       TZ: UTC
     ports:
-      - "${POSTGRES_PORT:-55432}:5432"
+      # Chỉ mở trên máy này (không ra mạng ngoài).
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
     volumes:
       # PostgreSQL 18 image lưu dữ liệu dưới /var/lib/postgresql/18/docker
       - pgdata:/var/lib/postgresql
@@ -21,7 +22,77 @@ services:
       timeout: 3s
       retries: 20
 
-  # Profile "full" (api + web trong container) được bổ sung ở Phase 9 cùng Dockerfile.
+  # ---------------------------------------------------------------------------------------------
+  # Profile "full" (Phase 9): chạy toàn bộ trong container sau Caddy. Xem RUNBOOK.md.
+  #   docker compose --env-file .env.production --profile full up -d --build
+  # Biến đặt trong .env.production (không commit, dùng --env-file): JWT_ACCESS_SECRET, PUBLIC_BASE_URL (https://…),
+  # SITE_ADDRESS, POSTGRES_PASSWORD;
+  # lần đầu thêm BOOTSTRAP_WORKSPACE_NAME, BOOTSTRAP_OWNER_EMAIL, BOOTSTRAP_OWNER_PASSWORD.
+  # ---------------------------------------------------------------------------------------------
+  migrate:
+    profiles: ["full"]
+    build: { context: ., dockerfile: infra/docker/Dockerfile, target: migrate }
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ql_tro}:${POSTGRES_PASSWORD:-ql_tro_dev_only}@postgres:5432/${POSTGRES_DB:-ql_tro}?schema=public
+      BOOTSTRAP_WORKSPACE_NAME: ${BOOTSTRAP_WORKSPACE_NAME:-}
+      BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
+      BOOTSTRAP_OWNER_NAME: ${BOOTSTRAP_OWNER_NAME:-}
+      BOOTSTRAP_OWNER_PASSWORD: ${BOOTSTRAP_OWNER_PASSWORD:-}
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    profiles: ["full"]
+    build: { context: ., dockerfile: infra/docker/Dockerfile, target: api }
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ql_tro}:${POSTGRES_PASSWORD:-ql_tro_dev_only}@postgres:5432/${POSTGRES_DB:-ql_tro}?schema=public
+      API_PORT: "4000"
+      # Thiếu/sai thì API từ chối khởi động (kiểm tra ở apps/api/src/config/env.ts).
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-}
+      COOKIE_SECURE: "true"
+      BUSINESS_TIMEZONE: Asia/Ho_Chi_Minh
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      # Caddy nằm trong mạng nội bộ của compose.
+      TRUST_PROXY: loopback, uniquelocal
+      REMINDER_JOB_ENABLED: ${REMINDER_JOB_ENABLED:-true}
+      ZALO_ZNS_ACCESS_TOKEN: ${ZALO_ZNS_ACCESS_TOKEN:-}
+      ZALO_ZNS_TEMPLATE_ID: ${ZALO_ZNS_TEMPLATE_ID:-}
+      SMS_API_URL: ${SMS_API_URL:-}
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_BRANDNAME: ${SMS_BRANDNAME:-}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    profiles: ["full"]
+    build: { context: ., dockerfile: infra/docker/Dockerfile, target: web }
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+
+  caddy:
+    profiles: ["full"]
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      HTTPS_PORT: ${HTTPS_PORT:-443}
+      HTTP_PORT: ${HTTP_PORT:-80}
+    ports:
+      - "${HTTP_PORT:-80}:${HTTP_PORT:-80}"
+      - "${HTTPS_PORT:-443}:${HTTPS_PORT:-443}"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: { condition: service_healthy }
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

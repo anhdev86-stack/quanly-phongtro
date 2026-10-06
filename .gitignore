@@ -13,8 +13,9 @@ apps/api/src/generated/
 .env.*
 !.env.example
 
-# Dữ liệu local: file lưu trữ, backup thử
+# Dữ liệu local: file lưu trữ, bản sao lưu database
 .data/
+backups/
 
 # Playwright
 e2e/test-results/
