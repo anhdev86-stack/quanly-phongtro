@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/* Phong cách quản lý: nền sáng, nhấn xanh lá, chữ dễ đọc (MASTER_PLAN mục 12). */
+@theme {
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-600: #16a34a;
+  --color-brand-700: #15803d;
+  --color-brand-800: #166534;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Số tiền và ngày căn đều chữ số */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
