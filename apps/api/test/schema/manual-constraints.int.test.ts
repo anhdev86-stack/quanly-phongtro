@@ -11,7 +11,7 @@ import { createTestApp, resetDatabase, type TestApp } from '../helpers/test-app.
  */
 interface CatalogEntry {
   name: string;
-  kind: 'check' | 'extension' | 'index' | 'exclude';
+  kind: 'check' | 'extension' | 'index' | 'exclude' | 'function';
   table: string | null;
   definition: string;
 }
@@ -347,7 +347,50 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       });
       await expectRejected((tx) => holding(tx, { type: 'REVERSAL' }), 'holding_reversal_ref_chk');
     },
+    contracts_term_chk: async () => {
+      await expectAccepted(async (tx) => contract(tx, await mkTenancy(tx, await mkRoom(tx)), '2026-10-01', '2026-10-01'));
+      await expectRejected(async (tx) => contract(tx, await mkTenancy(tx, await mkRoom(tx)), '2026-10-02', '2026-10-01'), 'contracts_term_chk');
+    },
+    contracts_signed_at_chk: async () => {
+      await expectAccepted(async (tx) => contract(tx, await mkTenancy(tx, await mkRoom(tx)), '2026-10-01', '2027-03-31', { lifecycle: 'SIGNED', signedAt: new Date('2026-10-01') }));
+      await expectRejected(async (tx) => contract(tx, await mkTenancy(tx, await mkRoom(tx)), '2026-10-01', '2027-03-31', { lifecycle: 'SIGNED' }), 'contracts_signed_at_chk');
+    },
+    no_overlapping_signed_contracts: async () => {
+      const signed = { lifecycle: 'SIGNED', signedAt: new Date('2026-10-01') };
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await contract(tx, tn, '2026-10-01', '2027-03-31', signed);
+        await contract(tx, tn, '2027-04-01', '2027-09-30', signed);
+        await contract(tx, tn, '2026-12-01', '2027-05-31'); // DRAFT chồng thì được
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await contract(tx, tn, '2026-10-01', '2027-03-31', signed);
+        await contract(tx, tn, '2027-03-31', '2027-09-30', signed);
+      }, 'no_overlapping_signed_contracts');
+    },
+    contract_effective_status: async () => {
+      const at = async (lifecycle: string, terminated: string | null, on: string) =>
+        (await t.prisma.$queryRawUnsafe<{ s: string }[]>(
+          `SELECT contract_effective_status($1::"ContractLifecycle", $2::date, '2026-10-01'::date, '2027-03-31'::date, $3::date) AS s`,
+          lifecycle, terminated, on,
+        ))[0]!.s;
+      expect(await at('SIGNED', null, '2026-09-30')).toBe('SCHEDULED');
+      expect(await at('SIGNED', null, '2026-10-01')).toBe('ACTIVE');
+      expect(await at('SIGNED', null, '2027-03-31')).toBe('ACTIVE');
+      expect(await at('SIGNED', null, '2027-04-01')).toBe('EXPIRED');
+      expect(await at('SIGNED', '2026-12-15', '2026-11-01')).toBe('TERMINATED_EARLY');
+      expect(await at('DRAFT', null, '2026-11-01')).toBe('DRAFT');
+      expect(await at('CANCELLED', null, '2026-11-01')).toBe('CANCELLED');
+    },
   } satisfies Record<string, () => Promise<void>>);
+
+  let cseq = 0;
+  async function contract(tx: Prisma.TransactionClient, tenancyId: string, start: string, end: string, extra: Record<string, unknown> = {}) {
+    return tx.contract.create({
+      data: { workspaceId: W, tenancyId, code: `C${++cseq}`, termStart: new Date(start), termEnd: new Date(end), termsSnapshot: {}, createdBy: userId, ...extra } as never,
+    });
+  }
 
   let roomSeq = 0;
   function insertRoom(opts: { rent?: number; maxOccupants?: number }) {
@@ -401,6 +444,11 @@ describe('T47 — ràng buộc SQL thủ công', () => {
 
   for (const entry of catalog) {
     it(`định nghĩa khớp danh mục: ${entry.name}`, async () => {
+      if (entry.kind === 'function') {
+        const rows = await t.prisma.$queryRawUnsafe<{ ok: boolean }[]>(`SELECT to_regprocedure($1) IS NOT NULL AS ok`, entry.definition);
+        expect(rows[0]?.ok).toBe(true);
+        return;
+      }
       if (entry.kind === 'extension') {
         const rows = await t.prisma.$queryRaw<{ extname: string }[]>`SELECT extname FROM pg_extension WHERE extname = ${entry.definition}`;
         expect(rows).toHaveLength(1);

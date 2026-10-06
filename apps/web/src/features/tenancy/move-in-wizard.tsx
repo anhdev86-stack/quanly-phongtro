@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FormError, MoneyInput, Select, TextInput, Textarea } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api-client';
-import { formatBusinessDate, formatVnd } from '@/lib/format';
+import { formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useIdempotencyKey } from '@/lib/use-idempotency-key';
 import { useHoldingLedger, useMoveIn, useServices } from './api';
@@ -19,11 +19,6 @@ import { newPerson, PersonPicker, type PersonChoice, personLabel, personToRef } 
 import { ContractStep, contractToInput, emptyContract, type ContractDraft } from './move-in-contract';
 
 const STEPS = ['Ngày & giá', 'Người thuê', 'Hợp đồng', 'Dịch vụ & chỉ số', 'Cọc', 'Xem lại'] as const;
-
-function todayLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 export function MoveInWizard({ room, reservationId }: { room: Room; reservationId: string | null }) {
   const router = useRouter();

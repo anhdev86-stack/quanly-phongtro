@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, FormError, TextInput, Textarea } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
+import { todayLocal } from '@/lib/format';
 import { applyApiErrors, blankToNull } from '@/lib/forms';
 import { useCancelReservation, useCreateReservation, useRescheduleReservation } from './api';
 
@@ -37,11 +38,6 @@ const createSchema = z.intersection(
 );
 type CreateValues = z.infer<typeof createSchema>;
 const CREATE_FIELDS = ['hold_from', 'expected_move_in', 'hold_until', 'contact_name', 'contact_phone', 'note'] as const;
-
-function todayLocal(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 export function ReservationCreateDialog({ open, onClose, roomId, roomLabel }: { open: boolean; onClose: () => void; roomId: string; roomLabel: string }) {
   const toast = useToast();

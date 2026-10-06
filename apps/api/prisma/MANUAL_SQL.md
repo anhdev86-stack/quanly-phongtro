@@ -59,6 +59,10 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `deposit_reversal_ref_chk` | deposit_transactions | CHECK | `20261006051548_phase2_tenancy` | REVERSAL ⇔ có giao dịch gốc |
 | `holding_amount_positive_chk` | holding_transactions | CHECK | `20261006051548_phase2_tenancy` | Số tiền > 0 |
 | `holding_reversal_ref_chk` | holding_transactions | CHECK | `20261006051548_phase2_tenancy` | REVERSAL ⇔ có giao dịch gốc |
+| `contracts_term_chk` | contracts | CHECK | `20261006080717_phase3_contracts` | term_end ≥ term_start |
+| `contracts_signed_at_chk` | contracts | CHECK | `20261006080717_phase3_contracts` | SIGNED phải có ngày ký |
+| `no_overlapping_signed_contracts` | contracts | EXCLUDE | `20261006080717_phase3_contracts` | Kỳ SIGNED không chồng ngày |
+| `contract_effective_status` | — | FUNCTION | `20261006080717_phase3_contracts` | Trạng thái hợp đồng theo ngày (khớp domain, T05) |
 
 ```json manual-constraints
 [
@@ -229,6 +233,30 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "holding_transactions",
     "definition": "CHECK (((type = 'REVERSAL'::\"HoldingTxType\") = (reverses_transaction_id IS NOT NULL)))"
+  },
+  {
+    "name": "contracts_term_chk",
+    "kind": "check",
+    "table": "contracts",
+    "definition": "CHECK ((term_end >= term_start))"
+  },
+  {
+    "name": "contracts_signed_at_chk",
+    "kind": "check",
+    "table": "contracts",
+    "definition": "CHECK (((lifecycle <> 'SIGNED'::\"ContractLifecycle\") OR (signed_at IS NOT NULL)))"
+  },
+  {
+    "name": "no_overlapping_signed_contracts",
+    "kind": "exclude",
+    "table": "contracts",
+    "definition": "EXCLUDE USING gist (tenancy_id WITH =, daterange(term_start, (term_end + 1), '[)'::text) WITH &&) WHERE ((lifecycle = 'SIGNED'::\"ContractLifecycle\"))"
+  },
+  {
+    "name": "contract_effective_status",
+    "kind": "function",
+    "table": null,
+    "definition": "contract_effective_status(\"ContractLifecycle\",date,date,date,date)"
   }
 ]
 ```

@@ -1,0 +1,34 @@
+// Phase 3: hợp đồng (MASTER_PLAN 5.3, 6.3). Chỉ lưu vòng đời; SCHEDULED/ACTIVE/EXPIRED/TERMINATED_EARLY luôn suy ra từ ngày.
+
+enum ContractLifecycle {
+  DRAFT
+  SIGNED
+  CANCELLED
+}
+
+model Contract {
+  id                 String            @id @default(uuid(7)) @db.Uuid
+  workspaceId        String            @map("workspace_id") @db.Uuid
+  tenancyId          String            @map("tenancy_id") @db.Uuid
+  code               String
+  termStart          DateTime          @map("term_start") @db.Date
+  termEnd            DateTime          @map("term_end") @db.Date
+  lifecycle          ContractLifecycle @default(DRAFT)
+  signedAt           DateTime?         @map("signed_at") @db.Date
+  terminatedOn       DateTime?         @map("terminated_on") @db.Date
+  previousContractId String?           @map("previous_contract_id") @db.Uuid
+  /// Điều khoản snapshot: notice_days, deposit_required_vnd, monthly_rent_vnd, terms_note.
+  termsSnapshot      Json              @map("terms_snapshot")
+  cancelledAt        DateTime?         @map("cancelled_at") @db.Timestamptz(3)
+  cancellationReason String?           @map("cancellation_reason")
+  createdBy          String            @map("created_by") @db.Uuid
+  version            Int               @default(1)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenancy Tenancy @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+
+  @@unique([workspaceId, code])
+  @@index([tenancyId])
+  @@map("contracts")
+}

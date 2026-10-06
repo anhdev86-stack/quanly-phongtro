@@ -80,6 +80,7 @@ model Tenancy {
   services            TenancyService[]
   depositTransactions DepositTransaction[]
   readings            MeterReading[]
+  contracts           Contract[]
 
   @@unique([workspaceId, code])
   @@unique([id, workspaceId])

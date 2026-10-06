@@ -161,7 +161,7 @@ Nhánh `phase/2-tenancy`, merge vào `main` 06/10/2026.
 | Sổ cọc: nhận, nhận thêm, hoàn, khấu trừ, đảo | ✅ | Domain `ledger.ts`; số dư không âm; không đảo hai lần |
 | Sổ tiền giữ chỗ: nhận, hoàn, giữ lại theo thỏa thuận, đảo | ✅ | Hủy giữ phòng không tự mất tiền |
 | Chuyển giữ chỗ → cọc bằng cặp liên kết; đảo cả cặp atomic | ✅ | T43, T56 |
-| UI: người thuê, lần thuê, wizard nhận phòng 6 bước, sổ cọc/giữ chỗ | ✅ | Bước hợp đồng hiển thị “Phase 3” |
+| UI: người thuê, lần thuê, wizard nhận phòng 6 bước, sổ cọc/giữ chỗ | ✅ | Bước hợp đồng bật ở Phase 3 |
 | T47 cho 19 ràng buộc mới (gồm partial unique đầu tiên) | ✅ | Kiểm chứng: Prisma không sinh DROP cho partial index viết tay |
 | E2E chạy trên database riêng `ql_tro_e2e` (api :4100, web :3100) | ✅ | Không còn làm bẩn dữ liệu dev |
 
@@ -169,10 +169,33 @@ Kiểm tra: lint ✅ · typecheck ✅ · unit 45 ✅ · integration **151** ✅ 
 
 Ghi chú: cảnh báo `pg` về truy vấn song song đến từ Prisma (D-026), không ảnh hưởng kết quả.
 
-## Phase 3 — Contract và Pricing (lõi) ⬜
+## Phase 3 — Contract và Pricing (lõi) ✅
 
-- [ ] Nháp/ký, trạng thái suy ra, `rental_mode`, gia hạn, hủy hợp đồng chưa bắt đầu, đổi giá
-- [ ] T04 (phần), T05–T08, T09 (phần), T50 (phần)
+Nhánh `phase/3-contracts`, merge vào `main` 06/10/2026.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Hợp đồng: nháp, ký, mã `HDyymm-nnnn`, ảnh chụp điều khoản | ✅ | Lifecycle lưu DRAFT/SIGNED/CANCELLED; trạng thái hiển thị suy ra từ ngày (domain `contract-status.ts`) |
+| Hàm SQL `contract_effective_status` khớp hàm domain | ✅ | T05 so sánh 4 trường hợp × ~20 mốc ngày |
+| EXCLUDE `no_overlapping_signed_contracts`, CHECK kỳ/ngày ký | ✅ | Nháp được chồng ngày; ký nháp chồng ngày → 409 |
+| `rental_mode` FIXED_TERM / MONTH_TO_MONTH theo hợp đồng đã ký bao phủ ngày | ✅ | Provider `RENTAL_MODE`; hết hạn không kết thúc lần thuê (T04) |
+| Gia hạn = kỳ mới cùng `tenancy_id`, `previous_contract_id`; không nhận lại cọc | ✅ | T06; giá mới gắn `source_contract_id`; mức cọc yêu cầu đổi khi kỳ mới bắt đầu |
+| Hủy nháp; hủy hợp đồng đã ký chưa bắt đầu (`contracts.cancel_signed`) | ✅ | T50: giá/dịch vụ phụ thuộc → VOIDED, giá độc lập giữ nguyên, audit ghi id bị vô hiệu |
+| Đổi giá theo ngày; giữa tháng phải xác nhận; giảm giá một tháng tự khôi phục (D-022) | ✅ | T09 |
+| Hợp đồng kèm khi nhận phòng (cùng transaction) | ✅ | Provider `MOVE_IN_EXTENSIONS` |
+| Danh sách hợp đồng, lọc trạng thái/tòa/sắp hết hạn | ✅ | Sắp hết hạn bỏ qua hợp đồng đã có kỳ gia hạn (D-027) |
+| UI: mục Hợp đồng ở trang lần thuê (tạo, ký, gia hạn, hủy, cảnh báo sắp hết hạn, banner thuê theo tháng), đổi giá, trang `/contracts`, bước hợp đồng trong wizard | ✅ | |
+| T47 cho 4 ràng buộc mới (gồm hàm SQL đầu tiên) | ✅ | Catalog hỗ trợ loại `function` |
+
+Kiểm tra (06/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm test` | ✅ 54 (shared 16, api 35, web 3) |
+| `pnpm test:integration` | ✅ **169** (16 file) |
+| `pnpm test:e2e` | ✅ **22** (desktop + mobile) |
 
 ## Phase 4 — Utilities và Services ⬜
 
