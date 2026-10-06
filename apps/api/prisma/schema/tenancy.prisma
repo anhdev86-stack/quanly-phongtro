@@ -85,6 +85,8 @@ model Tenancy {
   payments            Payment[]
   creditApplications  CreditApplication[]
   creditRefunds       CreditRefund[]
+  moveOutNotices      MoveOutNotice[]
+  settlements         MoveOutSettlement[]
 
   @@unique([workspaceId, code])
   @@unique([id, workspaceId])

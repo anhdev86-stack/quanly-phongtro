@@ -3,6 +3,7 @@
 import type { TenancyDetail } from '@ql-tro/shared';
 import { TenancyInvoicesSection } from '@/features/billing/tenancy-invoices-section';
 import { ContractsSection } from '@/features/contracts/contracts-section';
+import { MoveOutHeaderActions, MoveOutSection } from '@/features/move-out/move-out-section';
 import { StatementSection } from '@/features/payments/statement-section';
 import { TenancyServicesSection } from '@/features/utilities/tenancy-services-section';
 
@@ -10,6 +11,7 @@ import { TenancyServicesSection } from '@/features/utilities/tenancy-services-se
 export function TenancyExtraSections({ tenancy }: { tenancy: TenancyDetail }) {
   return (
     <>
+      <MoveOutSection tenancy={tenancy} />
       <TenancyInvoicesSection tenancy={tenancy} />
       <StatementSection tenancy={tenancy} />
       <ContractsSection tenancy={tenancy} />
@@ -18,7 +20,7 @@ export function TenancyExtraSections({ tenancy }: { tenancy: TenancyDetail }) {
   );
 }
 
-/** Nút thao tác ở đầu trang lần thuê (báo trả, trả phòng… từ Phase 7). */
-export function TenancyHeaderActions(_props: { tenancy: TenancyDetail }) {
-  return null;
+/** Nút thao tác ở đầu trang lần thuê: báo trả, hủy báo trả, trả phòng (Phase 7). */
+export function TenancyHeaderActions({ tenancy }: { tenancy: TenancyDetail }) {
+  return <MoveOutHeaderActions tenancy={tenancy} />;
 }

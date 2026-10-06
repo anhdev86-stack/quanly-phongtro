@@ -1,0 +1,157 @@
+// Phase 7: báo trả, trả phòng, quyết toán (MASTER_PLAN 5.5, 6.6, 7.5, 7.6, 9.4).
+
+enum NoticeStatus {
+  ACTIVE
+  CANCELLED
+  FULFILLED
+}
+
+/// Báo trả phòng. Tối đa một báo trả ACTIVE mỗi lần thuê (partial unique).
+model MoveOutNotice {
+  id                    String       @id @default(uuid(7)) @db.Uuid
+  workspaceId           String       @map("workspace_id") @db.Uuid
+  tenancyId             String       @map("tenancy_id") @db.Uuid
+  noticeDate            DateTime     @map("notice_date") @db.Date
+  plannedLastChargeDate DateTime     @map("planned_last_charge_date") @db.Date
+  status                NoticeStatus @default(ACTIVE)
+  reason                String?
+  cancelledAt           DateTime?    @map("cancelled_at") @db.Timestamptz(3)
+  cancelledBy           String?      @map("cancelled_by") @db.Uuid
+  cancelReason          String?      @map("cancel_reason")
+  createdBy             String       @map("created_by") @db.Uuid
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  tenancy Tenancy @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+
+  @@index([tenancyId])
+  @@map("move_out_notices")
+}
+
+enum SettlementStatus {
+  DRAFT
+  APPROVED
+  COMPLETED
+  CANCELLED
+}
+
+enum DestinationRoomStatus {
+  READY
+  MAINTENANCE
+}
+
+/// Quyết toán trả phòng. Một quyết toán chưa hủy mỗi lần thuê (partial unique).
+model MoveOutSettlement {
+  id                    String                @id @default(uuid(7)) @db.Uuid
+  workspaceId           String                @map("workspace_id") @db.Uuid
+  tenancyId             String                @map("tenancy_id") @db.Uuid
+  code                  String
+  status                SettlementStatus      @default(DRAFT)
+  lastChargeDate        DateTime              @map("last_charge_date") @db.Date
+  chargeEndExclusive    DateTime              @map("charge_end_exclusive") @db.Date
+  destinationRoomStatus DestinationRoomStatus @map("destination_room_status")
+  handoverBy            String?               @map("handover_by")
+  /// Kiểm kê tài sản khi bàn giao (bắt buộc trước khi duyệt).
+  inventoryNote         String?               @map("inventory_note")
+  /// Lý do không có chỉ số cuối kỳ (thay cho chỉ số FINAL).
+  finalReadingWaiver    String?               @map("final_reading_waiver")
+  /// Số cọc đề xuất áp vào nợ; null = tối đa theo công thức 9.4.
+  depositToApplyVnd     BigInt?               @map("deposit_to_apply_vnd")
+  note                  String?
+  /// Snapshot lúc duyệt (số liệu “lúc chốt”), không sửa sau khi hoàn tất.
+  approvedSnapshot      Json?                 @map("approved_snapshot")
+  inputHash             String?               @map("input_hash")
+  approvedBy            String?               @map("approved_by") @db.Uuid
+  approvedAt            DateTime?             @map("approved_at") @db.Timestamptz(3)
+  completedBy           String?               @map("completed_by") @db.Uuid
+  completedAt           DateTime?             @map("completed_at") @db.Timestamptz(3)
+  cancelledBy           String?               @map("cancelled_by") @db.Uuid
+  cancelledAt           DateTime?             @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason          String?               @map("cancel_reason")
+  finalInvoiceId        String?               @map("final_invoice_id") @db.Uuid
+  creditInvoiceId       String?               @map("credit_invoice_id") @db.Uuid
+  createdBy             String                @map("created_by") @db.Uuid
+  version               Int                   @default(1)
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenancy      Tenancy                 @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  items        SettlementItem[]
+  transactions SettlementTransaction[]
+  events       SettlementEvent[]
+
+  @@unique([workspaceId, code])
+  @@index([tenancyId])
+  @@map("move_out_settlements")
+}
+
+enum SettlementItemKind {
+  INVOICE_BALANCE
+  CREDIT_BALANCE
+  DAMAGE
+  PENALTY
+  OTHER
+}
+
+/// Khoản phí trả phòng (hư hỏng/phạt/khác) và dòng trình bày số dư thông báo lúc duyệt (không phải chứng từ mới).
+model SettlementItem {
+  id              String             @id @default(uuid(7)) @db.Uuid
+  settlementId    String             @map("settlement_id") @db.Uuid
+  kind            SettlementItemKind
+  sourceInvoiceId String?            @map("source_invoice_id") @db.Uuid
+  amountVnd       BigInt             @map("amount_vnd")
+  reason          String
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  settlement MoveOutSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@index([settlementId])
+  @@map("settlement_items")
+}
+
+enum SettlementTxKind {
+  RECEIPT
+  CREDIT_REFUND
+  DEPOSIT_REFUND
+  DEPOSIT_APPLICATION
+  CREDIT_APPLICATION
+}
+
+/// Liên kết chứng từ gốc phát sinh từ quyết toán; không ghi tiền lần hai.
+model SettlementTransaction {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  settlementId String           @map("settlement_id") @db.Uuid
+  kind         SettlementTxKind
+  linkedId     String           @map("linked_id") @db.Uuid
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  settlement MoveOutSettlement @relation(fields: [settlementId], references: [id], onDelete: Restrict)
+
+  @@unique([settlementId, kind, linkedId])
+  @@map("settlement_transactions")
+}
+
+enum SettlementEventKind {
+  PAYMENT_REVERSED
+  DEPOSIT_TX_REVERSED
+  CREDIT_APPLICATION_REVERSED
+  CREDIT_REFUND_REVERSED
+  LATE_PAYMENT
+  NOTE
+}
+
+/// Sự kiện xảy ra sau khi quyết toán COMPLETED; chỉ ghi nhận, không mang số tiền riêng.
+model SettlementEvent {
+  id               String              @id @default(uuid(7)) @db.Uuid
+  settlementId     String              @map("settlement_id") @db.Uuid
+  kind             SettlementEventKind
+  linkedEntityType String?             @map("linked_entity_type")
+  linkedEntityId   String?             @map("linked_entity_id") @db.Uuid
+  note             String?
+  createdBy        String              @map("created_by") @db.Uuid
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  settlement MoveOutSettlement @relation(fields: [settlementId], references: [id], onDelete: Restrict)
+
+  @@index([settlementId])
+  @@map("settlement_events")
+}

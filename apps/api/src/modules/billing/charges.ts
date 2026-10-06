@@ -34,7 +34,7 @@ export type LineGroup = 'ADVANCE' | 'ARREARS' | 'ADJUSTMENT';
 
 export interface ComputedLine {
   group: LineGroup;
-  chargeKind: 'RENT' | 'SERVICE' | 'METER';
+  chargeKind: 'RENT' | 'SERVICE' | 'METER' | 'DAMAGE' | 'OTHER';
   chargeTiming: ChargeTiming;
   direction: 'DEBIT' | 'CREDIT';
   label: string;
@@ -69,7 +69,33 @@ export interface Cutoff {
   onlyPublished?: boolean;
   /** Bắt buộc có chỉ số chốt kỳ này cho đồng hồ đang dùng (không phát hành bằng usage 0 giả). */
   requireReadingsFor: DateOnly | null;
+  /** Khoản phí trả phòng (hư hỏng, phạt, khác) — mỗi khoản một u riêng (MASTER_PLAN 7.6 bước 3). */
+  extraCharges?: ExtraCharge[];
 }
+
+export interface ExtraCharge {
+  id: string;
+  kind: 'DAMAGE' | 'OTHER';
+  label: string;
+  amount: bigint;
+}
+
+/**
+ * Mốc FINAL (trả phòng, MASTER_PLAN 8.6/9.4): mọi nguồn phí tính đến charge_end_exclusive — tiền phòng, dịch vụ thu trước
+ * và thu sau đến tháng của ngày cuối, mọi khoảng điện nước đến chỉ số FINAL. Phần đã thu vượt sau ngày cuối thành credit.
+ */
+export const finalCutoff = (lastChargeDate: DateOnly, extraCharges: ExtraCharge[] = []): Cutoff => {
+  const lastMonth = firstDayOfMonth(lastChargeDate);
+  return {
+    period: lastMonth,
+    advanceThrough: lastMonth,
+    arrearsThrough: lastMonth,
+    meterPeriodThrough: '9999-12-01',
+    includeFinalReadings: true,
+    requireReadingsFor: null,
+    extraCharges,
+  };
+};
 
 export const monthlyCutoff = (monthStart: DateOnly): Cutoff => ({
   period: monthStart,
@@ -311,6 +337,41 @@ export class ChargeCalculator {
     // ---------- Điện nước theo đồng hồ ----------
     for (const type of ['ELECTRICITY', 'WATER'] as MeterType[]) this.meterUnits(data, cutoff, type, units, errors, skipped, policyFor);
 
+    // ---------- Khoản phí trả phòng ----------
+    // Khoản đã phát hành giữ nguyên (không có nguồn dữ liệu nào khác để tính lại); khoản mới lấy từ quyết toán.
+    for (const p of data.published) if (p.unitKey.startsWith('CHARGE:')) skipped.add(p.unitKey);
+    for (const c of cutoff.extraCharges ?? []) {
+      const unitKey = `CHARGE:${c.id}`;
+      skipped.delete(unitKey);
+      units.push({
+        unitKey,
+        expected: c.amount,
+        freshLines: [
+          {
+            group: 'ARREARS',
+            chargeKind: c.kind,
+            chargeTiming: 'ARREARS',
+            direction: 'DEBIT',
+            label: c.label,
+            quantity: '1',
+            unitPrice: c.amount.toString(),
+            amount: c.amount,
+            chargeStart: null,
+            chargeEnd: null,
+            sourceType: 'SETTLEMENT_ITEM',
+            sourceId: c.id,
+            sourceKey: `CHARGE:${t.id}`,
+            unitKey,
+            correctsItemId: null,
+            readingStartId: null,
+            readingEndId: null,
+            policy: policyFor(unitKey, cutoff.period),
+            calc: {},
+          },
+        ],
+      });
+    }
+
     const outcomes = reconcile(units, data.published.map(toPublishedLine), (k) => skipped.has(k));
     return { lines: this.toLines(outcomes, data, cutoff), errors };
   }
@@ -491,7 +552,7 @@ const order = (p: PublishedItem) => (p.invoice.publishedAt?.getTime() ?? 0) * 10
 
 const toPublishedLine = (p: PublishedItem): PublishedLine => ({ id: p.id, unitKey: p.unitKey, direction: p.direction, amount: p.amountVnd, order: order(p) });
 
-const kindOrder = (l: ComputedLine) => ({ RENT: 0, SERVICE: 1, METER: 2 })[l.chargeKind];
+const kindOrder = (l: ComputedLine) => ({ RENT: 0, SERVICE: 1, METER: 2, DAMAGE: 3, OTHER: 4 })[l.chargeKind];
 
 function adjustSubject(ref: PublishedItem): string {
   if (ref.chargeKind === 'RENT') return `tiền phòng tháng ${my(unitMonth(ref.unitKey) + '-01')}`;

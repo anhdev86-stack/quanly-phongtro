@@ -91,6 +91,13 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `credit_refunds_reversal_chk` | credit_refunds | CHECK | `20261006152550_phase6_payments` | REVERSED ⇔ có thời điểm và lý do đảo |
 | `one_active_payment_account` | payment_accounts | PARTIAL UNIQUE | `20261006152550_phase6_payments` | Một tài khoản nhận tiền active mỗi workspace |
 | `credit_applications_distinct_chk` | credit_applications | CHECK | `20261006152550_phase6_payments` | Không cấn credit vào chính nó |
+| `one_active_notice_per_tenancy` | move_out_notices | PARTIAL UNIQUE | `20261006155140_phase7_move_out` | Một báo trả ACTIVE mỗi lần thuê |
+| `one_live_settlement_per_tenancy` | move_out_settlements | PARTIAL UNIQUE | `20261006155140_phase7_move_out` | Một quyết toán chưa hủy mỗi lần thuê |
+| `move_out_notices_dates_chk` | move_out_notices | CHECK | `20261006155140_phase7_move_out` | Ngày dự kiến trả ≥ ngày báo |
+| `move_out_settlements_dates_chk` | move_out_settlements | CHECK | `20261006155140_phase7_move_out` | charge_end_exclusive = ngày cuối tính tiền + 1 |
+| `move_out_settlements_workflow_chk` | move_out_settlements | CHECK | `20261006155140_phase7_move_out` | Duyệt/hoàn tất có người duyệt và input_hash; COMPLETED ⇔ có completed_at |
+| `move_out_settlements_deposit_chk` | move_out_settlements | CHECK | `20261006155140_phase7_move_out` | Cọc đề xuất áp không âm |
+| `settlement_items_amount_chk` | settlement_items | CHECK | `20261006155140_phase7_move_out` | Khoản phí trả phòng > 0; dòng số dư ≥ 0 |
 
 ```json manual-constraints
 [
@@ -447,6 +454,48 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "credit_applications",
     "definition": "CHECK ((credit_invoice_id <> target_invoice_id))"
+  },
+  {
+    "name": "one_active_notice_per_tenancy",
+    "kind": "index",
+    "table": "move_out_notices",
+    "definition": "CREATE UNIQUE INDEX one_active_notice_per_tenancy ON public.move_out_notices USING btree (tenancy_id) WHERE (status = 'ACTIVE'::\"NoticeStatus\")"
+  },
+  {
+    "name": "one_live_settlement_per_tenancy",
+    "kind": "index",
+    "table": "move_out_settlements",
+    "definition": "CREATE UNIQUE INDEX one_live_settlement_per_tenancy ON public.move_out_settlements USING btree (tenancy_id) WHERE (status <> 'CANCELLED'::\"SettlementStatus\")"
+  },
+  {
+    "name": "move_out_notices_dates_chk",
+    "kind": "check",
+    "table": "move_out_notices",
+    "definition": "CHECK ((planned_last_charge_date >= notice_date))"
+  },
+  {
+    "name": "move_out_settlements_dates_chk",
+    "kind": "check",
+    "table": "move_out_settlements",
+    "definition": "CHECK ((charge_end_exclusive = (last_charge_date + 1)))"
+  },
+  {
+    "name": "move_out_settlements_workflow_chk",
+    "kind": "check",
+    "table": "move_out_settlements",
+    "definition": "CHECK ((((status <> ALL (ARRAY['APPROVED'::\"SettlementStatus\", 'COMPLETED'::\"SettlementStatus\"])) OR ((approved_by IS NOT NULL) AND (input_hash IS NOT NULL))) AND ((status = 'COMPLETED'::\"SettlementStatus\") = (completed_at IS NOT NULL))))"
+  },
+  {
+    "name": "move_out_settlements_deposit_chk",
+    "kind": "check",
+    "table": "move_out_settlements",
+    "definition": "CHECK (((deposit_to_apply_vnd IS NULL) OR (deposit_to_apply_vnd >= 0)))"
+  },
+  {
+    "name": "settlement_items_amount_chk",
+    "kind": "check",
+    "table": "settlement_items",
+    "definition": "CHECK (((amount_vnd >= 0) AND ((kind = ANY (ARRAY['INVOICE_BALANCE'::\"SettlementItemKind\", 'CREDIT_BALANCE'::\"SettlementItemKind\"])) OR (amount_vnd > 0))))"
   }
 ]
 ```

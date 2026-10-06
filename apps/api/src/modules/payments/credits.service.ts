@@ -5,7 +5,7 @@ import type { AuthUser } from '../../common/auth/auth-user.js';
 import { day } from '../../common/dto/mappers.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { toDbDate } from '../../domain/dates/date-only.js';
-import type { Invoice } from '../../generated/prisma/client.js';
+import type { Invoice, Prisma } from '../../generated/prisma/client.js';
 import { CLOCK, type Clock } from '../../infrastructure/clock/clock.js';
 import { lockRows } from '../../infrastructure/locking/lock-rows.js';
 import { PrismaService } from '../../infrastructure/prisma/prisma.service.js';
@@ -86,28 +86,34 @@ export class CreditsService {
   }
 
   async refund(user: AuthUser, input: z.output<typeof creditRefundCreateSchema>, key: string | undefined) {
-    if (input.paid_at > this.clock.today()) throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày chi không được ở tương lai.', { paid_at: ['Ngày ở tương lai.'] });
     const credit = await this.creditInvoice(user, input.credit_invoice_id);
     return this.idempotency.execute({ user, route: 'POST /credit-refunds', key, payload: input, successStatus: 201 }, async (tx) => {
-      await lockRows(tx, 'tenancies', [credit.tenancyId]);
-      await lockRows(tx, 'invoices', [credit.id]);
-      const available = (await this.balances.remaining(tx, [credit])).get(credit.id) ?? 0n;
-      if (BigInt(input.amount_vnd) > available) throw new AppError('BUSINESS_RULE_VIOLATION', `Credit còn lại chỉ ${available.toString()}đ.`, { amount_vnd: ['Vượt credit còn lại.'] });
-      const r = await tx.creditRefund.create({
-        data: {
-          workspaceId: user.workspaceId,
-          tenancyId: credit.tenancyId,
-          creditInvoiceId: credit.id,
-          amountVnd: BigInt(input.amount_vnd),
-          paidAt: toDbDate(input.paid_at),
-          method: input.method,
-          reference: input.reference,
-          createdBy: user.id,
-        },
-      });
-      await this.audit.record(tx, { workspaceId: user.workspaceId, actorId: user.id, action: 'credit.refund', entityType: 'credit_refund', entityId: r.id, after: input });
+      const r = await this.refundInTx(tx, user, credit, input);
       return { body: { id: r.id, paid_at: day(r.paidAt) }, resultReference: r.id };
     });
+  }
+
+  /** Ghi hoàn credit trong transaction có sẵn (dùng cả cho hoàn tiền dư khi quyết toán). */
+  async refundInTx(tx: Prisma.TransactionClient, user: AuthUser, credit: Invoice, input: z.output<typeof creditRefundCreateSchema>) {
+    if (input.paid_at > this.clock.today()) throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày chi không được ở tương lai.', { paid_at: ['Ngày ở tương lai.'] });
+    await lockRows(tx, 'tenancies', [credit.tenancyId]);
+    await lockRows(tx, 'invoices', [credit.id]);
+    const available = (await this.balances.remaining(tx, [credit])).get(credit.id) ?? 0n;
+    if (BigInt(input.amount_vnd) > available) throw new AppError('BUSINESS_RULE_VIOLATION', `Credit còn lại chỉ ${available.toString()}đ.`, { amount_vnd: ['Vượt credit còn lại.'] });
+    const r = await tx.creditRefund.create({
+      data: {
+        workspaceId: user.workspaceId,
+        tenancyId: credit.tenancyId,
+        creditInvoiceId: credit.id,
+        amountVnd: BigInt(input.amount_vnd),
+        paidAt: toDbDate(input.paid_at),
+        method: input.method,
+        reference: input.reference,
+        createdBy: user.id,
+      },
+    });
+    await this.audit.record(tx, { workspaceId: user.workspaceId, actorId: user.id, action: 'credit.refund', entityType: 'credit_refund', entityId: r.id, after: input });
+    return r;
   }
 
   async reverseRefund(user: AuthUser, id: string, reason: string, key: string | undefined) {

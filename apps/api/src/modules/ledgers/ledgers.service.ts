@@ -13,6 +13,7 @@ import { lockRows } from '../../infrastructure/locking/lock-rows.js';
 import { type Db, PrismaService } from '../../infrastructure/prisma/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { IdempotencyService } from '../idempotency/idempotency.service.js';
+import { REVERSAL_OBSERVERS, type ReversalObserver } from '../payments/payments.service.js';
 import { RoomsService } from '../rooms/rooms.service.js';
 
 /** Cung cấp mức cọc yêu cầu hiện hành (Phase 3 suy ra từ hợp đồng; mặc định lấy giá trị lúc nhận phòng). */
@@ -37,6 +38,7 @@ export class LedgersService {
     private readonly idempotency: IdempotencyService,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(DEPOSIT_REQUIREMENT) private readonly requirement: DepositRequirementProvider,
+    @Inject(REVERSAL_OBSERVERS) private readonly observers: ReversalObserver[],
   ) {}
 
   // ------------------------------------------------------------------ Cọc
@@ -84,43 +86,49 @@ export class LedgersService {
   }
 
   async createDeposit(user: AuthUser, tenancyId: string, input: z.output<typeof depositTxCreateSchema>, key: string | undefined) {
-    if (input.type === 'REFUND' && !user.permissions.has(PERMISSIONS.DEPOSIT_REFUND)) throw new AppError('FORBIDDEN');
-    if (input.type === 'DEDUCTION' && !user.permissions.has(PERMISSIONS.SETTLEMENT_APPROVE)) throw new AppError('FORBIDDEN');
-    const result = await this.idempotency.execute(
+    return this.idempotency.execute(
       { user, route: `POST /tenancies/${tenancyId}/deposit-transactions`, key, payload: input, successStatus: 201 },
       async (tx) => {
-        await lockRows(tx, 'tenancies', [tenancyId]);
-        const tenancy = await this.assertTenancyInScope(tx, user, tenancyId);
-        if ((input.type === 'RECEIVED' || input.type === 'TOP_UP') && tenancy.status === 'ENDED') {
-          throw new AppError('BUSINESS_RULE_VIOLATION', 'Lần thuê đã kết thúc, không nhận thêm cọc.');
-        }
-        const created = await tx.depositTransaction.create({
-          data: {
-            workspaceId: user.workspaceId,
-            tenancyId,
-            type: input.type,
-            amountVnd: BigInt(input.amount_vnd),
-            reason: input.reason,
-            paidAt: toDbDate(input.paid_at),
-            method: input.method,
-            reference: input.reference,
-            createdBy: user.id,
-          },
-        });
-        await this.assertNonNegativeDeposit(tx, tenancyId);
-        await this.audit.record(tx, {
-          workspaceId: user.workspaceId,
-          actorId: user.id,
-          action: `deposit.${input.type.toLowerCase()}`,
-          entityType: 'tenancy',
-          entityId: tenancyId,
-          after: input,
-          reason: input.reason,
-        });
+        const created = await this.createDepositInTx(tx, user, tenancyId, input, null);
         return { body: { id: created.id }, resultReference: created.id };
       },
     );
-    return result;
+  }
+
+  /** Ghi một giao dịch cọc thực tế trong transaction có sẵn (dùng cả cho hoàn cọc khi quyết toán). */
+  async createDepositInTx(tx: Prisma.TransactionClient, user: AuthUser, tenancyId: string, input: z.output<typeof depositTxCreateSchema>, settlementId: string | null) {
+    if (input.type === 'REFUND' && !user.permissions.has(PERMISSIONS.DEPOSIT_REFUND)) throw new AppError('FORBIDDEN');
+    if (input.type === 'DEDUCTION' && !user.permissions.has(PERMISSIONS.SETTLEMENT_APPROVE)) throw new AppError('FORBIDDEN');
+    await lockRows(tx, 'tenancies', [tenancyId]);
+    const tenancy = await this.assertTenancyInScope(tx, user, tenancyId);
+    if ((input.type === 'RECEIVED' || input.type === 'TOP_UP') && tenancy.status === 'ENDED') {
+      throw new AppError('BUSINESS_RULE_VIOLATION', 'Lần thuê đã kết thúc, không nhận thêm cọc.');
+    }
+    const created = await tx.depositTransaction.create({
+      data: {
+        workspaceId: user.workspaceId,
+        tenancyId,
+        type: input.type,
+        amountVnd: BigInt(input.amount_vnd),
+        reason: input.reason,
+        paidAt: toDbDate(input.paid_at),
+        method: input.method,
+        reference: input.reference,
+        settlementId,
+        createdBy: user.id,
+      },
+    });
+    await this.assertNonNegativeDeposit(tx, tenancyId);
+    await this.audit.record(tx, {
+      workspaceId: user.workspaceId,
+      actorId: user.id,
+      action: `deposit.${input.type.toLowerCase()}`,
+      entityType: 'tenancy',
+      entityId: tenancyId,
+      after: { ...input, settlement_id: settlementId },
+      reason: input.reason,
+    });
+    return created;
   }
 
   /** Đảo một giao dịch cọc. Giao dịch thuộc cặp liên kết thì đảo cả cặp (MASTER_PLAN 9.2). */
@@ -158,12 +166,20 @@ export class LedgersService {
     await this.insertDepositReversal(tx, user, original, reason);
     await this.assertNonNegativeDeposit(tx, original.tenancyId, 'Không đảo được: số dư cọc sẽ âm. Hãy đảo các giao dịch hoàn/áp cọc trước.');
     await this.auditReverse(tx, user, 'deposit.reverse', original.tenancyId, original.id, reason);
+    for (const o of this.observers) await o.afterReversal(tx, user, original.tenancyId, 'DEPOSIT_TX', original.id, reason);
   }
 
   /** Hook để Phase 7 xử lý đảo APPLIED_TO_INVOICE (allocation mất hiệu lực). */
+  /**
+   * Đảo áp cọc vào thông báo (T51): REVERSAL làm số dư cọc tăng lại; deposit_allocations của giao dịch gốc tự mất hiệu lực
+   * (InvoiceBalances), nên remaining của các thông báo liên quan tăng lại đúng phần đó. Không sửa/xóa allocation.
+   */
   protected async reverseAppliedHook(tx: Prisma.TransactionClient, user: AuthUser, original: DepositTransaction, reason: string): Promise<void> {
+    const allocations = await tx.depositAllocation.findMany({ where: { depositTransactionId: original.id }, select: { invoiceId: true } });
+    await lockRows(tx, 'invoices', allocations.map((a) => a.invoiceId));
     await this.insertDepositReversal(tx, user, original, reason);
     await this.auditReverse(tx, user, 'deposit.reverse_applied', original.tenancyId, original.id, reason);
+    for (const o of this.observers) await o.afterReversal(tx, user, original.tenancyId, 'DEPOSIT_TX', original.id, reason);
   }
 
   /** Hook để V1.1 xử lý cặp chuyển cọc giữa hai lần thuê. */
