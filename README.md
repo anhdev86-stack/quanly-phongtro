@@ -3,8 +3,8 @@
 Phần mềm quản lý nhà trọ cho một chủ trọ: nhiều tòa, nhiều phòng, nhiều người thuê.
 Đặc tả nghiệp vụ: [MASTER_PLAN.md](MASTER_PLAN.md). Tiến độ: [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
-> **Trạng thái:** đã xong Phase 0 (nền tảng: đăng nhập, phân quyền, phạm vi tòa, idempotency, audit, khung test).
-> Các chức năng nghiệp vụ (phòng, hợp đồng, tính tiền…) được bổ sung từ Phase 1.
+> **Trạng thái:** MVP (Phase 0–9) theo [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md). Nhắc đóng tiền Zalo/SMS
+> chưa gửi tin thật (chờ chủ dự án chốt nhà cung cấp); VietQR dùng tài khoản demo cho tới khi nhập tài khoản thật.
 
 ## Yêu cầu
 
@@ -12,7 +12,7 @@ Phần mềm quản lý nhà trọ cho một chủ trọ: nhiều tòa, nhiều 
 |---|---|---|
 | Node.js | 24 LTS (≥ 24.11) | Xem `.nvmrc` |
 | pnpm | 12.9.1 | Cài đặt bên dưới |
-| Docker | Docker Desktop (Windows/macOS) hoặc Docker Engine + Compose v2 | Chỉ để chạy PostgreSQL |
+| Docker | Docker Desktop (Windows/macOS) hoặc Docker Engine + Compose v2 | Dev: chỉ PostgreSQL; profile `full`: toàn bộ stack |
 | Trình duyệt cho E2E | Microsoft Edge (mặc định) | Hoặc Chromium của Playwright |
 
 ## Cài đặt lần đầu
@@ -104,6 +104,12 @@ E2E_BROWSER_CHANNEL=chromium pnpm test:e2e
 | `pnpm db:down` | Dừng PostgreSQL, giữ dữ liệu |
 | `pnpm db:deploy` | Áp migration không tạo mới (CI/production) |
 | `pnpm db:reset` | **Xóa toàn bộ dữ liệu dev**, áp lại migration; Prisma hỏi xác nhận |
+| `pnpm db:backup` | Sao lưu database vào `backups/` (kèm checksum, tự dọn bản cũ) |
+| `pnpm db:restore:drill` | Diễn tập: sao lưu rồi khôi phục vào `ql_tro_restore_drill` và đối chiếu |
+| `pnpm db:restore <file>` | Khôi phục vào database thử (không ghi đè database chính nếu không xác nhận) |
+| `pnpm db:bootstrap` | Production: đồng bộ quyền, tạo chủ trọ đầu tiên (biến `BOOTSTRAP_*`) |
+
+Triển khai bằng Docker + Caddy (profile `full`), nâng cấp, rollback: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 Chi tiết vận hành, reset database test, sự cố thường gặp: [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
@@ -114,7 +120,9 @@ apps/api        NestJS + Prisma — nơi duy nhất tính tiền chính thức
 apps/web        Next.js — giao diện, gọi API qua /api
 packages/shared Zod schema, mã lỗi, mã quyền dùng chung
 e2e             Playwright
-infra/docker    Script khởi tạo PostgreSQL (Dockerfile/Caddy ở Phase 9)
+infra/docker    Dockerfile (migrate/api/web), script khởi tạo PostgreSQL
+infra/caddy     Caddyfile (một tên miền: /api → api, còn lại → web)
+scripts         Sao lưu/khôi phục database
 docs            Tiến độ, quyết định, runbook, kịch bản demo
 ```
 

@@ -41,10 +41,10 @@ export interface FoundationPasswords {
 }
 
 /**
- * Seed nền tảng, idempotent: quyền, vai trò, workspace, 3 tòa, 1 OWNER và 2 STAFF với phạm vi tòa khác nhau.
- * Dùng chung cho `prisma db seed` và integration test.
+ * Đồng bộ danh mục quyền và quyền của vai trò mặc định (idempotent). Chạy ở mỗi lần triển khai để vai trò có quyền mới
+ * của bản phát hành (dùng chung cho seed dev và `db:bootstrap` production).
  */
-export async function seedFoundation(prisma: PrismaClient, passwords: FoundationPasswords): Promise<void> {
+export async function syncRolesAndPermissions(prisma: PrismaClient): Promise<void> {
   for (const code of ALL_PERMISSIONS) {
     await prisma.permission.upsert({ where: { code }, update: {}, create: { code } });
   }
@@ -61,6 +61,25 @@ export async function seedFoundation(prisma: PrismaClient, passwords: Foundation
       data: permissions.map((p) => ({ roleId: role.id, permissionId: p.id })),
     });
   }
+}
+
+/** Danh mục dịch vụ mặc định cho một nhà trọ (không đổi dịch vụ đã có). */
+export async function seedDefaultServices(prisma: PrismaClient, workspaceId: string): Promise<void> {
+  for (const s of DEFAULT_SERVICES) {
+    await prisma.service.upsert({
+      where: { workspaceId_code: { workspaceId, code: s.code } },
+      update: {},
+      create: { workspaceId, ...s },
+    });
+  }
+}
+
+/**
+ * Seed nền tảng, idempotent: quyền, vai trò, workspace, 3 tòa, 1 OWNER và 2 STAFF với phạm vi tòa khác nhau.
+ * Dùng chung cho `prisma db seed` và integration test.
+ */
+export async function seedFoundation(prisma: PrismaClient, passwords: FoundationPasswords): Promise<void> {
+  await syncRolesAndPermissions(prisma);
 
   const workspace = await prisma.workspace.upsert({
     where: { id: SEED_IDS.workspace },
@@ -76,13 +95,7 @@ export async function seedFoundation(prisma: PrismaClient, passwords: Foundation
     });
   }
 
-  for (const s of DEFAULT_SERVICES) {
-    await prisma.service.upsert({
-      where: { workspaceId_code: { workspaceId: workspace.id, code: s.code } },
-      update: {},
-      create: { workspaceId: workspace.id, ...s },
-    });
-  }
+  await seedDefaultServices(prisma, workspace.id);
 
   const ownerHash = await hashPassword(passwords.owner);
   const staffHash = await hashPassword(passwords.staff);

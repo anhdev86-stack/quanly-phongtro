@@ -4,6 +4,9 @@ const booleanString = z
   .enum(['true', 'false'])
   .transform((v) => v === 'true');
 
+/** Biến tùy chọn: chuỗi rỗng (VD `SMS_API_KEY=` hoặc compose truyền `${X:-}`) coi như chưa đặt. */
+const optional = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
+
 export const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -15,16 +18,21 @@ export const envSchema = z
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
     COOKIE_SECURE: booleanString.default(false),
     BUSINESS_TIMEZONE: z.string().default('Asia/Ho_Chi_Minh'),
+    /**
+     * Proxy được tin để đọc IP thật (X-Forwarded-For) — dùng cho giới hạn đăng nhập và trang công khai.
+     * Dev: Next.js rewrite trên cùng máy (loopback). Docker: Caddy trong mạng nội bộ (`loopback, uniquelocal`).
+     */
+    TRUST_PROXY: z.string().min(1).default('loopback'),
     /** Địa chỉ web công khai để ghép link xem thông báo trong tin nhắc. */
     PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
     /** Job nhắc đóng tiền chạy mỗi 15 phút trong tiến trình API (tắt ở test). */
     REMINDER_JOB_ENABLED: booleanString.default(true),
     // Khóa nhà cung cấp tin nhắn: chỉ ở biến môi trường server, không lưu DB, không ghi log (MASTER_PLAN 9.7).
-    ZALO_ZNS_ACCESS_TOKEN: z.string().min(1).optional(),
-    ZALO_ZNS_TEMPLATE_ID: z.string().min(1).optional(),
-    SMS_API_URL: z.string().url().optional(),
-    SMS_API_KEY: z.string().min(1).optional(),
-    SMS_BRANDNAME: z.string().min(1).optional(),
+    ZALO_ZNS_ACCESS_TOKEN: optional(z.string().min(1)),
+    ZALO_ZNS_TEMPLATE_ID: optional(z.string().min(1)),
+    SMS_API_URL: optional(z.string().url()),
+    SMS_API_KEY: optional(z.string().min(1)),
+    SMS_BRANDNAME: optional(z.string().min(1)),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
@@ -33,6 +41,9 @@ export const envSchema = z
     }
     if (!env.COOKIE_SECURE) {
       ctx.addIssue({ code: 'custom', path: ['COOKIE_SECURE'], message: 'Production bắt buộc COOKIE_SECURE=true.' });
+    }
+    if (!env.PUBLIC_BASE_URL.startsWith('https://')) {
+      ctx.addIssue({ code: 'custom', path: ['PUBLIC_BASE_URL'], message: 'Production cần PUBLIC_BASE_URL dạng https:// (link gửi người thuê).' });
     }
   });
 

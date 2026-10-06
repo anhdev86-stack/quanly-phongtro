@@ -384,5 +384,51 @@ Kiểm tra (07/10/2026):
 | `pnpm test:integration` | ✅ **294** (22 file; gồm T62–T64 và T47 cho 2 ràng buộc mới) |
 | `pnpm test:e2e specs/reminders.spec.ts` | ✅ 4 (desktop + mobile) |
 | `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy (theo yêu cầu không tự chạy full E2E) |
-## Phase 9 — MVP release readiness ⬜
+## Phase 9 — MVP release readiness ✅ (full E2E chờ chủ dự án chạy)
+
+Nhánh `phase/9-release`. Quyết định: D-035. Hướng dẫn vận hành: [RUNBOOK.md](RUNBOOK.md).
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Dockerfile (target migrate/api/web), `.dockerignore` | ✅ | Cài sạch từ lockfile trong container (`pnpm install --frozen-lockfile`) và build được |
+| Caddyfile: một tên miền, `/api/*` → api, HTTPS tự động, chặn docs/health từ ngoài, log che token | ✅ | `caddy validate` đạt |
+| docker compose profile `full` (postgres, migrate, api, web, caddy) | ✅ | Migration chỉ chạy ở service `migrate`, không chạy lúc app khởi động |
+| `db:bootstrap`: đồng bộ quyền mỗi lần triển khai, tạo chủ trọ đầu tiên, không dữ liệu demo | ✅ | 2 integration test |
+| Sao lưu / khôi phục / diễn tập (`db:backup`, `db:restore`, `db:restore:drill`) | ✅ | Diễn tập đạt trên DB dev và trên stack full; DB khôi phục `prisma migrate status` = up to date |
+| Rà soát bảo mật | ✅ | Xem D-035: env production, token không vào log (pino + Caddy), header web, PostgreSQL chỉ 127.0.0.1, cookie Secure/HttpOnly qua HTTPS, CSRF |
+| Health liveness/readiness, healthcheck container | ✅ | Có từ Phase 0; thêm HEALTHCHECK cho image api/web |
+| Test concurrency và rollback | ✅ | Đã có từ các phase trước (lock-rows, idempotency, audit rollback, T32, T62) |
+| RUNBOOK: triển khai lần đầu, nâng cấp, rollback, khôi phục sự cố, lịch sao lưu | ✅ | |
+| E2E đầy đủ (mục 14) | ⏳ | Theo yêu cầu, không tự chạy full E2E; đã chạy lại các spec bị ảnh hưởng |
+
+**Lỗi tìm thấy nhờ smoke test stack full và đã sửa:**
+1. Compose truyền chuỗi rỗng cho khóa Zalo/SMS tùy chọn → api không khởi động. Env schema coi chuỗi rỗng là “chưa đặt” (+ unit test).
+2. Caddy: `respond` ở cấp site chạy sau `handle`, nên `/api/v1/health` vẫn lộ ra ngoài → chuyển vào trong khối `/api/*`.
+3. Log api vẫn chứa token link xem thông báo trong `params.splat` → bỏ `params` khỏi log request.
+
+**Smoke test stack full** (project riêng `ql-tro-trial`, database riêng, https://localhost:8443 qua Caddy, chứng chỉ nội bộ) — 19/19 đạt:
+web `/login` 200; http → https 308; health/docs từ ngoài 404; API chưa đăng nhập 401; X-Frame-Options, HSTS, không X-Powered-By,
+`/p/*` no-referrer; đăng nhập chủ trọ do `db:bootstrap` tạo; cookie Secure + HttpOnly; không có tòa/tài khoản ngân hàng demo;
+POST thiếu CSRF 403; tạo tòa 201; dashboard 200; nhắc đóng tiền `real_sending: false`; link công khai sai 404.
+Chạy lại `migrate` lần 2: chỉ đồng bộ quyền, không tạo thêm chủ trọ. Log api/Caddy không chứa token.
+
+Kiểm tra (07/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm build` | ✅ |
+| `pnpm test` | ✅ 99 (shared 16, api 77, web 6) |
+| `pnpm test:integration` | ✅ **296** (23 file) |
+| `pnpm test:e2e specs/auth.spec.ts specs/payments.spec.ts` | ✅ 14 (header web và trang công khai `/p/*` đổi) |
+| `docker compose --profile full build` + `up` (project thử) | ✅ migrate Exited (0), api/web healthy |
+| Smoke test qua Caddy | ✅ 19/19 |
+| `pnpm db:restore:drill` (dev) / `--env-file .env.trial` (stack full) | ✅ / ✅ — 48 bảng, 525 ràng buộc, 135 index khớp |
+| `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
+
+**Sự cố môi trường 07/10/2026:** build image làm ổ C: hết chỗ (dữ liệu Docker Desktop nằm trên C:), Docker không khởi động lại được.
+Chủ dự án đã dời Disk image location sang `D:\DockerData\DockerDesktopWSL`. Đã xóa `apps/web/.next`, `.next-e2e` (bản build, tự tạo lại).
+Không mất dữ liệu dev.
+
 ## Phase 10–14 — V1.1 ⬜

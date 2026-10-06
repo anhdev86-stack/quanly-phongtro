@@ -1,0 +1,37 @@
+# Một tên miền cho cả web và API (MASTER_PLAN 3.5): /api/* → api, phần còn lại → web.
+# SITE_ADDRESS: tên miền thật (Caddy tự lấy chứng chỉ HTTPS) hoặc "localhost" khi chạy thử (chứng chỉ nội bộ).
+{
+	https_port {$HTTPS_PORT:443}
+	http_port {$HTTP_PORT:80}
+}
+
+{$SITE_ADDRESS:localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	handle /api/* {
+		# Tài liệu API chỉ có ở dev; health chỉ cho healthcheck nội bộ. (`respond` chạy trước `reverse_proxy` trong cùng khối.)
+		@internal path /api/v1/docs* /api/v1/health*
+		respond @internal 404
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	# Log truy cập: che token của link xem thông báo trong URL (Caddy tự ẩn Cookie/Authorization).
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri regexp "^(/p/|/api/v1/public/invoices/)[^/?#]+" "${1}[REDACTED]"
+			}
+		}
+	}
+}

@@ -315,3 +315,25 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - Không lưu số điện thoại thật trong `reminder_messages`/`reminder_attempts`/log: lưu `recipient_masked`, lỗi qua `maskPhonesIn`; log của
   `LogOnlyChannel` không in nội dung tin (có token link).
 - Job chạy mỗi 15 phút trong tiến trình API (`REMINDER_JOB_ENABLED`, tắt ở test); nút “Chạy nhắc ngay” gọi `POST /reminders/run`.
+
+## D-035 — Sẵn sàng phát hành MVP (Phase 9)
+
+- **Docker:** một `infra/docker/Dockerfile` (Node 24 bookworm-slim, glibc để dùng prebuild của argon2) với ba target: `migrate`
+  (đủ công cụ, chạy `prisma migrate deploy` + `db:bootstrap`), `api` (`pnpm deploy --legacy --prod`, chạy bằng user `node`),
+  `web` (Next.js `output: 'standalone'` khi `NEXT_OUTPUT=standalone`; dev/E2E không đổi). `prisma generate` lúc build dùng
+  `DATABASE_URL` giả vì `prisma.config.ts` đòi biến này.
+- **Migration không chạy khi app khởi động:** service `migrate` chạy một lần, api `depends_on` migrate thành công. Không bao giờ `reset`.
+- **Khởi tạo production:** `db:bootstrap` luôn đồng bộ quyền của vai trò (bản mới thêm quyền thì vai trò có ngay); chỉ khi chưa có
+  người dùng mới tạo nhà trọ + dịch vụ mặc định + một OWNER từ biến `BOOTSTRAP_*`. Không có dữ liệu demo, không có tài khoản ngân hàng demo.
+- **Caddy:** một tên miền, `/api/*` → api, còn lại → web; chặn `/api/v1/docs*` và `/api/v1/health*` từ bên ngoài; log JSON che token
+  của `/p/<token>` và `/api/v1/public/invoices/<token>`.
+- **Proxy tin cậy:** `TRUST_PROXY` (mặc định `loopback`; compose full dùng `loopback, uniquelocal` vì Caddy ở mạng nội bộ Docker).
+- **Rà soát bảo mật:** production bắt buộc `PUBLIC_BASE_URL` https (ngoài secret thật và `COOKIE_SECURE`); log pino che token trong URL
+  và bỏ `params` khỏi log request (Express đưa token vào `params.splat`); web thêm `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, trang
+  `/p/*` thêm `Referrer-Policy: no-referrer`, `no-store`, `noindex`; PostgreSQL chỉ mở cổng trên 127.0.0.1. CSP chưa bật vì Next.js
+  cần script inline (ghi nhận là hạn chế).
+- **Biến tùy chọn rỗng:** compose truyền `${X:-}` thành chuỗi rỗng; env schema coi chuỗi rỗng của khóa Zalo/SMS là “chưa đặt”
+  (lỗi tìm thấy khi smoke test stack full).
+- **Sao lưu/khôi phục:** script Node chạy `pg_dump`/`pg_restore` trong container postgres (giống nhau trên Windows/macOS/Linux),
+  file `.dump` + `.sha256`, kiểm tra `pg_restore --list` trước khi nhận, retention theo ngày nhưng luôn giữ 3 bản. Khôi phục mặc định
+  vào `ql_tro_restore_drill`; ghi đè database chính cần `--overwrite-main` + `CONFIRM_RESTORE=<tên>` và tự sao lưu trước.
