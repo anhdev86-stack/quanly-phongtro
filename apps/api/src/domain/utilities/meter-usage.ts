@@ -25,8 +25,8 @@ export function sortPoints(points: MeterPoint[]): MeterPoint[] {
 
 const isBoundary = (p: MeterPoint) => p.kind === 'INITIAL' || p.kind === 'PERIODIC';
 
-/** Tổng tiêu thụ cùng đồng hồ giữa các điểm liên tiếp trong points[from..to]. Âm → null (dữ liệu sai thứ tự). */
-function chainUsage(points: MeterPoint[], from: number, to: number): Fixed2 | null {
+/** Tổng tiêu thụ cùng đồng hồ giữa các điểm liên tiếp trong points[from..to] (đã sắp xếp). Âm → null (dữ liệu sai thứ tự). */
+export function chainUsage(points: MeterPoint[], from: number, to: number): Fixed2 | null {
   let total = 0n;
   for (let i = from; i < to; i++) {
     const a = points[i]!;

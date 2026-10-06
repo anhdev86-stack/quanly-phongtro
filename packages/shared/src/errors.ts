@@ -18,6 +18,7 @@ export const ERROR_MESSAGES = {
   VALIDATION_FAILED: 'Dữ liệu gửi lên không hợp lệ.',
   VERSION_CONFLICT: 'Dữ liệu đã được người khác thay đổi. Vui lòng tải lại.',
   CONFLICT: 'Thao tác xung đột với dữ liệu hiện có.',
+  STALE: 'Dữ liệu nguồn đã thay đổi sau khi tính. Vui lòng tính lại và kiểm tra trước khi xác nhận.',
   IDEMPOTENCY_KEY_REQUIRED: 'Thiếu Idempotency-Key cho thao tác này.',
   IDEMPOTENCY_KEY_INVALID: 'Idempotency-Key không hợp lệ.',
   IDEMPOTENCY_KEY_REUSED: 'Idempotency-Key đã được dùng cho một yêu cầu khác.',

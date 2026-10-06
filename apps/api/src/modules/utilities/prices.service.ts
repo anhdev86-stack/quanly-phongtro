@@ -286,7 +286,7 @@ export class PricesService {
     try {
       return await fn();
     } catch (error) {
-      if (pgErrorCode(error) === PG.UNIQUE_VIOLATION && violatedConstraint(error) === 'one_service_price_per_day') {
+      if (pgErrorCode(error) === PG.UNIQUE_VIOLATION && ['one_building_service_price_per_day', 'one_general_service_price_per_day'].includes(violatedConstraint(error) ?? '')) {
         throw new AppError('CONFLICT', 'Đã có một mức giá có hiệu lực từ đúng ngày này.', { effective_from: ['Trùng ngày hiệu lực.'] });
       }
       throw error;
