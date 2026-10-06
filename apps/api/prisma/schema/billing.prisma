@@ -1,0 +1,110 @@
+// Phase 5: thông báo tiền phòng và dòng phí (MASTER_PLAN 5.4, 6.5, 8; D-022…D-025).
+
+enum InvoiceType {
+  MONTHLY
+  FINAL
+  DEBIT_ADJUSTMENT
+  CREDIT_ADJUSTMENT
+}
+
+enum InvoiceLifecycle {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum ChargeKind {
+  RENT
+  SERVICE
+  METER
+  DAMAGE
+  OTHER
+}
+
+enum ItemDirection {
+  DEBIT
+  CREDIT
+}
+
+model Invoice {
+  id                String           @id @default(uuid(7)) @db.Uuid
+  workspaceId       String           @map("workspace_id") @db.Uuid
+  tenancyId         String           @map("tenancy_id") @db.Uuid
+  statementPeriodId String?          @map("statement_period_id") @db.Uuid
+  type              InvoiceType
+  /// Cấp khi phát hành: <loại>-<YYYYMM>-<số thứ tự>.
+  number            String?
+  issueDate         DateTime         @map("issue_date") @db.Date
+  dueDate           DateTime         @map("due_date") @db.Date
+  lifecycle         InvoiceLifecycle @default(DRAFT)
+  subtotalVnd       BigInt           @default(0) @map("subtotal_vnd")
+  /// Luôn 0 trong MVP (D-022): giảm giá là một mức giá thuê, không phải discount trên thông báo.
+  discountVnd       BigInt           @default(0) @map("discount_vnd")
+  totalVnd          BigInt           @default(0) @map("total_vnd")
+  /// Chứng từ điều chỉnh: thông báo gốc được điều chỉnh / tách ra.
+  sourceInvoiceId   String?          @map("source_invoice_id") @db.Uuid
+  /// Băm dữ liệu nguồn lúc tính nháp; phát hành khi dữ liệu nguồn đã đổi bị từ chối (STALE).
+  sourceHash        String?          @map("source_hash")
+  /// Lỗi chặn phát hành của nháp (thiếu chỉ số, thiếu giá…). Rỗng khi phát hành được.
+  blockingErrors    Json             @default("[]") @map("blocking_errors")
+  publishedAt       DateTime?        @map("published_at") @db.Timestamptz(3)
+  publishedBy       String?          @map("published_by") @db.Uuid
+  cancelledAt       DateTime?        @map("cancelled_at") @db.Timestamptz(3)
+  cancelledBy       String?          @map("cancelled_by") @db.Uuid
+  cancelReason      String?          @map("cancel_reason")
+  createdBy         String           @map("created_by") @db.Uuid
+  version           Int              @default(1)
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenancy         Tenancy          @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  statementPeriod StatementPeriod? @relation(fields: [statementPeriodId], references: [id], onDelete: Restrict)
+  sourceInvoice   Invoice?         @relation("InvoiceAdjustments", fields: [sourceInvoiceId], references: [id], onDelete: Restrict)
+  adjustments     Invoice[]        @relation("InvoiceAdjustments")
+  items           InvoiceItem[]
+
+  @@unique([workspaceId, number])
+  @@index([tenancyId, lifecycle])
+  @@index([statementPeriodId])
+  @@map("invoices")
+}
+
+/// Dòng phí. Đơn vị đối soát `unit_key` (D-024/D-025): RENT/SVC theo tháng dương lịch, METER theo khoảng chỉ số đã phát hành.
+model InvoiceItem {
+  id                  String        @id @default(uuid(7)) @db.Uuid
+  invoiceId           String        @map("invoice_id") @db.Uuid
+  chargeKind          ChargeKind    @map("charge_kind")
+  chargeTiming        ChargeTiming  @map("charge_timing")
+  direction           ItemDirection
+  labelSnapshot       String        @map("label_snapshot")
+  quantity            Decimal       @db.Decimal(12, 2)
+  unitPrice           Decimal       @map("unit_price") @db.Decimal(14, 2)
+  amountVnd           BigInt        @map("amount_vnd")
+  chargeStart         DateTime?     @map("charge_start") @db.Date
+  chargeEndExclusive  DateTime?     @map("charge_end_exclusive") @db.Date
+  sourceType          String        @map("source_type")
+  sourceId            String?       @map("source_id") @db.Uuid
+  /// Nguồn phí ổn định xuyên các phiên bản (D-024).
+  sourceKey           String        @map("source_key")
+  /// Đơn vị đối soát u (mục 8.3/8.6).
+  unitKey             String        @map("unit_key")
+  /// Dòng điều chỉnh trỏ tới dòng đã phát hành gần nhất của cùng u.
+  correctsItemId      String?       @map("corrects_item_id") @db.Uuid
+  /// Ranh giới khoảng chỉ số đã chốt lần phát hành đầu (D-025).
+  readingStartId      String?       @map("reading_start_id") @db.Uuid
+  readingEndId        String?       @map("reading_end_id") @db.Uuid
+  /// Chính sách đã dùng (chia ngày, làm tròn) — chốt cho u ở lần phát hành đầu (MASTER_PLAN 4.3).
+  policySnapshot      Json          @map("policy_snapshot")
+  calculationSnapshot Json          @map("calculation_snapshot")
+  sortOrder           Int           @default(0) @map("sort_order")
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  invoice      Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  correctsItem InvoiceItem?  @relation("ItemCorrections", fields: [correctsItemId], references: [id], onDelete: Restrict)
+  corrections  InvoiceItem[] @relation("ItemCorrections")
+
+  @@index([invoiceId])
+  @@index([unitKey])
+  @@index([sourceKey])
+  @@map("invoice_items")
+}

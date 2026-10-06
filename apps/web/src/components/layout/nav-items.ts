@@ -48,4 +48,4 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 /** Phase đã hoàn thành của bản build hiện tại. */
-export const CURRENT_PHASE = 4;
+export const CURRENT_PHASE = 5;

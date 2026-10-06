@@ -8,3 +8,4 @@ export * from './users.js';
 export * from './tenancy.js';
 export * from './contracts.js';
 export * from './utilities.js';
+export * from './billing.js';

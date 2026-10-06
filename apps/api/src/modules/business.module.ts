@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { BillingController } from './billing/billing.controller.js';
+import { BillingMoveInExtension } from './billing/billing-move-in.js';
+import { BillingService, INVOICE_SETTLEMENT, NoSettlements } from './billing/billing.service.js';
+import { ChargeCalculator } from './billing/charges.js';
 import { ContractDepositRequirement, ContractMoveInExtension, ContractRentalMode } from './contracts/contract-providers.js';
 import { ContractsController } from './contracts/contracts.controller.js';
 import { ContractsService } from './contracts/contracts.service.js';
@@ -41,6 +45,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     ServicesCatalogController,
     ContractsController,
     UtilitiesController,
+    BillingController,
   ],
   providers: [
     BuildingsService,
@@ -57,10 +62,19 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     PricesService,
     MetersService,
     SubscriptionsService,
+    ChargeCalculator,
+    BillingService,
+    BillingMoveInExtension,
+    { provide: INVOICE_SETTLEMENT, useClass: NoSettlements },
     { provide: RESERVATION_EXTRAS, useClass: DefaultReservationExtras },
     { provide: DEPOSIT_REQUIREMENT, useClass: ContractDepositRequirement },
     { provide: RENTAL_MODE, useClass: ContractRentalMode },
-    { provide: MOVE_IN_EXTENSIONS, useFactory: (contract: ContractMoveInExtension) => [contract], inject: [ContractMoveInExtension] },
+    {
+      provide: MOVE_IN_EXTENSIONS,
+      // Thứ tự: hợp đồng (có thể đặt giá theo hợp đồng) trước, rồi thông báo đầu tiên.
+      useFactory: (contract: ContractMoveInExtension, billing: BillingMoveInExtension) => [contract, billing],
+      inject: [ContractMoveInExtension, BillingMoveInExtension],
+    },
   ],
 })
 export class BusinessModule {}

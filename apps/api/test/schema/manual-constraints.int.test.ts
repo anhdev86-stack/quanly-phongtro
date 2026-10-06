@@ -385,7 +385,20 @@ describe('T47 — ràng buộc SQL thủ công', () => {
     },
 
     // ---------------- Phase 4 ----------------
-    one_service_price_per_day: async () => {
+    one_building_service_price_per_day: async () => {
+      await expectAccepted(async (tx) => {
+        const s = await svc(tx, 'ELEC');
+        await price(tx, s, SEED_IDS.buildings.A, '2026-10-01');
+        await price(tx, s, SEED_IDS.buildings.B, '2026-10-01');
+        await price(tx, s, SEED_IDS.buildings.B, '2026-11-01');
+      });
+      await expectRejected(async (tx) => {
+        const s = await svc(tx, 'ELEC');
+        await price(tx, s, SEED_IDS.buildings.B, '2026-10-01');
+        await price(tx, s, SEED_IDS.buildings.B, '2026-10-01');
+      }, 'one_building_service_price_per_day');
+    },
+    one_general_service_price_per_day: async () => {
       await expectAccepted(async (tx) => {
         const s = await svc(tx);
         await price(tx, s, null, '2026-10-01');
@@ -396,12 +409,7 @@ describe('T47 — ràng buộc SQL thủ công', () => {
         const s = await svc(tx);
         await price(tx, s, null, '2026-10-01');
         await price(tx, s, null, '2026-10-01');
-      }, 'one_service_price_per_day');
-      await expectRejected(async (tx) => {
-        const s = await svc(tx, 'ELEC');
-        await price(tx, s, SEED_IDS.buildings.B, '2026-10-01');
-        await price(tx, s, SEED_IDS.buildings.B, '2026-10-01');
-      }, 'one_service_price_per_day');
+      }, 'one_general_service_price_per_day');
     },
     service_price_nonneg_chk: async () => {
       await expectAccepted(async (tx) => price(tx, await svc(tx), null, '2026-10-01', '0'));
@@ -447,12 +455,127 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       await expectAccepted(async (tx) => meter(tx, await mkRoom(tx), { retiredOn: new Date('2026-10-01') }));
       await expectRejected(async (tx) => meter(tx, await mkRoom(tx), { retiredOn: new Date('2026-09-30') }), 'meters_retired_after_installed_chk');
     },
+
+    // ---------------- Phase 5 ----------------
+    one_monthly_invoice_per_period: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const p = await period(tx, '2031-06-01');
+        await invoice(tx, tn, { statementPeriodId: p, lifecycle: 'CANCELLED' });
+        await invoice(tx, tn, { statementPeriodId: p, lifecycle: 'PUBLISHED', number: `TB-P5-${++n}` });
+        await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-07-01') });
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const p = await period(tx, '2031-06-01');
+        await invoice(tx, tn, { statementPeriodId: p, lifecycle: 'PUBLISHED', number: `TB-P5-${++n}` });
+        await invoice(tx, tn, { statementPeriodId: p });
+      }, 'one_monthly_invoice_per_period');
+    },
+    one_draft_invoice_per_tenancy: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-06-01') });
+        await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-07-01'), lifecycle: 'PUBLISHED', number: `TB-P5-${++n}` });
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-06-01') });
+        await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-07-01') });
+      }, 'one_draft_invoice_per_tenancy');
+    },
+    one_final_invoice_per_tenancy: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await invoice(tx, tn, { type: 'FINAL', lifecycle: 'CANCELLED' });
+        await invoice(tx, tn, { type: 'FINAL', lifecycle: 'PUBLISHED', number: `QT-P5-${++n}` });
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await invoice(tx, tn, { type: 'FINAL', lifecycle: 'PUBLISHED', number: `QT-P5-${++n}` });
+        await invoice(tx, tn, { type: 'FINAL' });
+      }, 'one_final_invoice_per_tenancy');
+    },
+    invoices_amounts_chk: async () => {
+      const mk = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
+        invoice(tx, await mkTenancy(tx, await mkRoom(tx)), { statementPeriodId: await period(tx, '2031-06-01'), ...extra });
+      await expectAccepted((tx) => mk(tx, { subtotalVnd: 0n, totalVnd: 0n }));
+      await expectAccepted((tx) => mk(tx, { subtotalVnd: 5n, totalVnd: 5n }));
+      // Nháp được tạm âm (tách credit khi phát hành — D-023); chứng từ đã phát hành thì không.
+      await expectAccepted((tx) => mk(tx, { subtotalVnd: -1n, totalVnd: -1n }));
+      await expectRejected((tx) => mk(tx, { subtotalVnd: -1n, totalVnd: -1n, lifecycle: 'PUBLISHED', number: `TB-P5-${++n}` }), 'invoices_amounts_chk');
+      await expectRejected((tx) => mk(tx, { subtotalVnd: 5n, discountVnd: 1n, totalVnd: 4n }), 'invoices_amounts_chk');
+      await expectRejected((tx) => mk(tx, { subtotalVnd: 5n, totalVnd: 4n }), 'invoices_amounts_chk');
+    },
+    invoices_published_chk: async () => {
+      const mk = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
+        invoice(tx, await mkTenancy(tx, await mkRoom(tx)), { statementPeriodId: await period(tx, '2031-06-01'), ...extra });
+      await expectAccepted((tx) => mk(tx, { lifecycle: 'PUBLISHED', number: `TB-P5-${++n}`, publishedAt: new Date() }));
+      await expectAccepted((tx) => mk(tx, { lifecycle: 'CANCELLED' }));
+      await expectRejected((tx) => mk(tx, { lifecycle: 'PUBLISHED' }), 'invoices_published_chk');
+      await expectRejected((tx) => mk(tx, { lifecycle: 'CANCELLED', publishedAt: new Date() }), 'invoices_published_chk');
+    },
+    invoices_monthly_period_chk: async () => {
+      await expectAccepted(async (tx) => invoice(tx, await mkTenancy(tx, await mkRoom(tx)), { type: 'FINAL' }));
+      await expectRejected(async (tx) => invoice(tx, await mkTenancy(tx, await mkRoom(tx)), {}), 'invoices_monthly_period_chk');
+    },
+    invoices_adjustment_chk: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const src = await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-06-01'), lifecycle: 'PUBLISHED', number: `TB-P5-${++n}` });
+        await invoice(tx, tn, { type: 'CREDIT_ADJUSTMENT', lifecycle: 'PUBLISHED', number: `GC-P5-${++n}`, sourceInvoiceId: src.id });
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const src = await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-06-01'), lifecycle: 'PUBLISHED', number: `TB-P5-${++n}` });
+        await invoice(tx, tn, { type: 'DEBIT_ADJUSTMENT', sourceInvoiceId: src.id });
+      }, 'invoices_adjustment_chk');
+      await expectRejected(
+        async (tx) => invoice(tx, await mkTenancy(tx, await mkRoom(tx)), { type: 'CREDIT_ADJUSTMENT', lifecycle: 'PUBLISHED', number: `GC-P5-${++n}` }),
+        'invoices_adjustment_chk',
+      );
+    },
+    invoice_items_amount_chk: async () => {
+      await expectAccepted(async (tx) => item(tx, { amountVnd: 0n }));
+      await expectRejected(async (tx) => item(tx, { amountVnd: -1n }), 'invoice_items_amount_chk');
+    },
+    invoice_items_period_chk: async () => {
+      await expectAccepted(async (tx) => item(tx, { chargeStart: new Date('2026-10-31'), chargeEndExclusive: new Date('2026-11-01') }));
+      await expectAccepted(async (tx) => item(tx, { chargeStart: null, chargeEndExclusive: null }));
+      await expectRejected(async (tx) => item(tx, { chargeStart: new Date('2026-11-01'), chargeEndExclusive: new Date('2026-11-01') }), 'invoice_items_period_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
 
   const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>
     tx.servicePriceHistory.create({ data: { workspaceId: W, serviceId, buildingId, effectiveFrom: new Date(from), unitPrice, createdBy: userId } });
   const period = async (tx: Prisma.TransactionClient, monthStart: string) =>
     (await tx.statementPeriod.upsert({ where: { workspaceId_monthStart: { workspaceId: W, monthStart: new Date(monthStart) } }, update: {}, create: { workspaceId: W, monthStart: new Date(monthStart) } })).id;
+
+  const invoice = (tx: Prisma.TransactionClient, tenancyId: string, extra: Record<string, unknown>) =>
+    tx.invoice.create({
+      data: { workspaceId: W, tenancyId, type: 'MONTHLY', issueDate: new Date('2026-10-01'), dueDate: new Date('2026-10-05'), createdBy: userId, ...extra } as never,
+    });
+  const item = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) => {
+    const inv = await invoice(tx, await mkTenancy(tx, await mkRoom(tx)), { statementPeriodId: await period(tx, '2031-06-01') });
+    return tx.invoiceItem.create({
+      data: {
+        invoiceId: inv.id,
+        chargeKind: 'RENT',
+        chargeTiming: 'ADVANCE',
+        direction: 'DEBIT',
+        labelSnapshot: 'x',
+        quantity: '1',
+        unitPrice: '1',
+        amountVnd: 1n,
+        sourceType: 'RENT',
+        sourceKey: 'RENT:x',
+        unitKey: 'RENT:x:2031-06',
+        policySnapshot: {},
+        calculationSnapshot: {},
+        ...extra,
+      } as never,
+    });
+  };
 
   let cseq = 0;
   async function contract(tx: Prisma.TransactionClient, tenancyId: string, start: string, end: string, extra: Record<string, unknown> = {}) {

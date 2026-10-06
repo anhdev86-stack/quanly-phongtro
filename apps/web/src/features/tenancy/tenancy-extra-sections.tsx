@@ -1,6 +1,7 @@
 'use client';
 
 import type { TenancyDetail } from '@ql-tro/shared';
+import { TenancyInvoicesSection } from '@/features/billing/tenancy-invoices-section';
 import { ContractsSection } from '@/features/contracts/contracts-section';
 import { TenancyServicesSection } from '@/features/utilities/tenancy-services-section';
 
@@ -8,6 +9,7 @@ import { TenancyServicesSection } from '@/features/utilities/tenancy-services-se
 export function TenancyExtraSections({ tenancy }: { tenancy: TenancyDetail }) {
   return (
     <>
+      <TenancyInvoicesSection tenancy={tenancy} />
       <ContractsSection tenancy={tenancy} />
       <TenancyServicesSection tenancy={tenancy} />
     </>

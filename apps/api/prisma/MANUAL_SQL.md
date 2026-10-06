@@ -23,6 +23,7 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 |---|---|---|
 | Unique / index thường, FK, FK kép | Hỗ trợ ổn định | Khai báo trong `schema.prisma` |
 | Partial unique index (`WHERE …`) | Chỉ ở dạng **preview** `partialIndexes` (từ 7.4.0) | **SQL thủ công** (chủ dự án chốt 06/10/2026). Đã kiểm chứng ở Phase 2: `migrate dev` **không** sinh DROP cho partial index viết tay. |
+| Unique index **không** partial (VD `NULLS NOT DISTINCT`) | Không hỗ trợ | **Không dùng**: Phase 5 phát hiện `migrate dev` sinh DROP cho loại này ở mọi migration. Dùng hai partial unique index thay thế. |
 | CHECK | Không hỗ trợ | SQL thủ công. Đã kiểm chứng 06/10/2026: `migrate dev` **không** sinh DROP cho CHECK viết tay (migration kiểm tra rỗng). |
 | EXCLUDE (btree_gist) | Không hỗ trợ | SQL thủ công. Đã kiểm chứng 06/10/2026: `migrate dev` **không** sinh DROP cho EXCLUDE viết tay. |
 | Khóa dòng `FOR UPDATE` | Không có API | `src/infrastructure/locking/lock-rows.ts` |
@@ -63,13 +64,23 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `contracts_signed_at_chk` | contracts | CHECK | `20261006080717_phase3_contracts` | SIGNED phải có ngày ký |
 | `no_overlapping_signed_contracts` | contracts | EXCLUDE | `20261006080717_phase3_contracts` | Kỳ SIGNED không chồng ngày |
 | `contract_effective_status` | — | FUNCTION | `20261006080717_phase3_contracts` | Trạng thái hợp đồng theo ngày (khớp domain, T05) |
-| `one_service_price_per_day` | service_price_history | UNIQUE NULLS NOT DISTINCT | `20261006142231_phase4_utilities` | Một phiên bản giá mỗi (dịch vụ, tòa, ngày), kể cả giá chung |
 | `service_price_nonneg_chk` | service_price_history | CHECK | `20261006142231_phase4_utilities` | Đơn giá không âm |
 | `services_substitutes_chk` | services | CHECK | `20261006142231_phase4_utilities` | Chỉ dịch vụ không đồng hồ mới thay đồng hồ |
 | `statement_periods_month_start_chk` | statement_periods | CHECK | `20261006142231_phase4_utilities` | Kỳ phát hành là ngày 1 |
 | `meter_readings_period_chk` | meter_readings | CHECK | `20261006142231_phase4_utilities` | PERIODIC ⇔ có kỳ phát hành |
 | `one_periodic_reading_per_period` | meter_readings | PARTIAL UNIQUE | `20261006142231_phase4_utilities` | Một chỉ số chốt mỗi đồng hồ mỗi kỳ |
 | `meters_retired_after_installed_chk` | meters | CHECK | `20261006142231_phase4_utilities` | Ngưng không trước ngày lắp |
+| `one_building_service_price_per_day` | service_price_history | PARTIAL UNIQUE | `20261006145403_phase5_billing` | Một giá riêng tòa mỗi (dịch vụ, tòa, ngày). Thay `one_service_price_per_day` (NULLS NOT DISTINCT bị Prisma sinh DROP) |
+| `one_general_service_price_per_day` | service_price_history | PARTIAL UNIQUE | `20261006145403_phase5_billing` | Một giá chung mỗi (dịch vụ, ngày) |
+| `one_monthly_invoice_per_period` | invoices | PARTIAL UNIQUE | `20261006145403_phase5_billing` | Một thông báo tháng mỗi tenancy mỗi kỳ (T16) |
+| `one_draft_invoice_per_tenancy` | invoices | PARTIAL UNIQUE | `20261006145403_phase5_billing` | Tối đa một nháp mỗi tenancy (T49, D-023) |
+| `one_final_invoice_per_tenancy` | invoices | PARTIAL UNIQUE | `20261006145403_phase5_billing` | Một thông báo cuối kỳ mỗi tenancy |
+| `invoices_amounts_chk` | invoices | CHECK | `20261006150205_phase5_draft_totals` | Chứng từ không phải nháp có tổng không âm; discount = 0 (D-022) |
+| `invoices_published_chk` | invoices | CHECK | `20261006145403_phase5_billing` | Đã phát hành thì có số chứng từ |
+| `invoices_monthly_period_chk` | invoices | CHECK | `20261006145403_phase5_billing` | Thông báo tháng gắn kỳ phát hành |
+| `invoices_adjustment_chk` | invoices | CHECK | `20261006145403_phase5_billing` | Chứng từ điều chỉnh không ở nháp, luôn trỏ chứng từ gốc |
+| `invoice_items_amount_chk` | invoice_items | CHECK | `20261006145403_phase5_billing` | Số tiền dòng không âm (dấu ở direction) |
+| `invoice_items_period_chk` | invoice_items | CHECK | `20261006145403_phase5_billing` | Khoảng phí hợp lệ |
 
 ```json manual-constraints
 [
@@ -266,12 +277,6 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "definition": "contract_effective_status(\"ContractLifecycle\",date,date,date,date)"
   },
   {
-    "name": "one_service_price_per_day",
-    "kind": "index",
-    "table": "service_price_history",
-    "definition": "CREATE UNIQUE INDEX one_service_price_per_day ON public.service_price_history USING btree (service_id, building_id, effective_from) NULLS NOT DISTINCT"
-  },
-  {
     "name": "service_price_nonneg_chk",
     "kind": "check",
     "table": "service_price_history",
@@ -306,6 +311,72 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "meters",
     "definition": "CHECK (((retired_on IS NULL) OR (retired_on >= installed_on)))"
+  },
+  {
+    "name": "one_building_service_price_per_day",
+    "kind": "index",
+    "table": "service_price_history",
+    "definition": "CREATE UNIQUE INDEX one_building_service_price_per_day ON public.service_price_history USING btree (service_id, building_id, effective_from) WHERE (building_id IS NOT NULL)"
+  },
+  {
+    "name": "one_general_service_price_per_day",
+    "kind": "index",
+    "table": "service_price_history",
+    "definition": "CREATE UNIQUE INDEX one_general_service_price_per_day ON public.service_price_history USING btree (service_id, effective_from) WHERE (building_id IS NULL)"
+  },
+  {
+    "name": "one_monthly_invoice_per_period",
+    "kind": "index",
+    "table": "invoices",
+    "definition": "CREATE UNIQUE INDEX one_monthly_invoice_per_period ON public.invoices USING btree (tenancy_id, statement_period_id) WHERE ((type = 'MONTHLY'::\"InvoiceType\") AND (lifecycle <> 'CANCELLED'::\"InvoiceLifecycle\"))"
+  },
+  {
+    "name": "one_draft_invoice_per_tenancy",
+    "kind": "index",
+    "table": "invoices",
+    "definition": "CREATE UNIQUE INDEX one_draft_invoice_per_tenancy ON public.invoices USING btree (tenancy_id) WHERE (lifecycle = 'DRAFT'::\"InvoiceLifecycle\")"
+  },
+  {
+    "name": "one_final_invoice_per_tenancy",
+    "kind": "index",
+    "table": "invoices",
+    "definition": "CREATE UNIQUE INDEX one_final_invoice_per_tenancy ON public.invoices USING btree (tenancy_id) WHERE ((type = 'FINAL'::\"InvoiceType\") AND (lifecycle <> 'CANCELLED'::\"InvoiceLifecycle\"))"
+  },
+  {
+    "name": "invoices_amounts_chk",
+    "kind": "check",
+    "table": "invoices",
+    "definition": "CHECK ((((lifecycle = 'DRAFT'::\"InvoiceLifecycle\") OR ((subtotal_vnd >= 0) AND (total_vnd >= 0))) AND (discount_vnd = 0) AND (total_vnd = (subtotal_vnd - discount_vnd))))"
+  },
+  {
+    "name": "invoices_published_chk",
+    "kind": "check",
+    "table": "invoices",
+    "definition": "CHECK (((lifecycle = 'DRAFT'::\"InvoiceLifecycle\") OR (number IS NOT NULL) OR ((lifecycle = 'CANCELLED'::\"InvoiceLifecycle\") AND (published_at IS NULL))))"
+  },
+  {
+    "name": "invoices_monthly_period_chk",
+    "kind": "check",
+    "table": "invoices",
+    "definition": "CHECK (((type <> 'MONTHLY'::\"InvoiceType\") OR (statement_period_id IS NOT NULL)))"
+  },
+  {
+    "name": "invoices_adjustment_chk",
+    "kind": "check",
+    "table": "invoices",
+    "definition": "CHECK (((type <> ALL (ARRAY['DEBIT_ADJUSTMENT'::\"InvoiceType\", 'CREDIT_ADJUSTMENT'::\"InvoiceType\"])) OR ((lifecycle <> 'DRAFT'::\"InvoiceLifecycle\") AND (source_invoice_id IS NOT NULL))))"
+  },
+  {
+    "name": "invoice_items_amount_chk",
+    "kind": "check",
+    "table": "invoice_items",
+    "definition": "CHECK ((amount_vnd >= 0))"
+  },
+  {
+    "name": "invoice_items_period_chk",
+    "kind": "check",
+    "table": "invoice_items",
+    "definition": "CHECK (((charge_end_exclusive IS NULL) OR (charge_start IS NULL) OR (charge_end_exclusive > charge_start)))"
   }
 ]
 ```

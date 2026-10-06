@@ -227,11 +227,39 @@ Kiểm tra (06/10/2026):
 
 Ghi chú: `prisma migrate dev` treo sau khi áp migration (bước sinh client); migration đã áp đủ (`migrate status` sạch), client sinh lại bằng `prisma generate`.
 
-## Phase 5 — Billing Engine ⬜ (bị chặn bởi B-1…B-4)
+## Phase 5 — Billing Engine ✅
 
-- [ ] Chốt B-1, B-2, B-3, B-4 với chủ dự án
-- [ ] Domain tính phí, đối soát, generate/publish, trang in
-- [ ] Chạy lại toàn bộ test Phase 0–4; T01, T04, T09, T10, T12, T14–T16, T19, T39–T42, T45–T47, T49, T50, T54, T60 (phần), T61 (phần)
+Nhánh `phase/5-billing`, merge vào `main` 06/10/2026. Quy tắc B-1…B-4 áp dụng đúng D-022…D-025.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Domain chia ngày ở cấp tháng × nguồn phí, làm tròn một lần, phân bổ phần dư lớn nhất | ✅ | `domain/billing/proration.ts`; ba ví dụ mục 8.3, T10, T54 (unit) |
+| Đơn vị đối soát u và khóa nguồn ổn định | ✅ | RENT/SVC theo tháng, METER theo khoảng chỉ số (D-024, D-025, D-030) |
+| Đối soát E(u) − P(u), chỉ PUBLISHED vào P(u); u lỗi không bị coi là 0 | ✅ | `domain/billing/reconcile.ts`; T46, T49 |
+| Chính sách chốt theo u ở lần phát hành đầu | ✅ | T42 |
+| Xem trước / tạo nháp hàng loạt (mỗi phòng một transaction, kết quả từng phòng) | ✅ | T16 (lặp và đồng thời) |
+| Tối đa một nháp mỗi tenancy; tạo tháng mới khi còn nháp → lỗi cho tenancy đó | ✅ | T49 |
+| Tính lại; phát hành cần `expected_version` + `source_hash` (STALE khi dữ liệu nguồn đổi) | ✅ | Mã lỗi mới `STALE` (409) |
+| Phát hành tổng âm → tách CREDIT_ADJUSTMENT PUBLISHED cùng transaction, cấp số nợ trước | ✅ | T45 (D-023) |
+| “Điều chỉnh ngay”: xem trước / phát hành DEBIT/CREDIT_ADJUSTMENT, hủy và tạo lại nháp | ✅ | D-023 |
+| Hủy nháp; hủy đã phát hành khi chưa có khoản thu (provider Phase 6) | ✅ | T19 phần sửa |
+| Thiếu chỉ số, thiếu giá (nêu đúng tòa), giá đổi giữa hai lần đọc → lỗi chặn phát hành | ✅ | T14, T15, T60 |
+| Thay đồng hồ, sửa chỉ số đã phát hành → dòng điều chỉnh đúng khoảng | ✅ | T14, D-025 |
+| Bước 8 nhận phòng: nháp thông báo đầu tiên, đến hạn ngày nhận | ✅ | T01, T40 |
+| Thu trước 12 tháng liên tiếp: mỗi ngày/khoảng tính đúng một lần | ✅ | T39 |
+| Đổi giá sau khi đã thu → dòng đối soát liên kết `corrects_item_id` | ✅ | T41, T09, T50 phần điều chỉnh, T04 phần sinh phí, T12 phần tính tiền |
+| UI: `/invoices` (tính phí theo kỳ, phát hành hàng loạt, lọc), chi tiết (nhóm Thu trước/Thu sau/Điều chỉnh), trang in `/print/invoices/:id` (A4/A5), mục thông báo ở lần thuê | ✅ | |
+| T47 cho 11 ràng buộc mới | ✅ | Thay `one_service_price_per_day` bằng hai partial unique (D-030) |
+
+Kiểm tra (06/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm test` | ✅ 85 (shared 16, api 63, web 6) |
+| `pnpm test:integration` | ✅ **236** (18 file; billing 17) |
+| `pnpm test:e2e` | ✅ **28** (2 test dữ liệu dùng chung chỉ chạy desktop) |
 
 ## Phase 6 — Payment, Credit và công nợ ⬜
 

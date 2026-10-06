@@ -81,6 +81,7 @@ model Tenancy {
   depositTransactions DepositTransaction[]
   readings            MeterReading[]
   contracts           Contract[]
+  invoices            Invoice[]
 
   @@unique([workspaceId, code])
   @@unique([id, workspaceId])

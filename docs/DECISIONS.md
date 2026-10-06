@@ -227,3 +227,26 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   ghi rõ “tạm tính”. Sau khi lưu, màn hình hiện số do API trả. Đây là ngoại lệ có chủ đích của quy tắc “web chỉ hiển thị”;
   có unit test đối chiếu với các ví dụ của API.
 
+## D-030 — Billing engine: khóa đơn vị, mốc điện nước, băm nguồn, số chứng từ
+
+- **Khóa đơn vị u** (`invoice_items.unit_key`): `RENT:<tenancy>:<YYYY-MM>`, `SVC:<tenancy>:<service>:<YYYY-MM>`,
+  `METER:<tenancy>:<TYPE>:<điểm đầu>:<điểm cuối>` (điểm = id chỉ số, hoặc `install-<meter>` cho điểm lắp đồng hồ).
+  `source_key` theo D-024. Mọi u đã phát hành luôn được tính lại E(u) (kể cả ngoài mốc của chứng từ hiện tại);
+  u lỗi (thiếu giá, tiêu thụ âm…) được **bỏ qua**, không coi là E = 0.
+- **Mốc điện nước:** INITIAL, PERIODIC có kỳ ≤ kỳ của chứng từ, FINAL (chỉ chứng từ trả phòng). Điểm đầu chuỗi chỉ là
+  mốc khi lần thuê không có INITIAL (đồng hồ gắn sau). Mốc nằm hẳn trong khoảng đã phát hành bị bỏ qua (D-025).
+  Đơn giá của khoảng = giá kỳ của chỉ số cuối (D-028); có phiên bản giá bắt đầu **giữa** kỳ đầu và kỳ cuối của khoảng
+  (kỳ bị bỏ sót) → lỗi chặn, cần chỉ số chốt kỳ đó (T15).
+- **Thiếu chỉ số:** thông báo tháng M bắt buộc có chỉ số chốt kỳ M cho đồng hồ đang dùng nếu lần thuê bắt đầu trước
+  ngày 1/M. Nháp vẫn tạo được nhưng có lỗi chặn phát hành.
+- **Băm nguồn (`source_hash`)**: băm các dòng tính được + lỗi. Phát hành tính lại trong transaction; khác băm của nháp →
+  409 `STALE`. Client gửi băm đã xem để không phát hành nội dung khác với nội dung người dùng đã kiểm tra.
+- **Số chứng từ:** `TB` (tháng), `TT` (trả phòng), `DCT` (điều chỉnh tăng), `DCG` (điều chỉnh giảm/credit) +
+  `-<YYYYMM>-<4 số>`, đếm theo loại và tháng bằng `document_sequences` trong transaction phát hành.
+- **Nháp có thể tạm âm**: `invoices_amounts_chk` chỉ bắt tổng ≥ 0 với chứng từ không phải nháp; phát hành tách credit.
+- **Trạng thái thanh toán** tính qua provider `INVOICE_SETTLEMENT` (Phase 5: luôn 0; Phase 6 thay bằng payment,
+  cọc áp vào thông báo, credit) để một hàm dùng chung cho chi tiết, công nợ, báo cáo (MASTER_PLAN 8.8).
+- **Prisma và unique index không partial:** Prisma 7.10 sinh `DROP INDEX` cho unique index viết tay không có `WHERE`
+  (VD `NULLS NOT DISTINCT`) ở mọi migration. Chỉ dùng partial unique index cho ràng buộc viết tay; đã thay
+  `one_service_price_per_day` bằng `one_building_service_price_per_day` + `one_general_service_price_per_day`.
+
