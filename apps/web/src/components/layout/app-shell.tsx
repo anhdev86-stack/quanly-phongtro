@@ -35,12 +35,12 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
             <span
               key={item.href}
               aria-disabled="true"
-              title={`Sẽ có ở Phase ${item.availableFromPhase}`}
+              title={`Sẽ có ở Phase ${phaseLabel(item.availableFromPhase)}`}
               className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-400"
             >
               <Icon className="size-4" aria-hidden />
               <span className="flex-1">{item.label}</span>
-              <span className="rounded bg-slate-100 px-1.5 text-[10px] font-medium text-slate-400">P{item.availableFromPhase}</span>
+              <span className="rounded bg-slate-100 px-1.5 text-[10px] font-medium text-slate-400">P{phaseLabel(item.availableFromPhase)}</span>
             </span>
           );
         }
@@ -128,3 +128,6 @@ function Brand() {
     </div>
   );
 }
+
+/** 8.5 là Phase 8B (MASTER_PLAN 16). */
+const phaseLabel = (p: number) => (p === 8.5 ? '8B' : String(p));

@@ -14,16 +14,32 @@ import type { InvoiceSettlementProvider } from '../billing/billing.service.js';
 @Injectable()
 export class InvoiceBalances implements InvoiceSettlementProvider {
   async settled(db: Db, invoiceIds: string[]): Promise<Map<string, bigint>> {
-    const out = new Map<string, bigint>();
+    const parts = await this.breakdown(db, invoiceIds);
+    return new Map([...parts].map(([id, p]) => [id, p.cash + p.deposit + p.credit + p.used]));
+  }
+
+  /**
+   * Đã thu tách theo nguồn (báo cáo doanh thu, MASTER_PLAN 13): tiền thực nhận (phiếu thu POSTED), trừ từ cọc (chưa bị đảo),
+   * cấn trừ credit (ACTIVE). `used` = phần đã dùng của chứng từ credit (cấn trừ đi + hoàn tiền).
+   */
+  async breakdown(db: Db, invoiceIds: string[]): Promise<Map<string, { cash: bigint; deposit: bigint; credit: bigint; used: bigint }>> {
+    const out = new Map<string, { cash: bigint; deposit: bigint; credit: bigint; used: bigint }>();
     if (!invoiceIds.length) return out;
-    const add = (id: string, v: bigint) => out.set(id, (out.get(id) ?? 0n) + v);
+    const get = (id: string) => {
+      let v = out.get(id);
+      if (!v) {
+        v = { cash: 0n, deposit: 0n, credit: 0n, used: 0n };
+        out.set(id, v);
+      }
+      return v;
+    };
 
     const payments = await db.paymentAllocation.groupBy({
       by: ['invoiceId'],
       where: { invoiceId: { in: invoiceIds }, payment: { status: 'POSTED' } },
       _sum: { amountVnd: true },
     });
-    for (const p of payments) add(p.invoiceId, p._sum.amountVnd ?? 0n);
+    for (const p of payments) get(p.invoiceId).cash += p._sum.amountVnd ?? 0n;
 
     const deposits = await db.depositAllocation.findMany({
       where: { invoiceId: { in: invoiceIds } },
@@ -36,7 +52,7 @@ export class InvoiceBalances implements InvoiceSettlementProvider {
         select: { reversesTransactionId: true },
       });
       const dead = new Set(reversed.map((r) => r.reversesTransactionId));
-      for (const d of deposits) if (!dead.has(d.depositTransactionId)) add(d.invoiceId, d.amountVnd);
+      for (const d of deposits) if (!dead.has(d.depositTransactionId)) get(d.invoiceId).deposit += d.amountVnd;
     }
 
     const received = await db.creditApplication.groupBy({
@@ -44,21 +60,21 @@ export class InvoiceBalances implements InvoiceSettlementProvider {
       where: { targetInvoiceId: { in: invoiceIds }, status: 'ACTIVE' },
       _sum: { amountVnd: true },
     });
-    for (const c of received) add(c.targetInvoiceId, c._sum.amountVnd ?? 0n);
+    for (const c of received) get(c.targetInvoiceId).credit += c._sum.amountVnd ?? 0n;
 
     const given = await db.creditApplication.groupBy({
       by: ['creditInvoiceId'],
       where: { creditInvoiceId: { in: invoiceIds }, status: 'ACTIVE' },
       _sum: { amountVnd: true },
     });
-    for (const c of given) add(c.creditInvoiceId, c._sum.amountVnd ?? 0n);
+    for (const c of given) get(c.creditInvoiceId).used += c._sum.amountVnd ?? 0n;
 
     const refunds = await db.creditRefund.groupBy({
       by: ['creditInvoiceId'],
       where: { creditInvoiceId: { in: invoiceIds }, status: 'POSTED' },
       _sum: { amountVnd: true },
     });
-    for (const r of refunds) add(r.creditInvoiceId, r._sum.amountVnd ?? 0n);
+    for (const r of refunds) get(r.creditInvoiceId).used += r._sum.amountVnd ?? 0n;
     return out;
   }
 

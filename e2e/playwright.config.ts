@@ -17,6 +17,9 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 60_000,
+  // Chặn treo vô hạn (VD Docker/PostgreSQL tắt giữa chừng): cả lượt chạy tối đa 20 phút, mỗi expect tối đa 10 giây.
+  globalTimeout: 20 * 60_000,
+  expect: { timeout: 10_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://localhost:${E2E_WEB_PORT}`,

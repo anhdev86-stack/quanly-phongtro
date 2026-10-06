@@ -3,7 +3,8 @@
 import { PERMISSIONS, ROOM_DISPLAY_STATUSES, ROOM_STATUS_LABELS } from '@ql-tro/shared';
 import { Building2, LayoutGrid, List, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 import { FilterBar, PageHeader, Pagination } from '@/components/common/page';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,13 @@ import { useBuildings, useRooms } from '@/features/property/api';
 import { RoomGrid, RoomTable } from '@/features/property/room-list';
 import { RoomFormDialog } from '@/features/property/room-form';
 
-export default function RoomsPage() {
+function RoomsContent() {
   const can = useCan();
+  const search = useSearchParams();
   const buildings = useBuildings();
   const [view, setView] = useState<'grid' | 'table'>('grid');
   const [creating, setCreating] = useState(false);
-  const [filters, setFilters] = useState({ building_id: '', status: '', floor: '', q: '', page: 1, page_size: 60 });
+  const [filters, setFilters] = useState({ building_id: '', status: search.get('status') ?? '', floor: '', q: '', page: 1, page_size: 60 });
   const rooms = useRooms(filters);
   const set = (patch: Partial<typeof filters>) => setFilters((f) => ({ ...f, ...patch, page: patch.page ?? 1 }));
 
@@ -101,5 +103,13 @@ export default function RoomsPage() {
       </Card>
       <RoomFormDialog open={creating} onClose={() => setCreating(false)} defaultBuildingId={filters.building_id || undefined} />
     </div>
+  );
+}
+
+export default function RoomsPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <RoomsContent />
+    </Suspense>
   );
 }

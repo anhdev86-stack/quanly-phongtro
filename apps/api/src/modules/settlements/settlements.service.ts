@@ -260,7 +260,7 @@ export class SettlementsService {
           const take = min(cr.available, d.remaining);
           if (take <= 0n) continue;
           const app = await tx.creditApplication.create({
-            data: { workspaceId: s.workspaceId, tenancyId: s.tenancyId, creditInvoiceId: cr.id, targetInvoiceId: d.id, amountVnd: take, createdBy: user.id },
+            data: { workspaceId: s.workspaceId, tenancyId: s.tenancyId, creditInvoiceId: cr.id, targetInvoiceId: d.id, amountVnd: take, createdBy: user.id, createdAt: now },
           });
           links.push({ kind: 'CREDIT_APPLICATION', linkedId: app.id });
           cr.available -= take;
