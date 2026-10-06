@@ -322,9 +322,38 @@ Kiểm tra (06/10/2026):
 | `pnpm test:integration` | ✅ **282** (20 file) |
 | `pnpm test:e2e` | ✅ **32** (2 test dữ liệu dùng chung chỉ chạy desktop) |
 
-## Phase 8A — Dashboard và báo cáo MVP ⬜
+## Phase 8A — Dashboard và báo cáo MVP ✅ (full E2E chờ chạy lại)
 
-- [ ] Báo cáo doanh thu theo tháng (v2.4) — T65
+Nhánh `phase/8a-reports`, merge vào `main` 06/10/2026.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Tổng quan: phòng theo trạng thái (loại trừ lẫn nhau, lấp đầy = OCCUPIED/tổng chưa lưu trữ), chỉ số phụ (báo trả, thuê theo tháng, hợp đồng sắp hết hạn) | ✅ | T38: “sắp trả” không đếm hai lần |
+| Tiền: còn phải thu (gồm lần thuê đã kết thúc), quá hạn, cọc đang giữ, phải hoàn cọc/tiền dư, giữ chỗ chưa xử lý, phát sinh và thực thu trong tháng | ✅ | Chỉ hiện với quyền xem thông báo |
+| Việc cần xử lý: thiếu chỉ số, nháp, quá hạn, hợp đồng sắp hết hạn, giữ chỗ chưa xử lý, phải hoàn, còn nợ sau trả phòng, chưa đăng ký tạm trú, (8B) tin nhắc lỗi | ✅ | Hook `DASHBOARD_TODO` cho 8B |
+| Báo cáo doanh thu theo tháng: phát sinh, giảm trừ, thuần, đã thu (tiền/cọc/credit), còn nợ, thực thu trong tháng | ✅ | T65: khớp fixture, Phát sinh = Đã thu + Còn nợ, cọc không vào doanh thu, đúng phạm vi tòa, CSV khớp màn hình |
+| Báo cáo công nợ, cọc, thu tiền (trừ cọc/cấn trừ trình bày riêng) | ✅ | |
+| Xuất CSV (UTF-8 BOM, chặn công thức Excel) cùng bộ lọc và phạm vi | ✅ | T34 (export, dashboard theo tòa) |
+| UI: trang Tổng quan mới, `/reports` (4 tab), phòng lọc theo trạng thái từ Tổng quan | ✅ | |
+
+**Lỗi tìm thấy và đã sửa nhờ test:** điều kiện tòa trong phạm vi bị ghi đè khi thêm điều kiện “tòa chưa lưu trữ” ở Tổng quan
+(nhân viên thấy phòng tòa khác) — đã đổi sang `AND`, và rà soát toàn bộ chỗ dùng `roomWhere` (không còn chỗ nào ghi đè).
+
+Kiểm tra (06/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm test` | ✅ 89 |
+| `pnpm test:integration` | ✅ **286** (21 file) |
+| `playwright test specs/reports.spec.ts` | ✅ 3 đạt, 1 bỏ qua (tải CSV chỉ kiểm trên desktop) |
+| `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy lại |
+
+**Sự cố E2E 06/10/2026:** một lượt full E2E treo hơn 2 giờ 40 phút và chủ dự án đã dừng. Nguyên nhân: Docker Desktop tắt
+(PostgreSQL không còn chạy), không phải do test. Đã thêm: `globalTimeout` 20 phút cho cả lượt chạy, timeout cho `expect`,
+timeout kết nối PostgreSQL trong global setup (báo lỗi “Docker Desktop và container postgres có đang chạy không?”),
+timeout cho migrate/seed. Trước khi chạy E2E: `docker info` và `pnpm db:up`.
 
 ## Phase 8B — Nhắc đóng tiền qua Zalo/SMS ⬜ (gửi thật chờ N-1…N-5)
 

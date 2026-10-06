@@ -281,3 +281,14 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - **Tình trạng tài chính** không lưu: tính lại từ sổ mỗi lần xem (còn nợ > 0 → RECEIVABLE; còn credit/cọc phải hoàn → REFUND_PAYABLE).
 - Hoàn tất bị chặn nếu ngày cuối tính tiền ở tương lai.
 
+## D-033 — Dashboard và báo cáo
+
+- Số tiền trên dashboard/báo cáo đi qua `InvoiceBalances` (thêm `breakdown()` tách tiền/cọc/credit; `settled()` = tổng các phần),
+  `DebtsService.positions` và `LedgersService` — không cộng lại riêng ở từng nơi.
+- “Tháng” của thông báo = tháng phát hành; FINAL/ADJUSTMENT theo tháng của ngày lập. “Đã thu” theo tháng của thông báo;
+  “Thực thu trong tháng” theo `paid_at` của phiếu thu POSTED.
+- Mốc thời gian nghiệp vụ của cấn trừ credit lấy từ Clock (`created_at` gán tường minh), để báo cáo thu tiền theo khoảng ngày đúng.
+- Dashboard không cần quyền riêng nhưng luôn trong phạm vi tòa; phần tiền chỉ trả khi có `invoices.view`. Báo cáo và CSV cần `reports.view`.
+- Khi ghép điều kiện Prisma với `roomWhere(user)` thì dùng `AND`, không spread rồi đặt lại khóa `building` (sẽ mất phạm vi).
+- Nav: Phase 8B ký hiệu 8.5 trong `availableFromPhase` (hiển thị “8B”).
+

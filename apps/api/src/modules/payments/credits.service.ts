@@ -58,7 +58,7 @@ export class CreditsService {
         const take = (owed.get(d.id) ?? 0n) < left ? (owed.get(d.id) ?? 0n) : left;
         if (take === 0n) continue;
         const app = await tx.creditApplication.create({
-          data: { workspaceId: user.workspaceId, tenancyId: credit.tenancyId, creditInvoiceId: credit.id, targetInvoiceId: d.id, amountVnd: take, createdBy: user.id },
+          data: { workspaceId: user.workspaceId, tenancyId: credit.tenancyId, creditInvoiceId: credit.id, targetInvoiceId: d.id, amountVnd: take, createdBy: user.id, createdAt: this.clock.now() },
         });
         created.push(app.id);
         left -= take;

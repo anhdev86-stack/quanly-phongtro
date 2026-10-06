@@ -28,6 +28,8 @@ import { TenantsController } from './tenants/tenants.controller.js';
 import { TenantsService } from './tenants/tenants.service.js';
 import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
+import { ReportsController } from './reports/reports.controller.js';
+import { DASHBOARD_TODO, ReportsService } from './reports/reports.service.js';
 import { SettlementEventsObserver } from './settlements/events.observer.js';
 import { NoticeReservationExtras } from './settlements/notice-reservation-extras.js';
 import { NoticesService } from './settlements/notices.service.js';
@@ -58,6 +60,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     BillingController,
     PaymentsController,
     SettlementsController,
+    ReportsController,
   ],
   providers: [
     BuildingsService,
@@ -86,6 +89,9 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     NoticesService,
     SettlementsService,
     SettlementEventsObserver,
+    ReportsService,
+    // Phase 8B thay bằng số tin nhắc lỗi thật.
+    { provide: DASHBOARD_TODO, useValue: { failedReminders: async () => 0 } },
     { provide: REVERSAL_OBSERVERS, useFactory: (events: SettlementEventsObserver) => [events], inject: [SettlementEventsObserver] },
     { provide: RESERVATION_EXTRAS, useClass: NoticeReservationExtras },
     { provide: DEPOSIT_REQUIREMENT, useClass: ContractDepositRequirement },
