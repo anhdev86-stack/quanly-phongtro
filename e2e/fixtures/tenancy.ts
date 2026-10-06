@@ -14,8 +14,9 @@ export function localDate(days = 0): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Đi hết wizard nhận phòng từ bước 1; `contractEnd` có giá trị thì tạo hợp đồng đã ký tới ngày đó. */
-export async function finishWizard(page: Page, opts: { tenant: string; deposit: string; contractEnd?: string }) {
+/** Đi hết wizard nhận phòng từ bước 1; `contractEnd` có giá trị thì tạo hợp đồng đã ký tới ngày đó; `startDate` đổi ngày nhận phòng. */
+export async function finishWizard(page: Page, opts: { tenant: string; deposit: string; contractEnd?: string; startDate?: string }) {
+  if (opts.startDate) await page.locator('#mi-start').fill(opts.startDate);
   await page.getByRole('button', { name: 'Tiếp' }).click(); // → Người thuê
   await page.locator('#mi-p-full_name').fill(opts.tenant);
   await page.locator('#mi-p-phone').fill('0987654321');

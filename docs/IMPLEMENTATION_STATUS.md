@@ -197,11 +197,35 @@ Kiểm tra (06/10/2026):
 | `pnpm test:integration` | ✅ **169** (16 file) |
 | `pnpm test:e2e` | ✅ **22** (desktop + mobile) |
 
-## Phase 4 — Utilities và Services ⬜
+## Phase 4 — Utilities và Services ✅
 
-- [ ] Dịch vụ, `charge_timing`, subscription, đồng hồ, chỉ số, màn hình nhập trên điện thoại
-- [ ] Giá điện nước theo tòa + nút “Thay đổi giá” + lịch sử; chỉ số trước tự lấy; tiền tạm tính (v2.4)
-- [ ] T12 (phần), T13, T14 (phần), T60 (phần), T61 (phần)
+Nhánh `phase/4-utilities`, merge vào `main` 06/10/2026.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Danh mục dịch vụ: thêm, sửa, ngừng; `charge_timing`; giá có phiên bản (chung hoặc riêng tòa) | ✅ | Trang `/services`; điện nước luôn thu sau, không sửa loại |
+| Giá điện nước theo tòa + “Thay đổi giá” + lịch sử (ai đổi, khi nào, từ kỳ nào, lý do) | ✅ | Áp dụng theo kỳ đọc (D-028); kỳ đã có chỉ số phải xác nhận; T60 phần giá |
+| Dịch vụ của lần thuê: thêm, đổi số lượng, ngưng theo ngày; giữa tháng cần xác nhận | ✅ | Không ghi đè phiên bản; T12 phần dữ liệu (`domain/utilities/timeline.ts`) |
+| Đồng hồ: gắn (chỉ số ban đầu một lần), thay đồng hồ (chốt CLOSING), sửa chỉ số ban đầu | ✅ | T14 phần thay đồng hồ |
+| Nhập chỉ số theo đợt (kỳ phát hành), chỉ số trước tự lấy, sửa chỉ số có lý do + audit + meter_event | ✅ | T13, T61 phần nhập và sửa |
+| Tiền tạm tính = `meterCharge` (cùng hàm billing sẽ dùng), làm tròn theo cấu hình kỳ | ✅ | Web ước tính khi gõ chỉ để xem (D-029) |
+| Cảnh báo bất thường (0 khi có người ở, gấp >3 lần / <1/3 trung bình 3 kỳ) — không chặn | ✅ | |
+| Chặn bật đồng thời nước đồng hồ và “Nước theo người” nếu chưa xác nhận | ✅ | Nhận phòng: chặn; mục Dịch vụ/gắn đồng hồ: cần `confirm_dual_utility` |
+| Cấu hình tính phí có phiên bản (`settings_versions`): chia ngày, làm tròn, hạn, thu trước/sau | ✅ | Trang `/settings/billing` |
+| UI: `/readings` ưu tiên điện thoại (360px không tràn ngang), mục Giá điện nước ở trang tòa, mục Đồng hồ ở trang phòng, mục Dịch vụ ở lần thuê | ✅ | |
+| T47 cho 7 ràng buộc mới | ✅ | Gồm `UNIQUE … NULLS NOT DISTINCT` |
+
+Kiểm tra (06/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm test` | ✅ 70 (shared 16, api 48, web 6) |
+| `pnpm test:integration` | ✅ **194** (17 file) |
+| `pnpm test:e2e` | ✅ **25** (desktop + mobile; 1 test đổi giá chỉ chạy desktop) |
+
+Ghi chú: `prisma migrate dev` treo sau khi áp migration (bước sinh client); migration đã áp đủ (`migrate status` sạch), client sinh lại bằng `prisma generate`.
 
 ## Phase 5 — Billing Engine ⬜ (bị chặn bởi B-1…B-4)
 

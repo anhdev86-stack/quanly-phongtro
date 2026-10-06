@@ -357,6 +357,7 @@ export const serviceSchema = z.object({
   unit: z.string(),
   charge_timing: z.enum(['ADVANCE', 'ARREARS']),
   meter_type: z.enum(['ELECTRICITY', 'WATER']).nullable(),
+  substitutes_meter: z.enum(['ELECTRICITY', 'WATER']).nullable(),
   archived_at: z.string().nullable(),
   version: z.number(),
 });

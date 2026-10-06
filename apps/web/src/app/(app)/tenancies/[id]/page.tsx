@@ -109,7 +109,7 @@ export default function TenancyDetailPage() {
 
       <Card>
         <CardHeader className="flex items-center justify-between">
-          <CardTitle>Giá thuê và dịch vụ</CardTitle>
+          <CardTitle>Giá thuê</CardTitle>
           {can(PERMISSIONS.CONTRACTS_MANAGE) && t.status !== 'ENDED' ? (
             <Button size="sm" variant="outline" onClick={() => setChangingPrice(true)}>
               <Pencil className="size-4" aria-hidden />
@@ -122,7 +122,7 @@ export default function TenancyDetailPage() {
             <tr>
               <Th>Khoản</Th>
               <Th>Từ ngày</Th>
-              <Th className="text-right">Giá / số lượng</Th>
+              <Th className="text-right">Giá mỗi tháng</Th>
               <Th className="hidden sm:table-cell">Ghi chú</Th>
             </tr>
           </thead>
@@ -138,24 +138,14 @@ export default function TenancyDetailPage() {
                 </Td>
               </Tr>
             ))}
-            {t.services.map((s) => (
-              <Tr key={s.id} className={s.status === 'VOIDED' ? 'opacity-50 line-through' : ''}>
-                <Td>{s.service_name}</Td>
-                <Td className="tabular">
-                  {formatBusinessDate(s.effective_from)}
-                  {s.end_exclusive ? ` → trước ${formatBusinessDate(s.end_exclusive)}` : ''}
-                </Td>
-                <Td className="text-right tabular">
-                  {s.quantity} {s.unit}
-                </Td>
-                <Td className="hidden sm:table-cell" />
-              </Tr>
-            ))}
           </tbody>
         </Table>
         {t.initial_readings.length ? (
           <CardContent className="text-sm text-slate-600">
-            Chỉ số lúc nhận phòng: {t.initial_readings.map((r) => `${r.type === 'ELECTRICITY' ? 'Điện' : 'Nước'} ${r.value}`).join(' · ')}
+            Chỉ số lúc nhận phòng: {t.initial_readings.map((r) => `${r.type === 'ELECTRICITY' ? 'Điện' : 'Nước'} ${r.value}`).join(' · ')} ·{' '}
+            <Link href={`/rooms/${t.room_id}#meters`} className="text-brand-800 hover:underline">
+              Đồng hồ và chỉ số
+            </Link>
           </CardContent>
         ) : null}
       </Card>

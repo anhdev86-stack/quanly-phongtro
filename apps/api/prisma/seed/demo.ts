@@ -37,3 +37,37 @@ export async function seedDemoRooms(prisma: PrismaClient): Promise<number> {
   }
   return count;
 }
+
+/**
+ * Giá demo (Phase 4): giá chung cho dịch vụ không đồng hồ và giá điện nước riêng từng tòa, áp dụng từ đầu năm 2026.
+ * Chỉ tạo khi chưa có phiên bản nào, để không ghi đè giá người dùng đã đổi.
+ */
+export async function seedDemoPrices(prisma: PrismaClient, createdBy: string): Promise<number> {
+  const from = new Date('2026-01-01');
+  const services = await prisma.service.findMany({ where: { workspaceId: SEED_IDS.workspace } });
+  const byCode = new Map(services.map((s) => [s.code, s.id]));
+  const rows: { code: string; building: keyof typeof SEED_IDS.buildings | null; price: string }[] = [
+    { code: 'INTERNET', building: null, price: '100000' },
+    { code: 'TRASH', building: null, price: '30000' },
+    { code: 'PARKING', building: null, price: '100000' },
+    { code: 'WATER_PP', building: null, price: '100000' },
+    { code: 'ELEC', building: 'A', price: '3500' },
+    { code: 'WATER', building: 'A', price: '15000' },
+    { code: 'ELEC', building: 'B', price: '3800' },
+    { code: 'WATER', building: 'B', price: '18000' },
+    { code: 'ELEC', building: 'C', price: '3300' },
+    { code: 'WATER', building: 'C', price: '14000' },
+  ];
+  let created = 0;
+  for (const r of rows) {
+    const serviceId = byCode.get(r.code);
+    if (!serviceId) continue;
+    const buildingId = r.building ? SEED_IDS.buildings[r.building] : null;
+    if (await prisma.servicePriceHistory.findFirst({ where: { serviceId, buildingId } })) continue;
+    await prisma.servicePriceHistory.create({
+      data: { workspaceId: SEED_IDS.workspace, serviceId, buildingId, effectiveFrom: from, unitPrice: r.price, reason: 'Giá ban đầu (dữ liệu demo)', createdBy },
+    });
+    created++;
+  }
+  return created;
+}

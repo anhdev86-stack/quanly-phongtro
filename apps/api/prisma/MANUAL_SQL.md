@@ -63,6 +63,13 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `contracts_signed_at_chk` | contracts | CHECK | `20261006080717_phase3_contracts` | SIGNED phải có ngày ký |
 | `no_overlapping_signed_contracts` | contracts | EXCLUDE | `20261006080717_phase3_contracts` | Kỳ SIGNED không chồng ngày |
 | `contract_effective_status` | — | FUNCTION | `20261006080717_phase3_contracts` | Trạng thái hợp đồng theo ngày (khớp domain, T05) |
+| `one_service_price_per_day` | service_price_history | UNIQUE NULLS NOT DISTINCT | `20261006142231_phase4_utilities` | Một phiên bản giá mỗi (dịch vụ, tòa, ngày), kể cả giá chung |
+| `service_price_nonneg_chk` | service_price_history | CHECK | `20261006142231_phase4_utilities` | Đơn giá không âm |
+| `services_substitutes_chk` | services | CHECK | `20261006142231_phase4_utilities` | Chỉ dịch vụ không đồng hồ mới thay đồng hồ |
+| `statement_periods_month_start_chk` | statement_periods | CHECK | `20261006142231_phase4_utilities` | Kỳ phát hành là ngày 1 |
+| `meter_readings_period_chk` | meter_readings | CHECK | `20261006142231_phase4_utilities` | PERIODIC ⇔ có kỳ phát hành |
+| `one_periodic_reading_per_period` | meter_readings | PARTIAL UNIQUE | `20261006142231_phase4_utilities` | Một chỉ số chốt mỗi đồng hồ mỗi kỳ |
+| `meters_retired_after_installed_chk` | meters | CHECK | `20261006142231_phase4_utilities` | Ngưng không trước ngày lắp |
 
 ```json manual-constraints
 [
@@ -257,6 +264,48 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "function",
     "table": null,
     "definition": "contract_effective_status(\"ContractLifecycle\",date,date,date,date)"
+  },
+  {
+    "name": "one_service_price_per_day",
+    "kind": "index",
+    "table": "service_price_history",
+    "definition": "CREATE UNIQUE INDEX one_service_price_per_day ON public.service_price_history USING btree (service_id, building_id, effective_from) NULLS NOT DISTINCT"
+  },
+  {
+    "name": "service_price_nonneg_chk",
+    "kind": "check",
+    "table": "service_price_history",
+    "definition": "CHECK ((unit_price >= (0)::numeric))"
+  },
+  {
+    "name": "services_substitutes_chk",
+    "kind": "check",
+    "table": "services",
+    "definition": "CHECK (((substitutes_meter IS NULL) OR (type <> 'METER'::\"ServiceType\")))"
+  },
+  {
+    "name": "statement_periods_month_start_chk",
+    "kind": "check",
+    "table": "statement_periods",
+    "definition": "CHECK ((EXTRACT(day FROM month_start) = (1)::numeric))"
+  },
+  {
+    "name": "meter_readings_period_chk",
+    "kind": "check",
+    "table": "meter_readings",
+    "definition": "CHECK (((kind = 'PERIODIC'::\"ReadingKind\") = (statement_period_id IS NOT NULL)))"
+  },
+  {
+    "name": "one_periodic_reading_per_period",
+    "kind": "index",
+    "table": "meter_readings",
+    "definition": "CREATE UNIQUE INDEX one_periodic_reading_per_period ON public.meter_readings USING btree (meter_id, statement_period_id) WHERE (kind = 'PERIODIC'::\"ReadingKind\")"
+  },
+  {
+    "name": "meters_retired_after_installed_chk",
+    "kind": "check",
+    "table": "meters",
+    "definition": "CHECK (((retired_on IS NULL) OR (retired_on >= installed_on)))"
   }
 ]
 ```

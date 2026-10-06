@@ -89,3 +89,13 @@ export function FormError({ message }: { message?: string | null }) {
     </p>
   );
 }
+
+/** Ô chọn kèm nhãn (dùng cho các xác nhận như “đổi giá giữa tháng”). */
+export function Checkbox({ id, checked, onChange, children }: { id: string; checked: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
+  return (
+    <label htmlFor={id} className="flex items-start gap-2 text-sm">
+      <input id={id} type="checkbox" className="mt-0.5 size-4 shrink-0 accent-brand-600" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>{children}</span>
+    </label>
+  );
+}

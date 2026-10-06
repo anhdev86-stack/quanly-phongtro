@@ -16,6 +16,7 @@ import { RoomFormDialog } from '@/features/property/room-form';
 import { ReasonDialog, ReservationCreateDialog } from '@/features/property/reservation-forms';
 import { ReservationTable } from '@/features/property/reservation-table';
 import { RoomStatusBadge } from '@/features/property/status';
+import { MetersSection } from '@/features/utilities/meters-section';
 import { ApiError } from '@/lib/api-client';
 import { formatVnd } from '@/lib/format';
 
@@ -132,6 +133,8 @@ export default function RoomDetailPage() {
           />
         </CardContent>
       </Card>
+
+      <MetersSection roomId={r.id} />
 
       <Card>
         <CardHeader className="flex items-center justify-between gap-2">

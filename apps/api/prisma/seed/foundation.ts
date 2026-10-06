@@ -31,6 +31,8 @@ export const DEFAULT_SERVICES = [
   { code: 'INTERNET', name: 'Internet', type: 'FIXED_ROOM', unit: 'phòng/tháng', chargeTiming: 'ADVANCE', meterType: null },
   { code: 'TRASH', name: 'Rác, vệ sinh', type: 'FIXED_ROOM', unit: 'phòng/tháng', chargeTiming: 'ADVANCE', meterType: null },
   { code: 'PARKING', name: 'Gửi xe máy', type: 'QUANTITY', unit: 'xe/tháng', chargeTiming: 'ADVANCE', meterType: null },
+  // Thay đồng hồ nước; bật cùng đồng hồ nước phải xác nhận (MASTER_PLAN 8.5).
+  { code: 'WATER_PP', name: 'Nước theo người', type: 'PER_PERSON', unit: 'người/tháng', chargeTiming: 'ADVANCE', meterType: null, substitutesMeter: 'WATER' },
 ] as const;
 
 export interface FoundationPasswords {

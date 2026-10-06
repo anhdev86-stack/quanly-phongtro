@@ -204,3 +204,26 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - “Sắp hết hạn” chỉ gồm hợp đồng ACTIVE chưa có kỳ đã ký bắt đầu sau ngày kết thúc (đã gia hạn thì không nhắc).
 - Hủy hợp đồng đã ký chỉ khi chưa bắt đầu. Phiên bản giá/dịch vụ có `source_contract_id` = hợp đồng đó chuyển VOIDED;
   phiên bản tạo độc lập giữ nguyên. Hợp đồng đang hiệu lực kết thúc qua trả phòng (Phase 7).
+
+## D-028 — Giá điện nước áp dụng theo kỳ đọc; chuỗi chỉ số qua thay đồng hồ
+
+- `service_price_history` có `building_id`; dịch vụ METER luôn có giá riêng từng tòa. Giá METER có `effective_from` là
+  **ngày 1 của kỳ phát hành**. Khoảng tiêu thụ kết thúc bằng chỉ số chốt của kỳ P dùng phiên bản có `effective_from ≤ P`.
+  Nhờ vậy “Thay đổi giá” áp dụng từ kỳ đọc tiếp theo cho mọi phòng, không phụ thuộc ngày đọc của từng phòng.
+- “Kỳ đọc tiếp theo” = tháng sau kỳ mới nhất của tòa đã có chỉ số chốt (không trước tháng hiện tại). Đặt giá cho kỳ đã có
+  chỉ số phải xác nhận (`confirm_existing_readings`); Phase 5 sẽ chặn kỳ đã phát hành và xử lý T15 (đổi giá giữa hai lần
+  đọc cần chỉ số tại ngày đổi).
+- Thay đồng hồ ghi chỉ số `CLOSING` trên đồng hồ cũ và lắp đồng hồ mới với `initial_reading` riêng (điểm INSTALL ngầm định).
+  Tiêu thụ của một khoảng = tổng chênh lệch giữa các điểm liên tiếp **cùng đồng hồ** từ mốc kỳ trước (INITIAL/PERIODIC);
+  chuyển đồng hồ đóng góp 0 (`domain/utilities/meter-usage.ts`). Không bao giờ nhập số âm để “sửa”.
+- Sửa chỉ số đọc đúng ngày lắp đồng hồ cũng cập nhật `meters.initial_reading` để hai giá trị luôn khớp.
+- Chỉ số chốt chỉ nhập cho phòng đang có lần thuê; một chỉ số PERIODIC mỗi đồng hồ mỗi kỳ (partial unique).
+
+## D-029 — Tiền tạm tính: API tính bằng hàm chính thức, web chỉ ước tính khi đang gõ
+
+- API trả `provisional_vnd` tính bằng `meterCharge` (bigint, HALF_UP một lần theo `rounding_unit` của kỳ) — đúng hàm
+  billing engine dùng, nên tạm tính bằng tiền chính thức khi dữ liệu không đổi (T61).
+- Để hiện tiền ngay khi gõ (MASTER_PLAN 12), web có `features/utilities/estimate.ts` lặp lại công thức chỉ cho số chưa lưu,
+  ghi rõ “tạm tính”. Sau khi lưu, màn hình hiện số do API trả. Đây là ngoại lệ có chủ đích của quy tắc “web chỉ hiển thị”;
+  có unit test đối chiếu với các ví dụ của API.
+

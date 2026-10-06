@@ -4,7 +4,7 @@ import type { ContractDto, TenancyDetail } from '@ql-tro/shared';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Field, FormError, MoneyInput, TextInput, Textarea } from '@/components/ui/form';
+import { Checkbox, Field, FormError, MoneyInput, TextInput, Textarea } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api-client';
 import { addDays, firstOfNextMonth, formatBusinessDate, formatVnd, termEndAfterMonths, todayLocal } from '@/lib/format';
@@ -26,15 +26,6 @@ function useSubmitState() {
     setFieldErrors({});
   };
   return { error, fieldErrors, capture, reset };
-}
-
-function Checkbox({ id, checked, onChange, children }: { id: string; checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
-  return (
-    <label htmlFor={id} className="flex items-start gap-2 text-sm">
-      <input id={id} type="checkbox" className="mt-0.5 size-4 accent-brand-600" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span>{children}</span>
-    </label>
-  );
 }
 
 /** Ngày giữa tháng (không phải ngày 1) thì tiền phòng tháng đó tính theo hai mức giá. */

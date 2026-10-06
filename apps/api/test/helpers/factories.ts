@@ -57,7 +57,7 @@ export async function createTenancyRow(
   return tenancy;
 }
 
-export async function serviceId(t: TestApp, code: 'ELEC' | 'WATER' | 'INTERNET' | 'TRASH' | 'PARKING'): Promise<string> {
+export async function serviceId(t: TestApp, code: 'ELEC' | 'WATER' | 'INTERNET' | 'TRASH' | 'PARKING' | 'WATER_PP'): Promise<string> {
   return (await t.prisma.service.findFirstOrThrow({ where: { code } })).id;
 }
 

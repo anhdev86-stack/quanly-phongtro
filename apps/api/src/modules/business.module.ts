@@ -19,6 +19,11 @@ import { TenantsController } from './tenants/tenants.controller.js';
 import { TenantsService } from './tenants/tenants.service.js';
 import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
+import { MetersService } from './utilities/meters.service.js';
+import { PricesService } from './utilities/prices.service.js';
+import { SettingsService } from './utilities/settings.service.js';
+import { SubscriptionsService } from './utilities/subscriptions.service.js';
+import { UtilitiesController } from './utilities/utilities.controller.js';
 
 /**
  * Các nghiệp vụ phụ thuộc chéo nhau (phòng ↔ giữ chỗ ↔ cọc ↔ lần thuê ↔ tính phí) nên nằm chung một module DI.
@@ -35,6 +40,7 @@ import { UsersService } from './users/users.service.js';
     LedgersController,
     ServicesCatalogController,
     ContractsController,
+    UtilitiesController,
   ],
   providers: [
     BuildingsService,
@@ -47,6 +53,10 @@ import { UsersService } from './users/users.service.js';
     LedgersService,
     ContractsService,
     ContractMoveInExtension,
+    SettingsService,
+    PricesService,
+    MetersService,
+    SubscriptionsService,
     { provide: RESERVATION_EXTRAS, useClass: DefaultReservationExtras },
     { provide: DEPOSIT_REQUIREMENT, useClass: ContractDepositRequirement },
     { provide: RENTAL_MODE, useClass: ContractRentalMode },
