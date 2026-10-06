@@ -10,6 +10,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/common/states
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCan } from '@/features/auth/permissions';
+import { ReminderConsentSection } from '@/features/reminders/consent-section';
 import { useTenancies, useTenant } from '@/features/tenancy/api';
 import { TenancyTable } from '@/features/tenancy/tenancy-table';
 import { TenantDialog } from '@/features/tenancy/tenant-dialog';
@@ -75,6 +76,7 @@ export default function TenantDetailPage() {
           />
         </CardContent>
       </Card>
+      <ReminderConsentSection tenant={t} canManage={can(PERMISSIONS.TENANTS_MANAGE)} />
       <Card>
         <CardHeader>
           <CardTitle>Lịch sử thuê</CardTitle>

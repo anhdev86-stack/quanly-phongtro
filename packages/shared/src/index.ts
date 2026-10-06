@@ -12,3 +12,4 @@ export * from './billing.js';
 export * from './payments.js';
 export * from './settlements.js';
 export * from './reports.js';
+export * from './reminders.js';

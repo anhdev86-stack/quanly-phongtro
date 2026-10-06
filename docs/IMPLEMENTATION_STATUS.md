@@ -355,9 +355,34 @@ Kiểm tra (06/10/2026):
 timeout kết nối PostgreSQL trong global setup (báo lỗi “Docker Desktop và container postgres có đang chạy không?”),
 timeout cho migrate/seed. Trước khi chạy E2E: `docker info` và `pnpm db:up`.
 
-## Phase 8B — Nhắc đóng tiền qua Zalo/SMS ⬜ (gửi thật chờ N-1…N-5)
+## Phase 8B — Nhắc đóng tiền qua Zalo/SMS ✅ (⚠️ CHƯA kiểm chứng gửi tin thật — chờ N-1…N-5)
 
-- [ ] Lập lịch, nhật ký, `LogOnlyChannel`, đồng ý nhận tin — T62–T64
-- [ ] Adapter Zalo ZNS / SMS khi chủ dự án đã chốt nhà cung cấp
+Nhánh `phase/8b-reminders`. Quyết định: D-034.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Schema `reminder_settings`, `reminder_messages` (unique invoice+mốc), `reminder_attempts`; CHECK thủ công | ✅ | T47 thêm 2 ràng buộc |
+| Hàm thuần: mốc, giờ gửi giờ VN, giờ yên lặng, chuẩn hóa/che số, giãn cách thử lại, nội dung tin | ✅ | 6 unit test |
+| `MessageChannel`, `LogOnlyChannel` (mặc định), khung `ZaloZnsChannel`/`SmsChannel` đọc khóa từ env | ✅ | **Chưa gọi API nhà cung cấp, chưa gửi tin thật** |
+| Lập lịch (advisory lock, skipDuplicates, cửa sổ 24 giờ, giờ yên lặng), kiểm tra lại trước khi gửi, kênh dự phòng, thử lại 3 lượt, FAILED | ✅ | T62–T64 |
+| Job 15 phút trong API (`REMINDER_JOB_ENABLED`), nút “Chạy nhắc ngay” | ✅ | |
+| API: GET/PUT `/settings/reminders`, GET `/reminders`, POST `/reminders/run`, POST `/reminders/:id/resend`, PUT `/tenants/:id/reminder-consent` | ✅ | Có OpenAPI, quyền `reminders.view`/`reminders.manage` |
+| “Việc cần xử lý” đếm tin FAILED trong phạm vi tòa | ✅ | Thay provider tạm `DASHBOARD_TODO` |
+| UI: `/reminders` (nhật ký, lần thử, gửi lại), `/settings/reminders`, đồng ý nhận tin ở trang người thuê | ✅ | Banner “chưa gửi tin thật” |
+
+**Còn chặn:** adapter thật cần chủ dự án chốt nhà cung cấp, tự đăng ký tài khoản, đặt khóa vào env server, duyệt mẫu tin,
+rồi tự gửi thử tới số của mình (MASTER_PLAN 2.3 N-1…N-5).
+
+Kiểm tra (07/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm build` | ✅ |
+| `pnpm test` | ✅ 95 (shared 16, api 73, web 6) |
+| `pnpm test:integration` | ✅ **294** (22 file; gồm T62–T64 và T47 cho 2 ràng buộc mới) |
+| `pnpm test:e2e specs/reminders.spec.ts` | ✅ 4 (desktop + mobile) |
+| `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy (theo yêu cầu không tự chạy full E2E) |
 ## Phase 9 — MVP release readiness ⬜
 ## Phase 10–14 — V1.1 ⬜

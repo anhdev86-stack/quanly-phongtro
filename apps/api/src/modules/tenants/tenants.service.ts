@@ -145,6 +145,7 @@ export class TenantsService {
       note: t.note,
       reminder_opt_in: t.reminderOptIn,
       reminder_consent_at: iso(t.reminderConsentAt),
+      reminder_consent_note: t.reminderConsentNote,
       archived_at: iso(t.archivedAt),
       version: t.version,
       current_room: roomOf.get(t.id) ?? null,

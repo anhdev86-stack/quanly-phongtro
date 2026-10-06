@@ -20,6 +20,7 @@ export default defineConfig({
     env: {
       NODE_ENV: 'test',
       LOG_LEVEL: 'silent',
+      REMINDER_JOB_ENABLED: 'false',
       ...(testDatabaseUrl ? { DATABASE_URL: testDatabaseUrl } : {}),
     },
   },
