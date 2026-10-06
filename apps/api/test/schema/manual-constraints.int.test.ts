@@ -317,7 +317,7 @@ describe('T47 — ràng buộc SQL thủ công', () => {
     },
     meter_readings_value_chk: async () => {
       const reading = async (tx: Prisma.TransactionClient, value: string) =>
-        tx.meterReading.create({ data: { meterId: await meter(tx, await mkRoom(tx)), readOn: new Date('2026-10-02'), value, kind: 'PERIODIC', createdBy: userId } });
+        tx.meterReading.create({ data: { meterId: await meter(tx, await mkRoom(tx)), readOn: new Date('2026-10-02'), value, kind: 'INITIAL', createdBy: userId } });
       await expectAccepted((tx) => reading(tx, '0'));
       await expectRejected((tx) => reading(tx, '-1'), 'meter_readings_value_chk');
     },
@@ -383,7 +383,76 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       expect(await at('DRAFT', null, '2026-11-01')).toBe('DRAFT');
       expect(await at('CANCELLED', null, '2026-11-01')).toBe('CANCELLED');
     },
+
+    // ---------------- Phase 4 ----------------
+    one_service_price_per_day: async () => {
+      await expectAccepted(async (tx) => {
+        const s = await svc(tx);
+        await price(tx, s, null, '2026-10-01');
+        await price(tx, s, SEED_IDS.buildings.A, '2026-10-01');
+        await price(tx, s, null, '2026-11-01');
+      });
+      await expectRejected(async (tx) => {
+        const s = await svc(tx);
+        await price(tx, s, null, '2026-10-01');
+        await price(tx, s, null, '2026-10-01');
+      }, 'one_service_price_per_day');
+      await expectRejected(async (tx) => {
+        const s = await svc(tx, 'ELEC');
+        await price(tx, s, SEED_IDS.buildings.B, '2026-10-01');
+        await price(tx, s, SEED_IDS.buildings.B, '2026-10-01');
+      }, 'one_service_price_per_day');
+    },
+    service_price_nonneg_chk: async () => {
+      await expectAccepted(async (tx) => price(tx, await svc(tx), null, '2026-10-01', '0'));
+      await expectRejected(async (tx) => price(tx, await svc(tx), null, '2026-10-01', '-0.01'), 'service_price_nonneg_chk');
+    },
+    services_substitutes_chk: async () => {
+      const mk = (tx: Prisma.TransactionClient, data: Record<string, unknown>) =>
+        tx.service.create({ data: { workspaceId: W, code: `S${++n}`, name: 'x', unit: 'x', ...data } as never });
+      await expectAccepted((tx) => mk(tx, { type: 'PER_PERSON', substitutesMeter: 'WATER' }));
+      await expectRejected((tx) => mk(tx, { type: 'METER', chargeTiming: 'ARREARS', meterType: 'WATER', substitutesMeter: 'WATER' }), 'services_substitutes_chk');
+    },
+    statement_periods_month_start_chk: async () => {
+      await expectAccepted((tx) => period(tx, '2031-01-01'));
+      await expectRejected((tx) => period(tx, '2031-01-02'), 'statement_periods_month_start_chk');
+    },
+    meter_readings_period_chk: async () => {
+      const reading = async (tx: Prisma.TransactionClient, kind: string, withPeriod: boolean) =>
+        tx.meterReading.create({
+          data: { meterId: await meter(tx, await mkRoom(tx)), readOn: new Date('2026-10-31'), value: '1', kind, statementPeriodId: withPeriod ? await period(tx, '2031-02-01') : null, createdBy: userId } as never,
+        });
+      await expectAccepted((tx) => reading(tx, 'PERIODIC', true));
+      await expectAccepted((tx) => reading(tx, 'INITIAL', false));
+      await expectRejected((tx) => reading(tx, 'PERIODIC', false), 'meter_readings_period_chk');
+      await expectRejected((tx) => reading(tx, 'FINAL', true), 'meter_readings_period_chk');
+    },
+    one_periodic_reading_per_period: async () => {
+      const periodic = (tx: Prisma.TransactionClient, meterId: string, periodId: string, on: string) =>
+        tx.meterReading.create({ data: { meterId, readOn: new Date(on), value: '1', kind: 'PERIODIC', statementPeriodId: periodId, createdBy: userId } });
+      await expectAccepted(async (tx) => {
+        const m = await meter(tx, await mkRoom(tx));
+        await periodic(tx, m, await period(tx, '2031-03-01'), '2026-10-30');
+        await periodic(tx, m, await period(tx, '2031-04-01'), '2026-11-30');
+        await tx.meterReading.create({ data: { meterId: m, readOn: new Date('2026-11-10'), value: '1', kind: 'CLOSING', createdBy: userId } });
+      });
+      await expectRejected(async (tx) => {
+        const m = await meter(tx, await mkRoom(tx));
+        const p = await period(tx, '2031-05-01');
+        await periodic(tx, m, p, '2026-10-30');
+        await periodic(tx, m, p, '2026-10-31');
+      }, 'one_periodic_reading_per_period');
+    },
+    meters_retired_after_installed_chk: async () => {
+      await expectAccepted(async (tx) => meter(tx, await mkRoom(tx), { retiredOn: new Date('2026-10-01') }));
+      await expectRejected(async (tx) => meter(tx, await mkRoom(tx), { retiredOn: new Date('2026-09-30') }), 'meters_retired_after_installed_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
+
+  const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>
+    tx.servicePriceHistory.create({ data: { workspaceId: W, serviceId, buildingId, effectiveFrom: new Date(from), unitPrice, createdBy: userId } });
+  const period = async (tx: Prisma.TransactionClient, monthStart: string) =>
+    (await tx.statementPeriod.upsert({ where: { workspaceId_monthStart: { workspaceId: W, monthStart: new Date(monthStart) } }, update: {}, create: { workspaceId: W, monthStart: new Date(monthStart) } })).id;
 
   let cseq = 0;
   async function contract(tx: Prisma.TransactionClient, tenancyId: string, start: string, end: string, extra: Record<string, unknown> = {}) {

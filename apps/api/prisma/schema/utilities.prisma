@@ -1,0 +1,58 @@
+// Phase 4: giá dịch vụ, giá điện nước theo tòa, kỳ phát hành, cấu hình tính phí (MASTER_PLAN 4.3, 6.2, 6.4, 6.5, 8.5).
+
+/// Phiên bản giá dịch vụ. building_id NULL = giá chung cả workspace; dịch vụ METER bắt buộc có building_id (giá riêng từng tòa).
+/// Giá METER có hiệu lực theo kỳ đọc: effective_from luôn là ngày 1 của tháng phát hành (D-028).
+model ServicePriceHistory {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  workspaceId   String   @map("workspace_id") @db.Uuid
+  serviceId     String   @map("service_id") @db.Uuid
+  buildingId    String?  @map("building_id") @db.Uuid
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  unitPrice     Decimal  @map("unit_price") @db.Decimal(14, 2)
+  reason        String?
+  createdBy     String   @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  service  Service   @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  building Building? @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+
+  @@index([serviceId, buildingId, effectiveFrom])
+  @@map("service_price_history")
+}
+
+enum StatementPeriodStatus {
+  OPEN
+  CLOSED
+}
+
+/// Tháng phát hành; chỉ số chốt nhập theo đợt của tháng này. Tạo khi cần (lần nhập chỉ số đầu tiên hoặc khi tính phí).
+model StatementPeriod {
+  id          String                @id @default(uuid(7)) @db.Uuid
+  workspaceId String                @map("workspace_id") @db.Uuid
+  monthStart  DateTime              @map("month_start") @db.Date
+  status      StatementPeriodStatus @default(OPEN)
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  readings MeterReading[]
+
+  @@unique([workspaceId, monthStart])
+  @@map("statement_periods")
+}
+
+enum SettingsKind {
+  BILLING
+}
+
+/// Cấu hình có phiên bản theo ngày hiệu lực (MASTER_PLAN 4.3). Không sửa phiên bản cũ.
+model SettingsVersion {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  workspaceId   String       @map("workspace_id") @db.Uuid
+  kind          SettingsKind
+  effectiveFrom DateTime     @map("effective_from") @db.Date
+  payload       Json
+  createdBy     String       @map("created_by") @db.Uuid
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([workspaceId, kind, effectiveFrom])
+  @@map("settings_versions")
+}

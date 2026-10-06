@@ -7,3 +7,4 @@ export * from './property.js';
 export * from './users.js';
 export * from './tenancy.js';
 export * from './contracts.js';
+export * from './utilities.js';

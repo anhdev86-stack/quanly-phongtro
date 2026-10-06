@@ -252,6 +252,19 @@ export class TenanciesService {
       if (services.some((s) => s.type === 'METER')) {
         throw new AppError('BUSINESS_RULE_VIOLATION', 'Điện/nước theo đồng hồ được tính từ chỉ số, không thêm như dịch vụ.', { services: ['Dịch vụ không hợp lệ.'] });
       }
+      // Dịch vụ thay đồng hồ (VD nước theo người) cùng đồng hồ cùng loại cần xác nhận riêng ở mục Dịch vụ (MASTER_PLAN 8.5).
+      for (const s of services.filter((x) => x.substitutesMeter)) {
+        const hasMeter =
+          input.meter_readings.some((m) => m.type === s.substitutesMeter) ||
+          (await tx.meter.count({ where: { roomId: room.id, type: s.substitutesMeter!, retiredOn: null } })) > 0;
+        if (hasMeter) {
+          throw new AppError(
+            'BUSINESS_RULE_VIOLATION',
+            `Phòng có đồng hồ ${s.substitutesMeter === 'WATER' ? 'nước' : 'điện'}: không bật “${s.name}” khi nhận phòng. Nếu thật sự tính cả hai khoản, hãy bật sau ở mục Dịch vụ của lần thuê (cần xác nhận).`,
+            { services: ['Trùng với đồng hồ.'] },
+          );
+        }
+      }
       for (const s of input.services) {
         await tx.tenancyService.create({
           data: { tenancyId: tenancy.id, serviceId: s.service_id, effectiveFrom: startDb, quantity: s.quantity, createdBy: user.id },

@@ -167,21 +167,24 @@ enum MeterType {
 }
 
 model Service {
-  id           String       @id @default(uuid(7)) @db.Uuid
-  workspaceId  String       @map("workspace_id") @db.Uuid
-  code         String
-  name         String
-  type         ServiceType
-  unit         String
-  chargeTiming ChargeTiming @default(ADVANCE) @map("charge_timing")
-  meterType    MeterType?   @map("meter_type")
-  archivedAt   DateTime?    @map("archived_at") @db.Timestamptz(3)
-  version      Int          @default(1)
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id               String       @id @default(uuid(7)) @db.Uuid
+  workspaceId      String       @map("workspace_id") @db.Uuid
+  code             String
+  name             String
+  type             ServiceType
+  unit             String
+  chargeTiming     ChargeTiming @default(ADVANCE) @map("charge_timing")
+  meterType        MeterType?   @map("meter_type")
+  /// Dịch vụ không đồng hồ thay cho đồng hồ loại này (VD “Nước theo người” thay đồng hồ nước). Bật cùng đồng hồ phải xác nhận.
+  substitutesMeter MeterType?   @map("substitutes_meter")
+  archivedAt       DateTime?    @map("archived_at") @db.Timestamptz(3)
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   subscriptions TenancyService[]
   roomDefaults  RoomServiceDefault[]
+  prices        ServicePriceHistory[]
 
   @@unique([workspaceId, code])
   @@map("services")
@@ -248,6 +251,8 @@ enum ReadingKind {
   INITIAL
   PERIODIC
   FINAL
+  /// Chỉ số chốt đồng hồ cũ khi thay đồng hồ (không phải mốc kỳ).
+  CLOSING
 }
 
 model MeterReading {
@@ -264,8 +269,9 @@ model MeterReading {
   createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  meter   Meter    @relation(fields: [meterId], references: [id], onDelete: Restrict)
-  tenancy Tenancy? @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  meter           Meter            @relation(fields: [meterId], references: [id], onDelete: Restrict)
+  tenancy         Tenancy?         @relation(fields: [tenancyId], references: [id], onDelete: Restrict)
+  statementPeriod StatementPeriod? @relation(fields: [statementPeriodId], references: [id], onDelete: Restrict)
 
   @@unique([meterId, readOn])
   @@index([tenancyId])

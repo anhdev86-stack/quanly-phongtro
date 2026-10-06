@@ -1,5 +1,13 @@
-import type { PermissionCode } from '@ql-tro/shared';
-import type { LucideIcon } from 'lucide-react';
+import { PERMISSIONS, type PermissionCode } from '@ql-tro/shared';
+import { Calculator, type LucideIcon } from 'lucide-react';
 
 /** Các mục cấu hình bổ sung theo phase (tài khoản nhận tiền, nhắc đóng tiền, chính sách tính phí…). */
-export const SETTINGS_SECTIONS: { href: string; title: string; description: string; icon: LucideIcon; perm: PermissionCode }[] = [];
+export const SETTINGS_SECTIONS: { href: string; title: string; description: string; icon: LucideIcon; perm: PermissionCode }[] = [
+  {
+    href: '/settings/billing',
+    title: 'Chính sách tính phí',
+    description: 'Chia theo ngày, làm tròn, ngày đến hạn, thu trước/thu sau mặc định.',
+    icon: Calculator,
+    perm: PERMISSIONS.SETTINGS_MANAGE,
+  },
+];
