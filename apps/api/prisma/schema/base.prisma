@@ -3,7 +3,7 @@
 
 generator client {
   provider     = "prisma-client"
-  output       = "../src/generated/prisma"
+  output       = "../../src/generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -145,8 +145,11 @@ model Room {
   createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  building     Building      @relation(fields: [buildingId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  reservations Reservation[]
+  building        Building             @relation(fields: [buildingId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  reservations    Reservation[]
+  tenancies       Tenancy[]
+  serviceDefaults RoomServiceDefault[]
+  meters          Meter[]
 
   @@unique([buildingId, code])
   @@unique([id, workspaceId])
@@ -180,7 +183,8 @@ model Reservation {
   createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  room Room @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  room                Room                 @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  holdingTransactions HoldingTransaction[]
 
   @@index([roomId, status])
   @@map("reservations")

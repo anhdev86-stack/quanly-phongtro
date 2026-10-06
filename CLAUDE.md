@@ -5,8 +5,8 @@ Tiến độ: [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md). Qu
 
 ## Cách làm việc
 
-- Mỗi phiên chỉ làm một phase (MASTER_PLAN mục 16), trên nhánh `phase/<số>-<tên>`. Không merge vào `main` khi chủ dự án chưa nghiệm thu.
-- Không tự suy diễn các điểm B-1…B-4 trong IMPLEMENTATION_STATUS khi làm billing; phải hỏi chủ dự án.
+- Mỗi phase làm trên nhánh `phase/<số>-<tên>`. Chủ dự án đã cho phép (06/10/2026) chuyển phase và merge vào `main` khi các kiểm tra liên quan đạt, không cần dừng xin nghiệm thu từng phase.
+- B-1…B-4 đã chốt ở DECISIONS D-022…D-025; quy tắc tính tiền mới ảnh hưởng số tiền thực tế thì hỏi chủ dự án.
 - Không báo “xong” khi chưa chạy kiểm tra. Ghi lệnh và kết quả vào IMPLEMENTATION_STATUS.
 - Không chạy `prisma migrate reset` hay xóa database dev; Prisma chặn AI agent làm việc này và việc đó thuộc về người dùng (D-008).
 - Không thêm `minimumReleaseAgeExclude`, không bật install script mới trong `pnpm-workspace.yaml` khi chưa ghi lý do (D-017).
@@ -33,8 +33,12 @@ pnpm cài ở `%APPDATA%\npm`; trong Git Bash dùng `pnpm.cmd` hoặc chạy qua
   - Đối tượng ngoài phạm vi tòa trả 404 (`AccessService`).
   - Thao tác tài chính: `IdempotencyService.execute` + `runInTransaction` + `lockRows` theo `LOCK_ORDER` + `AuditService.record(tx, …)`.
   - Thời gian: inject `CLOCK`, không gọi `new Date()` trong nghiệp vụ.
+  - Hàm nhận `db: Db` có thể chạy trong transaction: không dùng `Promise.all` trên transaction client (D-026).
+  - Nghiệp vụ nằm chung `BusinessModule`; phần mở rộng theo phase cắm qua provider token (RESERVATION_EXTRAS, DEPOSIT_REQUIREMENT, RENTAL_MODE, MOVE_IN_EXTENSIONS…).
   - Ràng buộc SQL thủ công: quy trình và danh mục ở `apps/api/prisma/MANUAL_SQL.md`; mỗi ràng buộc phải có test hành vi (T47).
 - `apps/web` (Next.js 16): chỉ hiển thị, gọi API qua `src/lib/api-client.ts` (tự gửi CSRF, tự refresh). Chỉ import `@ql-tro/shared`.
 - `packages/shared` (ESM): Zod schema, mã lỗi, mã quyền dùng chung. Không chứa logic tính tiền.
 - Tiền: BIGINT VND, JSON dạng chuỗi. Ngày nghiệp vụ: `YYYY-MM-DD`.
 - Test integration dùng PostgreSQL thật (`ql_tro_test`), helper ở `apps/api/test/helpers`. Endpoint `/__probe` chỉ có trong test.
+- E2E dùng database riêng `ql_tro_e2e` (api :4100, web :3100, `.next-e2e`), được dựng lại sạch trước mỗi lần chạy.
+- Schema Prisma nhiều file: `apps/api/prisma/schema/*.prisma`. Sau khi thêm SQL thủ công: `node prisma/tools/sync-manual-catalog.mjs <tên…>`.

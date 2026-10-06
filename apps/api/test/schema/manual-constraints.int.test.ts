@@ -166,6 +166,189 @@ describe('T47 — ràng buộc SQL thủ công', () => {
     },
   };
 
+  // ---------------- Phase 2 ----------------
+  const W = SEED_IDS.workspace;
+  let n = 0;
+  const mkRoom = async (tx: Prisma.TransactionClient) =>
+    (await tx.room.create({ data: { workspaceId: W, buildingId: SEED_IDS.buildings.A, code: `P2R${++n}`, defaultRentVnd: 1n, maxOccupants: 5 } })).id;
+  const mkTenancy = async (tx: Prisma.TransactionClient, roomId: string, extra: Record<string, unknown> = {}) =>
+    (await tx.tenancy.create({ data: { workspaceId: W, roomId, code: `P2T${++n}`, startDate: new Date('2026-10-01'), createdBy: userId, ...extra } })).id;
+  const mkTenant = async (tx: Prisma.TransactionClient) => (await tx.tenant.create({ data: { workspaceId: W, fullName: `T${++n}` } })).id;
+  const member = (tx: Prisma.TransactionClient, tenancyId: string, tenantId: string, role: 'PRIMARY' | 'MEMBER', joined: string, left: string | null = null) =>
+    tx.tenancyTenant.create({ data: { workspaceId: W, tenancyId, tenantId, role, joinedOn: new Date(joined), leftOnExclusive: left ? new Date(left) : null } });
+  const svc = async (tx: Prisma.TransactionClient, code = 'INTERNET') => (await tx.service.findFirstOrThrow({ where: { code } })).id;
+  const tenancyService = (tx: Prisma.TransactionClient, tenancyId: string, serviceId: string, from: string, end: string | null, extra: Record<string, unknown> = {}) =>
+    tx.tenancyService.create({ data: { tenancyId, serviceId, effectiveFrom: new Date(from), endExclusive: end ? new Date(end) : null, createdBy: userId, ...extra } });
+  const meter = async (tx: Prisma.TransactionClient, roomId: string, extra: Record<string, unknown> = {}) =>
+    (await tx.meter.create({ data: { workspaceId: W, roomId, type: 'ELECTRICITY', installedOn: new Date('2026-10-01'), initialReading: '0', createdBy: userId, ...extra } })).id;
+  const deposit = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) => {
+    const tenancyId = await mkTenancy(tx, await mkRoom(tx));
+    return tx.depositTransaction.create({ data: { workspaceId: W, tenancyId, type: 'RECEIVED', amountVnd: 1n, createdBy: userId, ...extra } });
+  };
+  const holding = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) => {
+    const r = await tx.reservation.create({
+      data: { workspaceId: W, roomId: await mkRoom(tx), holdFrom: new Date('2026-10-01'), expectedMoveIn: new Date('2026-10-01'), holdUntil: new Date('2026-10-02'), contactName: 'x', createdBy: userId },
+    });
+    return tx.holdingTransaction.create({ data: { workspaceId: W, reservationId: r.id, type: 'RECEIVED', amountVnd: 1n, createdBy: userId, ...extra } });
+  };
+
+  Object.assign(behaviours, {
+    one_open_tenancy_per_room: async () => {
+      await expectAccepted(async (tx) => {
+        const room = await mkRoom(tx);
+        await mkTenancy(tx, room, { status: 'ENDED', chargeEndExclusive: new Date('2026-10-05') });
+        await mkTenancy(tx, room);
+      });
+      for (const second of ['NOTICE_GIVEN', 'MOVE_OUT_PROCESSING', 'ACTIVE']) {
+        await expectRejected(async (tx) => {
+          const room = await mkRoom(tx);
+          await mkTenancy(tx, room);
+          await mkTenancy(tx, room, { status: second });
+        }, 'one_open_tenancy_per_room');
+      }
+    },
+    tenancies_charge_end_chk: async () => {
+      await expectAccepted(async (tx) => mkTenancy(tx, await mkRoom(tx), { status: 'ENDED', chargeEndExclusive: new Date('2026-10-02') }));
+      await expectRejected(async (tx) => mkTenancy(tx, await mkRoom(tx), { status: 'ENDED', chargeEndExclusive: new Date('2026-10-01') }), 'tenancies_charge_end_chk');
+    },
+    tenancies_billing_due_day_chk: async () => {
+      await expectAccepted(async (tx) => mkTenancy(tx, await mkRoom(tx), { billingDueDay: 31 }));
+      await expectRejected(async (tx) => mkTenancy(tx, await mkRoom(tx), { billingDueDay: 0 }), 'tenancies_billing_due_day_chk');
+      await expectRejected(async (tx) => mkTenancy(tx, await mkRoom(tx), { billingDueDay: 32 }), 'tenancies_billing_due_day_chk');
+    },
+    tenancies_deposit_required_chk: async () => {
+      await expectAccepted(async (tx) => mkTenancy(tx, await mkRoom(tx), { initialDepositRequiredVnd: 0n }));
+      await expectRejected(async (tx) => mkTenancy(tx, await mkRoom(tx), { initialDepositRequiredVnd: -1n }), 'tenancies_deposit_required_chk');
+    },
+    one_current_primary: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await member(tx, tn, await mkTenant(tx), 'PRIMARY', '2026-10-01', '2026-10-05');
+        await member(tx, tn, await mkTenant(tx), 'PRIMARY', '2026-10-01');
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await member(tx, tn, await mkTenant(tx), 'PRIMARY', '2026-10-01');
+        await member(tx, tn, await mkTenant(tx), 'PRIMARY', '2026-10-02');
+      }, 'one_current_primary');
+    },
+    tenancy_tenants_dates_chk: async () => {
+      await expectAccepted(async (tx) => member(tx, await mkTenancy(tx, await mkRoom(tx)), await mkTenant(tx), 'MEMBER', '2026-10-01', '2026-10-02'));
+      await expectRejected(async (tx) => member(tx, await mkTenancy(tx, await mkRoom(tx)), await mkTenant(tx), 'MEMBER', '2026-10-01', '2026-10-01'), 'tenancy_tenants_dates_chk');
+    },
+    no_overlapping_membership: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const p = await mkTenant(tx);
+        await member(tx, tn, p, 'MEMBER', '2026-10-01', '2026-10-05');
+        await member(tx, tn, p, 'MEMBER', '2026-10-05');
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const p = await mkTenant(tx);
+        await member(tx, tn, p, 'MEMBER', '2026-10-01', '2026-10-06');
+        await member(tx, tn, p, 'MEMBER', '2026-10-05');
+      }, 'no_overlapping_membership');
+    },
+    one_active_rent_price_per_day: async () => {
+      const price = (tx: Prisma.TransactionClient, tn: string, status: 'ACTIVE' | 'VOIDED') =>
+        tx.rentPriceHistory.create({ data: { tenancyId: tn, effectiveFrom: new Date('2026-11-01'), monthlyRentVnd: 1n, status, createdBy: userId } });
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await price(tx, tn, 'VOIDED');
+        await price(tx, tn, 'ACTIVE');
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await price(tx, tn, 'ACTIVE');
+        await price(tx, tn, 'ACTIVE');
+      }, 'one_active_rent_price_per_day');
+    },
+    rent_price_nonneg_chk: async () => {
+      const price = async (tx: Prisma.TransactionClient, v: bigint) =>
+        tx.rentPriceHistory.create({ data: { tenancyId: await mkTenancy(tx, await mkRoom(tx)), effectiveFrom: new Date('2026-11-01'), monthlyRentVnd: v, createdBy: userId } });
+      await expectAccepted((tx) => price(tx, 0n));
+      await expectRejected((tx) => price(tx, -1n), 'rent_price_nonneg_chk');
+    },
+    no_overlapping_tenancy_services: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const s = await svc(tx);
+        await tenancyService(tx, tn, s, '2026-10-01', '2026-10-15');
+        await tenancyService(tx, tn, s, '2026-10-15', null);
+        await tenancyService(tx, tn, s, '2026-10-10', null, { status: 'VOIDED' });
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const s = await svc(tx);
+        await tenancyService(tx, tn, s, '2026-10-01', null);
+        await tenancyService(tx, tn, s, '2026-10-10', null);
+      }, 'no_overlapping_tenancy_services');
+    },
+    tenancy_services_dates_qty_chk: async () => {
+      await expectAccepted(async (tx) => tenancyService(tx, await mkTenancy(tx, await mkRoom(tx)), await svc(tx), '2026-10-01', '2026-10-02', { quantity: '0' }));
+      await expectRejected(async (tx) => tenancyService(tx, await mkTenancy(tx, await mkRoom(tx)), await svc(tx), '2026-10-01', null, { quantity: '-1' }), 'tenancy_services_dates_qty_chk');
+      await expectRejected(async (tx) => tenancyService(tx, await mkTenancy(tx, await mkRoom(tx)), await svc(tx), '2026-10-01', '2026-10-01'), 'tenancy_services_dates_qty_chk');
+    },
+    services_meter_chk: async () => {
+      const mk = (tx: Prisma.TransactionClient, data: Record<string, unknown>) =>
+        tx.service.create({ data: { workspaceId: W, code: `S${++n}`, name: 'x', unit: 'x', type: 'METER', ...data } as never });
+      await expectAccepted((tx) => mk(tx, { chargeTiming: 'ARREARS', meterType: 'WATER' }));
+      await expectRejected((tx) => mk(tx, { chargeTiming: 'ARREARS', meterType: null }), 'services_meter_chk');
+      await expectRejected((tx) => mk(tx, { chargeTiming: 'ADVANCE', meterType: 'WATER' }), 'services_meter_chk');
+      await expectRejected((tx) => mk(tx, { type: 'FIXED_ROOM', chargeTiming: 'ADVANCE', meterType: 'WATER' }), 'services_meter_chk');
+    },
+    one_active_meter_per_type: async () => {
+      await expectAccepted(async (tx) => {
+        const room = await mkRoom(tx);
+        await meter(tx, room, { retiredOn: new Date('2026-10-05') });
+        await meter(tx, room);
+        await meter(tx, room, { type: 'WATER' });
+      });
+      await expectRejected(async (tx) => {
+        const room = await mkRoom(tx);
+        await meter(tx, room);
+        await meter(tx, room);
+      }, 'one_active_meter_per_type');
+    },
+    meters_initial_reading_chk: async () => {
+      await expectAccepted(async (tx) => meter(tx, await mkRoom(tx), { initialReading: '0' }));
+      await expectRejected(async (tx) => meter(tx, await mkRoom(tx), { initialReading: '-0.01' }), 'meters_initial_reading_chk');
+    },
+    meter_readings_value_chk: async () => {
+      const reading = async (tx: Prisma.TransactionClient, value: string) =>
+        tx.meterReading.create({ data: { meterId: await meter(tx, await mkRoom(tx)), readOn: new Date('2026-10-02'), value, kind: 'PERIODIC', createdBy: userId } });
+      await expectAccepted((tx) => reading(tx, '0'));
+      await expectRejected((tx) => reading(tx, '-1'), 'meter_readings_value_chk');
+    },
+    deposit_amount_positive_chk: async () => {
+      await expectAccepted((tx) => deposit(tx, { amountVnd: 1n }));
+      await expectRejected((tx) => deposit(tx, { amountVnd: 0n }), 'deposit_amount_positive_chk');
+    },
+    deposit_reversal_ref_chk: async () => {
+      await expectAccepted(async (tx) => {
+        const d = await deposit(tx, {});
+        await tx.depositTransaction.create({ data: { workspaceId: W, tenancyId: d.tenancyId, type: 'REVERSAL', amountVnd: 1n, reversesTransactionId: d.id, createdBy: userId } });
+      });
+      await expectRejected((tx) => deposit(tx, { type: 'REVERSAL' }), 'deposit_reversal_ref_chk');
+      await expectRejected(async (tx) => {
+        const d = await deposit(tx, {});
+        await tx.depositTransaction.create({ data: { workspaceId: W, tenancyId: d.tenancyId, type: 'REFUND', amountVnd: 1n, reversesTransactionId: d.id, createdBy: userId } });
+      }, 'deposit_reversal_ref_chk');
+    },
+    holding_amount_positive_chk: async () => {
+      await expectAccepted((tx) => holding(tx, { amountVnd: 1n }));
+      await expectRejected((tx) => holding(tx, { amountVnd: 0n }), 'holding_amount_positive_chk');
+    },
+    holding_reversal_ref_chk: async () => {
+      await expectAccepted(async (tx) => {
+        const h = await holding(tx, {});
+        await tx.holdingTransaction.create({ data: { workspaceId: W, reservationId: h.reservationId, type: 'REVERSAL', amountVnd: 1n, reversesTransactionId: h.id, createdBy: userId } });
+      });
+      await expectRejected((tx) => holding(tx, { type: 'REVERSAL' }), 'holding_reversal_ref_chk');
+    },
+  } satisfies Record<string, () => Promise<void>>);
+
   let roomSeq = 0;
   function insertRoom(opts: { rent?: number; maxOccupants?: number }) {
     return (tx: Prisma.TransactionClient) =>

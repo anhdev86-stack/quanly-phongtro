@@ -164,10 +164,8 @@ export class RoomsService {
     await runInTransaction(this.prisma, async (tx) => {
       if (archived) {
         const today = this.clock.today();
-        const [open, reservations] = await Promise.all([
-          this.openTenancies(tx, [id]),
-          tx.reservation.count({ where: { roomId: id, status: 'ACTIVE', holdUntil: { gte: new Date(`${today}T00:00:00Z`) } } }),
-        ]);
+        const open = await this.openTenancies(tx, [id]);
+        const reservations = await tx.reservation.count({ where: { roomId: id, status: 'ACTIVE', holdUntil: { gte: new Date(`${today}T00:00:00Z`) } } });
         if (open.size > 0) throw new AppError('BUSINESS_RULE_VIOLATION', 'Phòng đang có khách thuê, không lưu trữ được.');
         if (reservations > 0) throw new AppError('BUSINESS_RULE_VIOLATION', 'Phòng còn lượt giữ chỗ đang hiệu lực. Hãy hủy trước.');
       }
@@ -183,11 +181,16 @@ export class RoomsService {
     return this.get(user, id);
   }
 
-  /**
-   * Tenancy còn mở theo phòng. Phase 1 chưa có bảng tenancy nên luôn rỗng; Phase 2 thay bằng truy vấn thật.
-   */
-  async openTenancies(_db: Db, _roomIds: string[]): Promise<Map<string, OpenTenancyInfo>> {
-    return new Map();
+  /** Tenancy chưa ENDED theo phòng, kèm tên người đại diện đang ở. */
+  async openTenancies(db: Db, roomIds: string[]): Promise<Map<string, OpenTenancyInfo>> {
+    if (roomIds.length === 0) return new Map();
+    const rows = await db.tenancy.findMany({
+      where: { roomId: { in: roomIds }, status: { in: [...OPEN_TENANCY_STATUSES] } },
+      include: { members: { where: { role: 'PRIMARY', leftOnExclusive: null }, include: { tenant: true } } },
+    });
+    return new Map(
+      rows.map((t) => [t.roomId, { id: t.id, code: t.code, status: t.status, primaryTenantName: t.members[0]?.tenant.fullName ?? null }]),
+    );
   }
 
   /** Dựng DTO kèm trạng thái hiển thị tính toán (MASTER_PLAN 5.1). */
@@ -195,10 +198,9 @@ export class RoomsService {
     if (rooms.length === 0) return [];
     const ids = rooms.map((r) => r.id);
     const today = this.clock.today();
-    const [reservations, tenancies] = await Promise.all([
-      db.reservation.findMany({ where: { roomId: { in: ids }, status: 'ACTIVE' }, orderBy: { holdFrom: 'asc' } }),
-      this.openTenancies(db, ids),
-    ]);
+    // Tuần tự: db có thể là transaction client.
+    const reservations = await db.reservation.findMany({ where: { roomId: { in: ids }, status: 'ACTIVE' }, orderBy: { holdFrom: 'asc' } });
+    const tenancies = await this.openTenancies(db, ids);
     const byRoom = new Map<string, typeof reservations>();
     for (const r of reservations) byRoom.set(r.roomId, [...(byRoom.get(r.roomId) ?? []), r]);
 

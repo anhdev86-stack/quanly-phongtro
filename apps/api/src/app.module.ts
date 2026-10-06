@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { RequestContextInterceptor } from './common/context/request-context.js';
-import { PropertyModule } from './modules/property.module.js';
+import { BusinessModule } from './modules/business.module.js';
 import { CsrfGuard } from './common/auth/csrf.guard.js';
 import { PermissionsGuard } from './common/auth/permissions.guard.js';
 import { ConfigModule } from './config/config.module.js';
@@ -26,7 +26,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module.js';
     IdempotencyModule,
     AuthModule,
     HealthModule,
-    PropertyModule,
+    BusinessModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: RequestContextInterceptor },

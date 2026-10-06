@@ -372,9 +372,15 @@ importers:
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
       dotenv:
         specifier: 18.0.5
         version: 18.0.5
+      pg:
+        specifier: 8.23.1
+        version: 8.23.1
       typescript:
         specifier: 6.0.3
         version: 6.0.3

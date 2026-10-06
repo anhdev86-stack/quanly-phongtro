@@ -1,7 +1,7 @@
 'use client';
 
 import { PERMISSIONS, type Reservation } from '@ql-tro/shared';
-import { AlertTriangle, CalendarClock, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarClock, KeyRound, Wallet, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { ApiError } from '@/lib/api-client';
 import { formatBusinessDate, formatVnd } from '@/lib/format';
 import { ReasonDialog, ReservationRescheduleDialog, useCancelReservationAction } from './reservation-forms';
 import { ReservationStatusBadge } from './status';
+import { HoldingDialog } from '@/features/tenancy/holding-dialog';
 
 export function ReservationTable({ items, showRoom = true }: { items: Reservation[]; showRoom?: boolean }) {
   const can = useCan();
@@ -20,6 +21,7 @@ export function ReservationTable({ items, showRoom = true }: { items: Reservatio
   const cancel = useCancelReservationAction();
   const [rescheduling, setRescheduling] = useState<Reservation | null>(null);
   const [cancelling, setCancelling] = useState<Reservation | null>(null);
+  const [holding, setHolding] = useState<Reservation | null>(null);
   const canManage = can(PERMISSIONS.RESERVATIONS_MANAGE);
 
   return (
@@ -68,6 +70,19 @@ export function ReservationTable({ items, showRoom = true }: { items: Reservatio
               </Td>
               <Td className="text-right tabular">{r.holding_balance_vnd === '0' ? '—' : formatVnd(r.holding_balance_vnd)}</Td>
               <Td className="text-right whitespace-nowrap">
+                <Button variant="ghost" size="sm" onClick={() => setHolding(r)} aria-label="Tiền giữ chỗ">
+                  <Wallet className="size-4" />
+                </Button>
+                {r.status === 'ACTIVE' && can(PERMISSIONS.TENANCIES_MOVE_IN) ? (
+                  <Link
+                    href={`/rooms/${r.room_id}/move-in?reservation=${r.id}`}
+                    className="inline-flex h-8 items-center rounded-md px-2 text-slate-700 hover:bg-slate-100"
+                    aria-label="Nhận phòng từ lượt giữ này"
+                    title="Nhận phòng từ lượt giữ này"
+                  >
+                    <KeyRound className="size-4" />
+                  </Link>
+                ) : null}
                 {canManage && r.status === 'ACTIVE' ? (
                   <>
                     <Button variant="ghost" size="sm" onClick={() => setRescheduling(r)} aria-label="Đổi lịch">
@@ -84,6 +99,7 @@ export function ReservationTable({ items, showRoom = true }: { items: Reservatio
         </tbody>
       </Table>
       <ReservationRescheduleDialog reservation={rescheduling} onClose={() => setRescheduling(null)} />
+      <HoldingDialog reservation={holding} onClose={() => setHolding(null)} />
       <ReasonDialog
         open={!!cancelling}
         title="Hủy giữ phòng"

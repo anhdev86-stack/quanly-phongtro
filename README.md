@@ -82,7 +82,7 @@ Mật khẩu lấy từ `SEED_OWNER_PASSWORD` / `SEED_STAFF_PASSWORD` trong `.en
 | `pnpm typecheck` | TypeScript tất cả gói |
 | `pnpm test` | Test unit (shared, api, web) |
 | `pnpm test:integration` | Test tích hợp API trên PostgreSQL thật (`ql_tro_test`); cần `pnpm db:up` |
-| `pnpm test:e2e` | Playwright trên stack dev thật; cần `pnpm db:up`, `pnpm db:migrate`, `pnpm db:seed`. Tự khởi động `pnpm dev` nếu chưa chạy |
+| `pnpm test:e2e` | Playwright trên stack riêng (database `ql_tro_e2e`, api :4100, web :3100); cần `pnpm db:up`. Không đụng dữ liệu dev |
 | `pnpm build` | Build shared, api, web |
 
 Máy không có Microsoft Edge thì chạy E2E bằng Chromium:

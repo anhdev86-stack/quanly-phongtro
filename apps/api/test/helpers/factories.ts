@@ -26,6 +26,41 @@ export async function ownerId(t: TestApp): Promise<string> {
   return (await t.prisma.user.findUniqueOrThrow({ where: { email: 'owner@example.test' } })).id;
 }
 
+/** Tạo lần thuê trực tiếp trong DB (bỏ qua API) — dùng để dựng trạng thái như NOTICE_GIVEN/ENDED. */
+export async function createTenancyRow(
+  t: TestApp,
+  roomId: string,
+  opts: { status?: 'ACTIVE' | 'NOTICE_GIVEN' | 'MOVE_OUT_PROCESSING' | 'ENDED'; start?: string; chargeEndExclusive?: string } = {},
+) {
+  const tenant = await t.prisma.tenant.create({ data: { workspaceId: SEED_IDS.workspace, fullName: `Khách ${++seq}` } });
+  const tenancy = await t.prisma.tenancy.create({
+    data: {
+      workspaceId: SEED_IDS.workspace,
+      roomId,
+      code: nextCode('LTF'),
+      startDate: toDbDate(opts.start ?? '2026-09-01'),
+      chargeEndExclusive: opts.chargeEndExclusive ? toDbDate(opts.chargeEndExclusive) : null,
+      status: opts.status ?? 'ACTIVE',
+      createdBy: await ownerId(t),
+    },
+  });
+  await t.prisma.tenancyTenant.create({
+    data: {
+      workspaceId: SEED_IDS.workspace,
+      tenancyId: tenancy.id,
+      tenantId: tenant.id,
+      role: 'PRIMARY',
+      joinedOn: toDbDate(opts.start ?? '2026-09-01'),
+      leftOnExclusive: opts.status === 'ENDED' && opts.chargeEndExclusive ? toDbDate(opts.chargeEndExclusive) : null,
+    },
+  });
+  return tenancy;
+}
+
+export async function serviceId(t: TestApp, code: 'ELEC' | 'WATER' | 'INTERNET' | 'TRASH' | 'PARKING'): Promise<string> {
+  return (await t.prisma.service.findFirstOrThrow({ where: { code } })).id;
+}
+
 export async function createReservation(
   t: TestApp,
   roomId: string,

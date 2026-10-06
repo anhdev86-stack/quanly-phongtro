@@ -31,3 +31,4 @@ Thumbs.db
 # Cấu hình Claude Code cá nhân (chỉ commit launch.json)
 .claude/*
 !.claude/launch.json
+.next-e2e/

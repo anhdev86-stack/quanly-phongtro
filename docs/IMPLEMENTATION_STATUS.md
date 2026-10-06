@@ -148,11 +148,26 @@ Nhánh `phase/1-property`, merge vào `main` 06/10/2026.
 
 Kiểm tra: lint ✅ · typecheck ✅ · unit 39 ✅ · integration **93** ✅ · E2E **16** (desktop + mobile) ✅.
 
-## Phase 2 — Tenant, Tenancy, cọc, tiền giữ chỗ ⬜
+## Phase 2 — Tenant, Tenancy, cọc, tiền giữ chỗ ✅
 
-- [ ] Người thuê, thành viên, tạm trú; nhận phòng (7.2 bước 1–7)
-- [ ] Sổ cọc, sổ giữ chỗ, chuyển đổi và đảo cả cặp
-- [ ] T01 (phần nhận phòng), T02, T03, T32, T43, T55 (phần nhận phòng), T56
+Nhánh `phase/2-tenancy`, merge vào `main` 06/10/2026.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Người thuê: CRUD, tìm kiếm, che CCCD theo quyền, cảnh báo trùng CCCD | ✅ | STAFF thấy `********6789`, không tìm được theo CCCD |
+| Nhận phòng một transaction (7.2 bước 1–7) + Idempotency-Key | ✅ | Khóa phòng; kiểm tra bảo trì, sức chứa, khách trước, lịch giữ phòng; mã `LTyymm-nnnn` |
+| Thành viên: thêm, rời đi (giữ lịch sử), đổi đại diện, tạm trú | ✅ | Đúng một PRIMARY đang ở (partial unique) |
+| Giá thuê, dịch vụ, chỉ số ban đầu (tạo đồng hồ nếu chưa có) | ✅ | Nhập chỉ số đầu một lần (v2.4) |
+| Sổ cọc: nhận, nhận thêm, hoàn, khấu trừ, đảo | ✅ | Domain `ledger.ts`; số dư không âm; không đảo hai lần |
+| Sổ tiền giữ chỗ: nhận, hoàn, giữ lại theo thỏa thuận, đảo | ✅ | Hủy giữ phòng không tự mất tiền |
+| Chuyển giữ chỗ → cọc bằng cặp liên kết; đảo cả cặp atomic | ✅ | T43, T56 |
+| UI: người thuê, lần thuê, wizard nhận phòng 6 bước, sổ cọc/giữ chỗ | ✅ | Bước hợp đồng hiển thị “Phase 3” |
+| T47 cho 19 ràng buộc mới (gồm partial unique đầu tiên) | ✅ | Kiểm chứng: Prisma không sinh DROP cho partial index viết tay |
+| E2E chạy trên database riêng `ql_tro_e2e` (api :4100, web :3100) | ✅ | Không còn làm bẩn dữ liệu dev |
+
+Kiểm tra: lint ✅ · typecheck ✅ · unit 45 ✅ · integration **151** ✅ · E2E **20** (desktop + mobile) ✅.
+
+Ghi chú: cảnh báo `pg` về truy vấn song song đến từ Prisma (D-026), không ảnh hưởng kết quả.
 
 ## Phase 3 — Contract và Pricing (lõi) ⬜
 

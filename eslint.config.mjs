@@ -73,7 +73,7 @@ export default defineConfig(
   },
   {
     // Seed và script CLI được phép in ra console.
-    files: ['apps/api/prisma/seed/**/*.ts'],
+    files: ['apps/api/prisma/seed/**/*.ts', 'apps/api/prisma/tools/**/*.mjs'],
     rules: { 'no-console': 'off' },
   },
   {
