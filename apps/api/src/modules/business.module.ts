@@ -1,7 +1,13 @@
 import { Module } from '@nestjs/common';
 import { BillingController } from './billing/billing.controller.js';
 import { BillingMoveInExtension } from './billing/billing-move-in.js';
-import { BillingService, INVOICE_SETTLEMENT, NoSettlements } from './billing/billing.service.js';
+import { BillingService, INVOICE_SETTLEMENT } from './billing/billing.service.js';
+import { InvoiceBalances } from './payments/balances.js';
+import { CreditsService } from './payments/credits.service.js';
+import { DebtsService } from './payments/debts.service.js';
+import { PaymentsController } from './payments/payments.controller.js';
+import { PaymentsService, REVERSAL_OBSERVERS } from './payments/payments.service.js';
+import { SharingService } from './payments/sharing.service.js';
 import { ChargeCalculator } from './billing/charges.js';
 import { ContractDepositRequirement, ContractMoveInExtension, ContractRentalMode } from './contracts/contract-providers.js';
 import { ContractsController } from './contracts/contracts.controller.js';
@@ -46,6 +52,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     ContractsController,
     UtilitiesController,
     BillingController,
+    PaymentsController,
   ],
   providers: [
     BuildingsService,
@@ -65,7 +72,14 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     ChargeCalculator,
     BillingService,
     BillingMoveInExtension,
-    { provide: INVOICE_SETTLEMENT, useClass: NoSettlements },
+    InvoiceBalances,
+    { provide: INVOICE_SETTLEMENT, useExisting: InvoiceBalances },
+    PaymentsService,
+    CreditsService,
+    DebtsService,
+    SharingService,
+    // Phase 7 thêm observer ghi settlement_events khi đảo sau quyết toán.
+    { provide: REVERSAL_OBSERVERS, useValue: [] },
     { provide: RESERVATION_EXTRAS, useClass: DefaultReservationExtras },
     { provide: DEPOSIT_REQUIREMENT, useClass: ContractDepositRequirement },
     { provide: RENTAL_MODE, useClass: ContractRentalMode },

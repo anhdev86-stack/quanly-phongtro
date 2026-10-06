@@ -53,7 +53,7 @@ export class UtilitiesController {
   }
 
   @Post('buildings/:id/meter-prices')
-  @RequirePermissions(PERMISSIONS.SERVICES_MANAGE)
+  @RequirePermissions(PERMISSIONS.METER_PRICES_MANAGE)
   @ApiOperation({ summary: '“Thay đổi giá”: phiên bản giá mới áp dụng từ đầu một kỳ đọc; không sửa kỳ đã tính' })
   @ApiZodBody(meterPriceCreateSchema)
   @ApiZodResponse(201, meterPricesSchema, 'Đã đổi giá')

@@ -81,6 +81,16 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `invoices_adjustment_chk` | invoices | CHECK | `20261006145403_phase5_billing` | Chứng từ điều chỉnh không ở nháp, luôn trỏ chứng từ gốc |
 | `invoice_items_amount_chk` | invoice_items | CHECK | `20261006145403_phase5_billing` | Số tiền dòng không âm (dấu ở direction) |
 | `invoice_items_period_chk` | invoice_items | CHECK | `20261006145403_phase5_billing` | Khoảng phí hợp lệ |
+| `payments_amount_positive_chk` | payments | CHECK | `20261006152550_phase6_payments` | Số tiền phiếu thu > 0 |
+| `payment_allocations_amount_positive_chk` | payment_allocations | CHECK | `20261006152550_phase6_payments` | Phân bổ > 0 |
+| `credit_applications_amount_positive_chk` | credit_applications | CHECK | `20261006152550_phase6_payments` | Cấn trừ credit > 0 |
+| `credit_refunds_amount_positive_chk` | credit_refunds | CHECK | `20261006152550_phase6_payments` | Hoàn credit > 0 |
+| `deposit_allocations_amount_positive_chk` | deposit_allocations | CHECK | `20261006152550_phase6_payments` | Cọc áp vào thông báo > 0 |
+| `payments_reversal_chk` | payments | CHECK | `20261006152550_phase6_payments` | REVERSED ⇔ có thời điểm và lý do đảo |
+| `credit_applications_reversal_chk` | credit_applications | CHECK | `20261006152550_phase6_payments` | REVERSED ⇔ có thời điểm và lý do đảo |
+| `credit_refunds_reversal_chk` | credit_refunds | CHECK | `20261006152550_phase6_payments` | REVERSED ⇔ có thời điểm và lý do đảo |
+| `one_active_payment_account` | payment_accounts | PARTIAL UNIQUE | `20261006152550_phase6_payments` | Một tài khoản nhận tiền active mỗi workspace |
+| `credit_applications_distinct_chk` | credit_applications | CHECK | `20261006152550_phase6_payments` | Không cấn credit vào chính nó |
 
 ```json manual-constraints
 [
@@ -377,6 +387,66 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "invoice_items",
     "definition": "CHECK (((charge_end_exclusive IS NULL) OR (charge_start IS NULL) OR (charge_end_exclusive > charge_start)))"
+  },
+  {
+    "name": "payments_amount_positive_chk",
+    "kind": "check",
+    "table": "payments",
+    "definition": "CHECK ((amount_vnd > 0))"
+  },
+  {
+    "name": "payment_allocations_amount_positive_chk",
+    "kind": "check",
+    "table": "payment_allocations",
+    "definition": "CHECK ((amount_vnd > 0))"
+  },
+  {
+    "name": "credit_applications_amount_positive_chk",
+    "kind": "check",
+    "table": "credit_applications",
+    "definition": "CHECK ((amount_vnd > 0))"
+  },
+  {
+    "name": "credit_refunds_amount_positive_chk",
+    "kind": "check",
+    "table": "credit_refunds",
+    "definition": "CHECK ((amount_vnd > 0))"
+  },
+  {
+    "name": "deposit_allocations_amount_positive_chk",
+    "kind": "check",
+    "table": "deposit_allocations",
+    "definition": "CHECK ((amount_vnd > 0))"
+  },
+  {
+    "name": "payments_reversal_chk",
+    "kind": "check",
+    "table": "payments",
+    "definition": "CHECK (((status = 'REVERSED'::\"PostingStatus\") = ((reversed_at IS NOT NULL) AND (reversal_reason IS NOT NULL))))"
+  },
+  {
+    "name": "credit_applications_reversal_chk",
+    "kind": "check",
+    "table": "credit_applications",
+    "definition": "CHECK (((status = 'REVERSED'::\"CreditApplicationStatus\") = ((reversed_at IS NOT NULL) AND (reversal_reason IS NOT NULL))))"
+  },
+  {
+    "name": "credit_refunds_reversal_chk",
+    "kind": "check",
+    "table": "credit_refunds",
+    "definition": "CHECK (((status = 'REVERSED'::\"PostingStatus\") = ((reversed_at IS NOT NULL) AND (reversal_reason IS NOT NULL))))"
+  },
+  {
+    "name": "one_active_payment_account",
+    "kind": "index",
+    "table": "payment_accounts",
+    "definition": "CREATE UNIQUE INDEX one_active_payment_account ON public.payment_accounts USING btree (workspace_id) WHERE is_active"
+  },
+  {
+    "name": "credit_applications_distinct_chk",
+    "kind": "check",
+    "table": "credit_applications",
+    "definition": "CHECK ((credit_invoice_id <> target_invoice_id))"
   }
 ]
 ```

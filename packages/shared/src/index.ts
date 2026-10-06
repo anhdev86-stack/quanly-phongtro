@@ -9,3 +9,4 @@ export * from './tenancy.js';
 export * from './contracts.js';
 export * from './utilities.js';
 export * from './billing.js';
+export * from './payments.js';

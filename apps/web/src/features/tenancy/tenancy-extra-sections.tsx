@@ -3,6 +3,7 @@
 import type { TenancyDetail } from '@ql-tro/shared';
 import { TenancyInvoicesSection } from '@/features/billing/tenancy-invoices-section';
 import { ContractsSection } from '@/features/contracts/contracts-section';
+import { StatementSection } from '@/features/payments/statement-section';
 import { TenancyServicesSection } from '@/features/utilities/tenancy-services-section';
 
 /** Các mục của trang lần thuê bổ sung theo phase: hợp đồng (3), dịch vụ/chỉ số (4), thông báo (5), thu tiền (6), trả phòng (7). */
@@ -10,6 +11,7 @@ export function TenancyExtraSections({ tenancy }: { tenancy: TenancyDetail }) {
   return (
     <>
       <TenancyInvoicesSection tenancy={tenancy} />
+      <StatementSection tenancy={tenancy} />
       <ContractsSection tenancy={tenancy} />
       <TenancyServicesSection tenancy={tenancy} />
     </>

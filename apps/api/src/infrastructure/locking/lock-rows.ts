@@ -2,7 +2,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 
 /**
  * Thứ tự khóa bắt buộc cho mọi transaction tài chính (MASTER_PLAN 6.9):
- * room → tenancy → invoice → reservation/holding → deposit → settlement.
+ * room → tenancy → invoice → (payment/credit) → reservation/holding → deposit → settlement.
  * Chỉ các bảng trong danh sách này được khóa qua helper; tên bảng không bao giờ lấy từ input.
  */
 export const LOCK_ORDER = [
@@ -12,6 +12,9 @@ export const LOCK_ORDER = [
   'rooms',
   'tenancies',
   'invoices',
+  'payments',
+  'credit_applications',
+  'credit_refunds',
   'reservations',
   'deposit_transactions',
   'move_out_settlements',

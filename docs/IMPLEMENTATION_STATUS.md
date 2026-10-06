@@ -261,10 +261,36 @@ Kiểm tra (06/10/2026):
 | `pnpm test:integration` | ✅ **236** (18 file; billing 17) |
 | `pnpm test:e2e` | ✅ **28** (2 test dữ liệu dùng chung chỉ chạy desktop) |
 
-## Phase 6 — Payment, Credit và công nợ ⬜
+## Phase 6 — Payment, Credit, công nợ, VietQR ✅
 
-- [ ] Phiếu thu, công nợ, credit
-- [ ] Tài khoản nhận tiền, VietQR, link xem thông báo, trang công khai (v2.4) — T57–T59
+Nhánh `phase/6-payments`, merge vào `main` 06/10/2026.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Phiếu thu + allocation trong một transaction, không vượt `remaining`, Idempotency-Key | ✅ | T17, T18 (đồng thời), idempotency cùng/khác payload |
+| Trạng thái thanh toán UNPAID/PARTIAL/PAID + cờ quá hạn | ✅ | Một hàm `InvoiceBalances` cho chi tiết, công nợ, sao kê (8.8) |
+| Đảo phiếu thu toàn bộ (finance.reverse), nợ quay lại thông báo gốc, không đảo hai lần | ✅ | T37 phần payment; hook `REVERSAL_OBSERVERS` cho settlement_events (Phase 7) |
+| Thông báo đã có thu không hủy được | ✅ | T19 |
+| Credit: cấn trừ (mặc định đến hạn sớm nhất trước), hoàn khi thực chi (không dùng sổ cọc), đảo | ✅ | T29, T37 phần credit |
+| Công nợ theo lần thuê (gồm đã kết thúc), sao kê với số dư = còn nợ − credit | ✅ | |
+| Tài khoản nhận tiền (một active), VietQR EMVCo/NAPAS + CRC16, nội dung ≤ 25 ký tự không dấu | ✅ | T57 (unit + integration); **tài khoản DEMO** Vietcombank 0011223344 |
+| QR không đổi trạng thái tiền | ✅ | T58 |
+| Link xem thông báo: token 32 byte, DB lưu hash, 60 ngày, thu hồi, cùng lỗi cho sai/hết hạn/thu hồi, giới hạn theo IP, `no-store` + `noindex`, không lộ dữ liệu cá nhân | ✅ | T59 |
+| Quyền mới: `payment_accounts.manage`, `invoices.share`, `meter_prices.manage`, `reminders.view/manage` | ✅ | STAFF: ghi thu, xem QR, tạo link trong tòa được giao |
+| UI: mục Thanh toán ở chi tiết thông báo (QR, ghi nhận thu, link, đảo), chứng từ credit (cấn trừ/hoàn), `/payments` (công nợ, phiếu thu), sao kê ở lần thuê, `/settings/payment-account`, in phiếu thu `/print/payments/:id`, QR trên trang in, trang công khai `/p/<token>` | ✅ | QR vẽ trên trình duyệt bằng `qrcode` (không gọi dịch vụ ngoài) |
+| T47 cho 10 ràng buộc mới | ✅ | |
+
+Kiểm tra (06/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm test` | ✅ 89 (shared 16, api 67, web 6) |
+| `pnpm test:integration` | ✅ **260** (19 file) |
+| `pnpm test:e2e` | ✅ **30** (2 test dữ liệu dùng chung chỉ chạy desktop) |
+
+**Chưa kiểm chứng:** quét QR bằng app ngân hàng thật với tài khoản thật của chủ trọ (T57 yêu cầu kiểm tay một lần) — đang dùng tài khoản demo.
 
 ## Phase 7 — Trả phòng và quyết toán ⬜
 

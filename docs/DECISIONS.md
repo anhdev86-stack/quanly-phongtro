@@ -250,3 +250,19 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   (VD `NULLS NOT DISTINCT`) ở mọi migration. Chỉ dùng partial unique index cho ràng buộc viết tay; đã thay
   `one_service_price_per_day` bằng `one_building_service_price_per_day` + `one_general_service_price_per_day`.
 
+## D-031 — Thu tiền, credit, VietQR, link xem thông báo
+
+- **Không có ví trả trước:** phiếu thu luôn phân bổ hết vào thông báo đã phát hành của cùng lần thuê; tổng phân bổ = số tiền.
+- **Một hàm số dư:** `InvoiceBalances.settled()` (provider `INVOICE_SETTLEMENT`) tính đã thu/đã dùng cho mọi nơi; cọc áp vào
+  thông báo chỉ có hiệu lực khi giao dịch gốc chưa bị đảo (không có REVERSAL trỏ tới).
+- **Cấn trừ credit:** `POST /credit-applications` không truyền đích thì cấn lần lượt vào thông báo còn nợ, đến hạn sớm nhất trước.
+  Credit không bao giờ tự động thành tiền hoàn; hoàn ghi qua `credit_refunds` khi thực chi, không dùng sổ cọc.
+- **Thứ tự khóa** bổ sung sau `invoices`: `payments`, `credit_applications`, `credit_refunds` (đảo khóa dòng gốc để không đảo hai lần).
+- **Số phiếu thu:** `PT-<YYYYMM theo ngày thu>-<4 số>`.
+- **VietQR:** hàm thuần `domain/payments/vietqr.ts` (TLV EMVCo, GUID NAPAS `A000000727`, dịch vụ `QRIBFTTA`, CRC16-CCITT-FALSE);
+  nội dung `<số thông báo bỏ gạch> <mã phòng>` không dấu ≤ 25 ký tự. Web vẽ QR bằng thư viện `qrcode` 1.5.4 ngay trên
+  trình duyệt. Chưa có tài khoản thật: seed **tài khoản demo** (`is_demo = true`, giao diện ghi rõ không chuyển tiền thật).
+- **Link xem thông báo:** token `randomBytes(32)` base64url, DB lưu sha256; hạn 60 ngày; sai/hết hạn/thu hồi trả cùng 404
+  “Link không còn hiệu lực”; giới hạn 60 lượt/10 phút/IP trong bộ nhớ tiến trình (cùng giới hạn như D-009 khi chạy nhiều instance).
+- **Đảo sau quyết toán:** service phát sự kiện qua `REVERSAL_OBSERVERS`; Phase 7 cài observer ghi `settlement_events`.
+

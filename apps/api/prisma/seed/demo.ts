@@ -71,3 +71,15 @@ export async function seedDemoPrices(prisma: PrismaClient, createdBy: string): P
   }
   return created;
 }
+
+/**
+ * Tài khoản nhận tiền DEMO cho VietQR (chủ dự án chưa cung cấp tài khoản thật). `is_demo = true`: giao diện ghi rõ
+ * “tài khoản demo — không chuyển tiền thật”. Chỉ tạo khi workspace chưa có tài khoản active.
+ */
+export async function seedDemoPaymentAccount(prisma: PrismaClient, createdBy: string): Promise<boolean> {
+  if (await prisma.paymentAccount.findFirst({ where: { workspaceId: SEED_IDS.workspace, isActive: true } })) return false;
+  await prisma.paymentAccount.create({
+    data: { workspaceId: SEED_IDS.workspace, bankBin: '970436', bankName: 'Vietcombank', accountNumber: '0011223344', accountName: 'NHA TRO DEMO', isDemo: true, createdBy },
+  });
+  return true;
+}

@@ -82,6 +82,9 @@ model Tenancy {
   readings            MeterReading[]
   contracts           Contract[]
   invoices            Invoice[]
+  payments            Payment[]
+  creditApplications  CreditApplication[]
+  creditRefunds       CreditRefund[]
 
   @@unique([workspaceId, code])
   @@unique([id, workspaceId])
@@ -339,7 +342,8 @@ model DepositTransaction {
   createdBy                  String         @map("created_by") @db.Uuid
   createdAt                  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  tenancy Tenancy @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  tenancy     Tenancy             @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  allocations DepositAllocation[]
 
   @@index([tenancyId])
   @@map("deposit_transactions")

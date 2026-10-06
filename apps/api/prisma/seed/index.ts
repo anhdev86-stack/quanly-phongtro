@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { loadEnv } from '../../src/config/load-env.js';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { SEED_ANCHOR_DATE } from './anchor.js';
-import { seedDemoPrices, seedDemoRooms } from './demo.js';
+import { seedDemoPaymentAccount, seedDemoPrices, seedDemoRooms } from './demo.js';
 import { SEED_USERS, seedFoundation } from './foundation.js';
 
 async function main(): Promise<void> {
@@ -25,6 +25,7 @@ async function main(): Promise<void> {
     console.log(`Phòng demo: ${rooms}`);
     const ownerUser = await prisma.user.findUniqueOrThrow({ where: { email: SEED_USERS.owner.email } });
     console.log(`Giá demo mới: ${await seedDemoPrices(prisma, ownerUser.id)}`);
+    if (await seedDemoPaymentAccount(prisma, ownerUser.id)) console.log('Tài khoản nhận tiền DEMO: Vietcombank 0011223344 (không chuyển tiền thật).');
     console.log(`Seed xong (anchor ${SEED_ANCHOR_DATE}). Tài khoản dev:`);
     for (const u of Object.values(SEED_USERS)) {
       const scope = u.role === 'OWNER' ? 'mọi tòa' : `tòa ${u.buildings.join(', ')}`;
