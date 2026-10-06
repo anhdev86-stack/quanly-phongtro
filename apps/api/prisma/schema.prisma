@@ -96,24 +96,94 @@ model UserRole {
   @@map("user_roles")
 }
 
-/// Phase 0 chỉ có các trường tối thiểu để gán phạm vi; Phase 1 bổ sung đầy đủ (MASTER_PLAN 6.3).
+/// Tòa/khu (MASTER_PLAN 6.3).
 model Building {
-  id          String    @id @default(uuid(7)) @db.Uuid
-  workspaceId String    @map("workspace_id") @db.Uuid
-  code        String
-  name        String
-  address     String?
-  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(3)
-  version     Int       @default(1)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id           String    @id @default(uuid(7)) @db.Uuid
+  workspaceId  String    @map("workspace_id") @db.Uuid
+  code         String
+  name         String
+  address      String?
+  floors       Int?
+  contactName  String?   @map("contact_name")
+  contactPhone String?   @map("contact_phone")
+  note         String?
+  archivedAt   DateTime? @map("archived_at") @db.Timestamptz(3)
+  version      Int       @default(1)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   workspace  Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   userScopes UserBuildingScope[]
+  rooms      Room[]
 
   @@unique([workspaceId, code])
   @@unique([id, workspaceId])
   @@map("buildings")
+}
+
+enum RoomOperationalStatus {
+  READY
+  MAINTENANCE
+}
+
+/// Phòng. Trạng thái hiển thị (OCCUPIED/MAINTENANCE/RESERVED/AVAILABLE) luôn được tính, không lưu (MASTER_PLAN 5.1).
+model Room {
+  id                String                @id @default(uuid(7)) @db.Uuid
+  workspaceId       String                @map("workspace_id") @db.Uuid
+  buildingId        String                @map("building_id") @db.Uuid
+  code              String
+  floor             Int?
+  areaM2            Decimal?              @map("area_m2") @db.Decimal(7, 2)
+  defaultRentVnd    BigInt                @map("default_rent_vnd")
+  maxOccupants      Int                   @map("max_occupants")
+  amenities         String[]              @default([])
+  operationalStatus RoomOperationalStatus @default(READY) @map("operational_status")
+  maintenanceNote   String?               @map("maintenance_note")
+  note              String?
+  archivedAt        DateTime?             @map("archived_at") @db.Timestamptz(3)
+  version           Int                   @default(1)
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  building     Building      @relation(fields: [buildingId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  reservations Reservation[]
+
+  @@unique([buildingId, code])
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@map("rooms")
+}
+
+enum ReservationStatus {
+  ACTIVE
+  CONVERTED
+  CANCELLED
+}
+
+/// Giữ phòng (MASTER_PLAN 5.6). Khoảng chặn lịch [hold_from, hold_until + 1); chống chồng lịch bằng EXCLUDE (MANUAL_SQL.md).
+model Reservation {
+  id                 String            @id @default(uuid(7)) @db.Uuid
+  workspaceId        String            @map("workspace_id") @db.Uuid
+  roomId             String            @map("room_id") @db.Uuid
+  holdFrom           DateTime          @map("hold_from") @db.Date
+  expectedMoveIn     DateTime          @map("expected_move_in") @db.Date
+  holdUntil          DateTime          @map("hold_until") @db.Date
+  status             ReservationStatus @default(ACTIVE)
+  contactName        String            @map("contact_name")
+  contactPhone       String?           @map("contact_phone")
+  note               String?
+  convertedTenancyId String?           @map("converted_tenancy_id") @db.Uuid
+  cancelledReason    String?           @map("cancelled_reason")
+  cancelledAt        DateTime?         @map("cancelled_at") @db.Timestamptz(3)
+  createdBy          String            @map("created_by") @db.Uuid
+  version            Int               @default(1)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  room Room @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+
+  @@index([roomId, status])
+  @@map("reservations")
 }
 
 /// Phạm vi tòa của người dùng. FK kép bảo đảm user và building cùng workspace.

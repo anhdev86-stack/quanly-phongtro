@@ -6,7 +6,11 @@ Quy ước: ✅ đã triển khai **và** đã kiểm thử · 🟡 đã triển
 
 ---
 
-## ⚠️ Việc phải chốt trước Phase 5 (billing)
+## ✅ Bốn điểm B-1…B-4 đã chốt (D-022…D-025)
+
+B-1 do chủ dự án chọn (giảm theo tỷ lệ ngày ở); B-2, B-3, B-4 là quy tắc kỹ thuật được đề xuất và ghi ở DECISIONS. Nội dung phân tích gốc giữ lại bên dưới để tham khảo.
+
+### Phân tích gốc (06/10/2026)
 
 Chủ dự án yêu cầu ghi lại bốn điểm dưới đây ngày 06/10/2026. **Chưa có quyết định nào.** Khi triển khai billing,
 không được tự suy diễn quy tắc cho các điểm này. Phải hỏi và ghi quyết định vào DECISIONS.md trước.
@@ -101,15 +105,14 @@ Số liệu chi tiết từng lần chạy cuối cùng nằm ở báo cáo nghi
 
 - Giới hạn đăng nhập sai lưu trong bộ nhớ tiến trình, chỉ đúng khi chạy một instance API (D-009).
 - Hai tab cùng refresh đúng một thời điểm có thể bị coi là dùng lại refresh token, dẫn tới đăng xuất (D-012). Web đã gộp refresh trong cùng tab.
-- Endpoint quản lý người dùng (`/users`, mục 10) chưa thuộc phase nào trong mục 16. Tạm thời quản lý tài khoản bằng seed. Đề xuất đưa vào Phase 1 (cần chủ dự án xác nhận).
 - Profile `full` của docker compose và Dockerfile để ở Phase 9 theo plan.
 - Bảng `settings_versions` chưa tạo; sẽ thêm khi có cấu hình đầu tiên cần dùng (Phase 1 hoặc 5).
 
 ### Câu hỏi khác đang chờ chủ dự án
 
-1. Có chấp nhận dùng tính năng preview `partialIndexes` của Prisma 7.10 không? Mặc định: không, dùng SQL thủ công (D-007). Cần trả lời trước Phase 1 vì Phase 1 có partial index đầu tiên.
-2. Endpoint `/users` đưa vào Phase 1? (xem trên)
-3. Danh tính git của repo đang là `aiagent <aiagent@hecatech.vn>` (D-019). Có muốn đổi không?
+1. ~~Partial index~~ → SQL thủ công (chủ dự án chốt 06/10).
+2. ~~/users~~ → Phase 1 (đã làm).
+3. ~~Danh tính git~~ → giữ nguyên.
 4. Các mục ở MASTER_PLAN 2.3 (pháp lý tạm trú/dữ liệu cá nhân, mẫu báo cáo thuế) vẫn chờ, chưa chặn MVP.
 5. **Nhắc đóng tiền Zalo/SMS (N-1…N-5, MASTER_PLAN 2.3):** nhà cung cấp, tài khoản và khóa API, chi phí, cách ghi nhận đồng ý, mẫu tin. Chặn phần gửi thật ở Phase 8B.
 
@@ -128,12 +131,22 @@ Chủ dự án bổ sung; đã ghi vào MASTER_PLAN v2.4, **chưa triển khai**
 
 ---
 
-## Phase 1 — Property và giữ phòng ⬜
+## Phase 1 — Property và giữ phòng ✅
 
-- [ ] Tòa/phòng CRUD và archive, trạng thái vận hành
-- [ ] Reservation: ba mốc ngày, đổi ngày, hủy, chống chồng lịch (EXCLUDE)
-- [ ] Grid/table phòng, Room Detail cơ bản
-- [ ] T55 (phần chồng lịch, đồng thời), T47 cho ràng buộc mới
+Nhánh `phase/1-property`, merge vào `main` 06/10/2026.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Tòa: CRUD, lưu trữ/bỏ lưu trữ, phạm vi | ✅ | Mã tòa unique trong workspace; lưu trữ bị chặn khi còn phòng |
+| Phòng: CRUD, READY/MAINTENANCE, lưu trữ | ✅ | FK kép (building_id, workspace_id); trạng thái hiển thị tính theo 5.1 |
+| Giữ phòng: ba mốc ngày, đổi lịch, hủy có lý do | ✅ | EXCLUDE `no_overlapping_active_reservations` + khóa phòng; EXPIRED suy ra từ ngày |
+| Quản lý người dùng (đưa vào Phase 1 theo chủ dự án) | ✅ | Tạo, sửa, vai trò, phạm vi tòa, đặt lại mật khẩu, khóa tài khoản (thu hồi phiên ngay) |
+| UI: tòa, phòng (lưới/bảng, lọc), chi tiết phòng, giữ phòng, người dùng | ✅ | Bộ component dùng chung (Dialog, Field, MoneyInput, Table, Toast…) |
+| Seed: 45 phòng demo | ✅ | `prisma/seed/demo.ts` |
+| T47 cho 4 ràng buộc mới | ✅ | Kiểm chứng: Prisma không sinh DROP cho EXCLUDE viết tay |
+| T55 phần chồng lịch và đồng thời | ✅ | 3 request đồng thời → 1 thành công, 2 nhận 409 |
+
+Kiểm tra: lint ✅ · typecheck ✅ · unit 39 ✅ · integration **93** ✅ · E2E **16** (desktop + mobile) ✅.
 
 ## Phase 2 — Tenant, Tenancy, cọc, tiền giữ chỗ ⬜
 

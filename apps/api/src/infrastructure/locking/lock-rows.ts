@@ -5,9 +5,17 @@ import type { Prisma } from '../../generated/prisma/client.js';
  * room → tenancy → invoice → reservation/holding → deposit → settlement.
  * Chỉ các bảng trong danh sách này được khóa qua helper; tên bảng không bao giờ lấy từ input.
  */
-export const LOCK_ORDER = ['users', 'refresh_sessions', 'buildings'] as const;
-// Phase sau bổ sung theo đúng thứ tự: 'rooms', 'tenancies', 'invoices', 'reservations',
-// 'deposit_transactions', 'move_out_settlements'.
+export const LOCK_ORDER = [
+  'users',
+  'refresh_sessions',
+  'buildings',
+  'rooms',
+  'tenancies',
+  'invoices',
+  'reservations',
+  'deposit_transactions',
+  'move_out_settlements',
+] as const;
 
 export type LockableTable = (typeof LOCK_ORDER)[number];
 

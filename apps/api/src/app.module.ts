@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { RequestContextInterceptor } from './common/context/request-context.js';
+import { PropertyModule } from './modules/property.module.js';
 import { CsrfGuard } from './common/auth/csrf.guard.js';
 import { PermissionsGuard } from './common/auth/permissions.guard.js';
 import { ConfigModule } from './config/config.module.js';
@@ -24,8 +26,10 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module.js';
     IdempotencyModule,
     AuthModule,
     HealthModule,
+    PropertyModule,
   ],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: RequestContextInterceptor },
     // Thứ tự đăng ký = thứ tự chạy: CSRF → xác thực → quyền.
     { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_GUARD, useExisting: AuthGuard },

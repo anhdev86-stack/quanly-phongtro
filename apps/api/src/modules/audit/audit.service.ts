@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Db } from '../../infrastructure/prisma/prisma.service.js';
 import type { Prisma } from '../../generated/prisma/client.js';
+import { currentRequestId } from '../../common/context/request-context.js';
 import { redact } from './redact.js';
 
 export interface AuditEntry {
@@ -32,7 +33,7 @@ export class AuditService {
         before: toJson(entry.before),
         after: toJson(entry.after),
         reason: entry.reason ?? null,
-        requestId: entry.requestId ?? null,
+        requestId: entry.requestId ?? currentRequestId() ?? null,
       },
       select: { id: true },
     });

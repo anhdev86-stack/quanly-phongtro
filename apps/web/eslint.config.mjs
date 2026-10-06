@@ -8,6 +8,7 @@ export default defineConfig([
   globalIgnores(['.next/**', 'next-env.d.ts', 'out/**']),
   {
     rules: {
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       // MASTER_PLAN 3.4: web chỉ import @ql-tro/shared, không bao giờ import code của api hay Prisma.
       'no-restricted-imports': [
         'error',

@@ -126,7 +126,82 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       await expectAccepted(insert('IN_PROGRESS', null));
       await expectRejected(insert('DONE', null), 'idempotency_requests_done_has_status_chk');
     },
+
+    rooms_default_rent_nonneg_chk: async () => {
+      await expectAccepted(insertRoom({ rent: 0 }));
+      await expectRejected(insertRoom({ rent: -1 }), 'rooms_default_rent_nonneg_chk');
+    },
+
+    rooms_max_occupants_chk: async () => {
+      await expectAccepted(insertRoom({ maxOccupants: 1 }));
+      await expectAccepted(insertRoom({ maxOccupants: 50 }));
+      await expectRejected(insertRoom({ maxOccupants: 0 }), 'rooms_max_occupants_chk');
+      await expectRejected(insertRoom({ maxOccupants: 51 }), 'rooms_max_occupants_chk');
+    },
+
+    reservations_dates_order_chk: async () => {
+      await expectAccepted(async (tx) => insertReservation(tx, await roomInTx(tx), '2026-10-10', '2026-10-10', '2026-10-10'));
+      await expectRejected(async (tx) => insertReservation(tx, await roomInTx(tx), '2026-10-10', '2026-10-09', '2026-10-12'), 'reservations_dates_order_chk');
+      await expectRejected(async (tx) => insertReservation(tx, await roomInTx(tx), '2026-10-10', '2026-10-13', '2026-10-12'), 'reservations_dates_order_chk');
+    },
+
+    no_overlapping_active_reservations: async () => {
+      // Sát biên: [10..15] và [16..20] không giao nhau
+      await expectAccepted(async (tx) => {
+        const room = await roomInTx(tx);
+        await insertReservation(tx, room, '2026-10-10', '2026-10-10', '2026-10-15');
+        await insertReservation(tx, room, '2026-10-16', '2026-10-16', '2026-10-20');
+      });
+      // Lượt CANCELLED không chặn
+      await expectAccepted(async (tx) => {
+        const room = await roomInTx(tx);
+        await insertReservation(tx, room, '2026-10-10', '2026-10-10', '2026-10-15', 'CANCELLED');
+        await insertReservation(tx, room, '2026-10-12', '2026-10-12', '2026-10-14');
+      });
+      await expectRejected(async (tx) => {
+        const room = await roomInTx(tx);
+        await insertReservation(tx, room, '2026-10-10', '2026-10-10', '2026-10-15');
+        await insertReservation(tx, room, '2026-10-15', '2026-10-15', '2026-10-18');
+      }, 'no_overlapping_active_reservations');
+    },
   };
+
+  let roomSeq = 0;
+  function insertRoom(opts: { rent?: number; maxOccupants?: number }) {
+    return (tx: Prisma.TransactionClient) =>
+      tx.$executeRawUnsafe(
+        `INSERT INTO rooms (id, workspace_id, building_id, code, default_rent_vnd, max_occupants, updated_at)
+         VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3, $4, $5, now())`,
+        SEED_IDS.workspace,
+        SEED_IDS.buildings.A,
+        `CHK${++roomSeq}`,
+        opts.rent ?? 1000,
+        opts.maxOccupants ?? 2,
+      );
+  }
+  async function roomInTx(tx: Prisma.TransactionClient): Promise<string> {
+    const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO rooms (id, workspace_id, building_id, code, default_rent_vnd, max_occupants, updated_at)
+       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3, 1000, 2, now()) RETURNING id::text`,
+      SEED_IDS.workspace,
+      SEED_IDS.buildings.A,
+      `RSV${++roomSeq}`,
+    );
+    return rows[0]!.id;
+  }
+  function insertReservation(tx: Prisma.TransactionClient, roomId: string, from: string, moveIn: string, until: string, status = 'ACTIVE') {
+    return tx.$executeRawUnsafe(
+      `INSERT INTO reservations (id, workspace_id, room_id, hold_from, expected_move_in, hold_until, status, contact_name, created_by, updated_at)
+       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::date, $4::date, $5::date, $6::"ReservationStatus", 'Probe', $7::uuid, now())`,
+      SEED_IDS.workspace,
+      roomId,
+      from,
+      moveIn,
+      until,
+      status,
+      userId,
+    );
+  }
 
   beforeAll(async () => {
     t = await createTestApp();

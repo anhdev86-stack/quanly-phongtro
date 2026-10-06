@@ -4,6 +4,7 @@ import type { Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '../../generated/prisma/client.js';
 import { isRetryableTransactionError } from '../../infrastructure/prisma/transaction.js';
+import { PG, pgErrorCode } from '../db/pg-errors.js';
 import { AppError } from './app-error.js';
 import { zodFieldErrors } from '../validation/zod-field-errors.js';
 
@@ -72,6 +73,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       if (exception.code === 'P2025') return this.simple(404, 'NOT_FOUND');
     }
     if (isRetryableTransactionError(exception)) return this.simple(409, 'CONFLICT');
+    // Ràng buộc database là lớp bảo vệ cuối: vi phạm vẫn trả lỗi có mã, không thành 500.
+    const sqlState = pgErrorCode(exception);
+    if (sqlState === PG.UNIQUE_VIOLATION || sqlState === PG.EXCLUSION_VIOLATION) return this.simple(409, 'CONFLICT');
+    if (sqlState === PG.CHECK_VIOLATION || sqlState === PG.FOREIGN_KEY_VIOLATION) {
+      return this.simple(422, 'BUSINESS_RULE_VIOLATION');
+    }
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       return this.simple(status, HTTP_STATUS_CODES[status] ?? (status >= 500 ? 'INTERNAL_ERROR' : 'VALIDATION_FAILED'));
