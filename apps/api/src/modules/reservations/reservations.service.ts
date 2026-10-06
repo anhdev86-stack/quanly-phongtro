@@ -163,13 +163,12 @@ export class ReservationsService {
   async toDtos(db: Db, rows: ReservationRow[]): Promise<Reservation[]> {
     if (rows.length === 0) return [];
     const today = this.clock.today();
-    const [balances, conflicts] = await Promise.all([
-      this.extras.holdingBalances(db, rows.map((r) => r.id)),
-      this.extras.scheduleConflicts(
+    // Tuần tự: db có thể là transaction client.
+    const balances = await this.extras.holdingBalances(db, rows.map((r) => r.id));
+    const conflicts = await this.extras.scheduleConflicts(
         db,
         rows.filter((r) => r.status === 'ACTIVE').map((r) => ({ id: r.id, roomId: r.roomId, holdFrom: fromDbDate(r.holdFrom) })),
-      ),
-    ]);
+    );
     return rows.map((r) => ({
       id: r.id,
       room_id: r.roomId,

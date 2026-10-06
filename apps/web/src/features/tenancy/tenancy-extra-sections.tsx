@@ -1,0 +1,13 @@
+'use client';
+
+import type { TenancyDetail } from '@ql-tro/shared';
+
+/** Các mục của trang lần thuê bổ sung theo phase: hợp đồng (3), dịch vụ/chỉ số (4), thông báo (5), thu tiền (6), trả phòng (7). */
+export function TenancyExtraSections(_props: { tenancy: TenancyDetail }) {
+  return null;
+}
+
+/** Nút thao tác ở đầu trang lần thuê (báo trả, trả phòng… từ Phase 7). */
+export function TenancyHeaderActions(_props: { tenancy: TenancyDetail }) {
+  return null;
+}

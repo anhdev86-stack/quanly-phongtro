@@ -24,6 +24,15 @@ const BUILDINGS = [
   { key: 'C', code: 'C', name: 'Tòa C — Ngõ Bình Yên', address: '8 Ngõ Bình Yên, Phường Mẫu, TP. Demo' },
 ] as const;
 
+/** Danh mục dịch vụ mặc định (MASTER_PLAN 6.4, v2.4: điện/nước theo đồng hồ, giá đặt theo tòa ở Phase 4). */
+export const DEFAULT_SERVICES = [
+  { code: 'ELEC', name: 'Điện', type: 'METER', unit: 'kWh', chargeTiming: 'ARREARS', meterType: 'ELECTRICITY' },
+  { code: 'WATER', name: 'Nước', type: 'METER', unit: 'm³', chargeTiming: 'ARREARS', meterType: 'WATER' },
+  { code: 'INTERNET', name: 'Internet', type: 'FIXED_ROOM', unit: 'phòng/tháng', chargeTiming: 'ADVANCE', meterType: null },
+  { code: 'TRASH', name: 'Rác, vệ sinh', type: 'FIXED_ROOM', unit: 'phòng/tháng', chargeTiming: 'ADVANCE', meterType: null },
+  { code: 'PARKING', name: 'Gửi xe máy', type: 'QUANTITY', unit: 'xe/tháng', chargeTiming: 'ADVANCE', meterType: null },
+] as const;
+
 export interface FoundationPasswords {
   owner: string;
   staff: string;
@@ -62,6 +71,14 @@ export async function seedFoundation(prisma: PrismaClient, passwords: Foundation
       where: { id: SEED_IDS.buildings[b.key] },
       update: { name: b.name, address: b.address },
       create: { id: SEED_IDS.buildings[b.key], workspaceId: workspace.id, code: b.code, name: b.name, address: b.address },
+    });
+  }
+
+  for (const s of DEFAULT_SERVICES) {
+    await prisma.service.upsert({
+      where: { workspaceId_code: { workspaceId: workspace.id, code: s.code } },
+      update: {},
+      create: { workspaceId: workspace.id, ...s },
     });
   }
 

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "E2E Playwright cho toàn hệ thống (web + api + database dev đã seed)",
   "scripts": {
-    "test:e2e": "playwright test",
+    "test:e2e": "pnpm --filter @ql-tro/api build && playwright test",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
@@ -13,6 +13,8 @@
     "@playwright/test": "1.63.0",
     "@types/node": "26.6.4",
     "dotenv": "18.0.5",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "pg": "8.23.1",
+    "@types/pg": "8.23.1"
   }
 }

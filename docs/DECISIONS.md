@@ -186,3 +186,10 @@ nghiệp vụ. Module này chỉ được nạp trong integration test, không b
 - Không cho sửa **ngày đọc** của chỉ số đã dùng trên thông báo đã phát hành; muốn sửa thì nhập chỉ số mới.
 - Thay đồng hồ trong khoảng: `usage = (chỉ số chốt đồng hồ cũ − chỉ số đầu) + (chỉ số hiện tại − chỉ số ban đầu đồng hồ mới)`. Cùng `source_key` nên không tách u.
 - Chỉ số mới nằm sau chỉ số cuối đã phát hành thì tạo khoảng mới, bắt đầu từ chỉ số cuối đó.
+
+## D-026 — Cảnh báo `pg` về truy vấn song song đến từ Prisma; giữ `pg` 8.x
+
+`pg` 8.23 cảnh báo “Calling client.query() when the client is already executing a query”. Đã truy stack
+(`--trace-deprecation`): nguồn là `@prisma/adapter-pg` 7.10 (bộ thông dịch query của Prisma tải quan hệ song song
+trong interactive transaction), không phải code dự án. Code dự án không dùng `Promise.all` với transaction client
+(các hàm nhận `db` chạy tuần tự). **Không nâng `pg` lên 9.x** cho tới khi Prisma hỗ trợ; khi nâng Prisma phải kiểm tra lại.

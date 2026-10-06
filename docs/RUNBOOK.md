@@ -37,6 +37,12 @@ Container: `ql-tro-postgres-1`, cổng host `55432` (đổi bằng `POSTGRES_POR
 
   Kiểm tra kỹ tên database **kết thúc bằng `_test`** trước khi xác nhận. AI agent không chạy lệnh này thay bạn (D-008).
 
+## Database E2E
+
+- Tên: `ql_tro_e2e` (cùng server PostgreSQL dev). `pnpm test:e2e` tự tạo nếu chưa có, áp migration, **xóa sạch dữ liệu E2E** rồi seed lại.
+- Stack E2E: API bản build ở cổng 4100, web Next dev ở cổng 3100 (thư mục build `.next-e2e`), không ảnh hưởng `pnpm dev` (3000/4000).
+- Dữ liệu dev (`ql_tro`) không bị E2E đụng tới.
+
 ## Health check
 
 - Liveness: `GET /api/v1/health/live` → `200 {"status":"ok"}`.

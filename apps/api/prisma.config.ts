@@ -5,7 +5,7 @@ import { loadEnv } from './src/config/load-env.js';
 loadEnv();
 
 export default defineConfig({
-  schema: path.join('prisma', 'schema.prisma'),
+  schema: path.join('prisma', 'schema'),
   migrations: {
     path: path.join('prisma', 'migrations'),
     seed: 'tsx prisma/seed/index.ts',

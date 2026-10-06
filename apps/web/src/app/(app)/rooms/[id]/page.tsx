@@ -1,7 +1,8 @@
 'use client';
 
 import { PERMISSIONS } from '@ql-tro/shared';
-import { Archive, CalendarPlus, Pencil, Wrench } from 'lucide-react';
+import { Archive, CalendarPlus, KeyRound, Pencil, Wrench } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { DescriptionList, PageHeader } from '@/components/common/page';
@@ -89,6 +90,30 @@ export default function RoomDetailPage() {
           ) : null
         }
       />
+
+      <Card>
+        <CardHeader className="flex items-center justify-between gap-2">
+          <CardTitle>Khách đang thuê</CardTitle>
+          {!r.current_tenancy && !r.archived_at && r.operational_status === 'READY' && can(PERMISSIONS.TENANCIES_MOVE_IN) ? (
+            <Link href={`/rooms/${r.id}/move-in`} className="inline-flex h-8 items-center gap-2 rounded-md bg-brand-600 px-3 text-sm font-medium text-white hover:bg-brand-700">
+              <KeyRound className="size-4" aria-hidden />
+              Nhận phòng
+            </Link>
+          ) : null}
+        </CardHeader>
+        <CardContent>
+          {r.current_tenancy ? (
+            <p className="text-sm">
+              <Link href={`/tenancies/${r.current_tenancy.id}`} className="font-medium text-brand-800 hover:underline">
+                {r.current_tenancy.code}
+              </Link>{' '}
+              · Đại diện: <strong>{r.current_tenancy.primary_tenant_name ?? '—'}</strong>
+            </p>
+          ) : (
+            <p className="text-sm text-slate-500">Phòng chưa có khách.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

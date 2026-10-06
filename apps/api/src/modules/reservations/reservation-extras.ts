@@ -1,19 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { AppError } from '../../common/errors/app-error.js';
 import type { Db } from '../../infrastructure/prisma/prisma.service.js';
+import { LedgersService } from '../ledgers/ledgers.service.js';
 import { RoomsService } from '../rooms/rooms.service.js';
 import type { ReservationExtras } from './reservations.service.js';
 
 /**
- * Cài đặt hiện tại của các hook giữ phòng. Các phase sau mở rộng tại đây:
- * số dư tiền giữ chỗ (Phase 2), báo trả và xung đột lịch (Phase 7).
+ * Các hook của giữ phòng: số dư tiền giữ chỗ (Phase 2); báo trả và xung đột lịch (mở rộng ở Phase 7).
  */
 @Injectable()
 export class DefaultReservationExtras implements ReservationExtras {
-  constructor(private readonly rooms: RoomsService) {}
+  constructor(
+    protected readonly rooms: RoomsService,
+    protected readonly ledgers: LedgersService,
+  ) {}
 
-  async holdingBalances(_db: Db, _ids: string[]): Promise<Map<string, bigint>> {
-    return new Map();
+  holdingBalances(db: Db, ids: string[]): Promise<Map<string, bigint>> {
+    return this.ledgers.holdingBalances(db, ids);
   }
 
   async scheduleConflicts(_db: Db, _reservations: { id: string; roomId: string; holdFrom: string }[]): Promise<Set<string>> {
