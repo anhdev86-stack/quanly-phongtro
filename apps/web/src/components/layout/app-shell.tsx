@@ -22,10 +22,14 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
 
   const nav = (
     <nav aria-label="Điều hướng chính" className="flex flex-col gap-0.5 p-3">
-      {NAV_ITEMS.map((item) => {
+      {NAV_ITEMS.filter((item) => !item.anyPermission || item.anyPermission.some((p) => me.permissions.includes(p))).map((item) => {
         const Icon = item.icon;
         const available = item.availableFromPhase <= CURRENT_PHASE;
-        const active = available && (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href));
+        const active =
+          available &&
+          (item.href === '/'
+            ? pathname === '/'
+            : pathname.startsWith(item.href) || (item.href === '/rooms' && pathname.startsWith('/buildings')));
         if (!available) {
           return (
             <span

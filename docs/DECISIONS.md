@@ -150,3 +150,39 @@ ghi trong log, audit và error envelope.
 
 `apps/api/test/helpers/probe.module.ts` cung cấp `/__probe/*` để kiểm tra guard, phạm vi tòa, idempotency khi chưa có module
 nghiệp vụ. Module này chỉ được nạp trong integration test, không bao giờ nằm trong `AppModule`.
+
+## D-022 — B-1: Giảm giá là mức giá thuê thấp hơn cho đúng tháng (chủ dự án chọn 06/10/2026)
+
+- Không có “discount” tự do ở cấp thông báo trong MVP: `invoices.discount_vnd` luôn bằng 0. API không nhận discount.
+- “Giảm giá tiền phòng tháng M” tạo hai phiên bản `rent_price_history` (`source_contract_id = NULL`, `reason` bắt buộc):
+  giá giảm có hiệu lực từ ngày 1/M, và giá cũ có hiệu lực lại từ ngày 1/(M+1). Nếu tháng M+1 đã có phiên bản giá khác thì
+  không tạo phiên bản khôi phục.
+- Vì giảm giá là một mức giá, tiền phòng tự chia theo ngày ở (mục 8.3) và tự đối soát (mục 8.6). Ví dụ: giá 3.000.000,
+  giảm còn 2.700.000 cho tháng 11, trả phòng hết 20/11 → phí đúng 1.800.000, đã thu 2.700.000 → credit 900.000.
+- Giảm giá cho tháng đã phát hành thì đối soát tự tạo dòng điều chỉnh ở chứng từ kế tiếp.
+
+## D-023 — B-2: Chứng từ thứ hai trong cặp được tạo thẳng ở trạng thái PUBLISHED
+
+- Index `one_draft_invoice_per_tenancy` giữ nguyên cho mọi loại. Không bao giờ tồn tại một CREDIT_ADJUSTMENT hay DEBIT_ADJUSTMENT ở trạng thái DRAFT.
+- Phát hành nháp có tổng âm: trong **một transaction**, các dòng CREDIT được chuyển sang một CREDIT_ADJUSTMENT tạo thẳng ở PUBLISHED; nháp gốc chỉ giữ dòng DEBIT rồi phát hành. Cấp số: chứng từ nợ trước, chứng từ credit sau.
+- “Điều chỉnh ngay” và quyết toán: preview không ghi gì. Khi xác nhận, trong một transaction: hủy nháp đang mở của tenancy (nếu có), tạo và phát hành chứng từ điều chỉnh, rồi tạo lại nháp nếu trước đó có nháp tháng (tính lại từ Δ mới).
+- Mọi bước trong một transaction; lỗi bất kỳ thì không chứng từ nào được tạo.
+
+## D-024 — B-3: Khóa nguồn phí ổn định (`invoice_items.source_key`)
+
+| Loại | Khóa | Ghi chú |
+|---|---|---|
+| Tiền phòng | `RENT:<tenancy_id>` | Mọi phiên bản giá, kể cả giảm giá (D-022), cùng một nguồn |
+| Dịch vụ không đồng hồ | `SVC:<tenancy_id>:<service_id>` | Không cho hai subscription của cùng dịch vụ chồng ngày trong một tenancy (exclusion constraint); nhiều xe = tăng `quantity` |
+| Điện / nước | `METER:<tenancy_id>:<ELECTRICITY|WATER>` | Giữ nguyên khi thay đồng hồ (meter mới, id mới) |
+
+Đối soát gom theo `source_key`, không theo id của dòng phiên bản.
+
+## D-025 — B-4: Đối soát điện nước theo khoảng đã phát hành
+
+- Đơn vị đối soát điện nước là **khoảng đọc đã phát hành**: `u = (source_key, chỉ số đầu, chỉ số cuối)`. Ranh giới được chốt ở lần phát hành đầu tiên và lưu trên `invoice_items` (`reading_start_id`, `reading_end_id`).
+- Chỉ số được chèn vào bên trong một khoảng đã phát hành (chỉ số tại ngày đổi giá, chỉ số FINAL nằm trong khoảng) **không tạo u mới**. Nó chỉ chia khoảng để áp giá: `E(u) = Σ usage của từng đoạn con × giá của đoạn đó`.
+- Sửa giá trị của chỉ số đầu hoặc cuối (CORRECTION) làm thay đổi E của các khoảng dùng chỉ số đó; đối soát tạo dòng điều chỉnh cho đúng các khoảng đó.
+- Không cho sửa **ngày đọc** của chỉ số đã dùng trên thông báo đã phát hành; muốn sửa thì nhập chỉ số mới.
+- Thay đồng hồ trong khoảng: `usage = (chỉ số chốt đồng hồ cũ − chỉ số đầu) + (chỉ số hiện tại − chỉ số ban đầu đồng hồ mới)`. Cùng `source_key` nên không tách u.
+- Chỉ số mới nằm sau chỉ số cuối đã phát hành thì tạo khoảng mới, bắt đầu từ chỉ số cuối đó.

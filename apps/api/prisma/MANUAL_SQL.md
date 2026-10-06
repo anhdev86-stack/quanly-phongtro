@@ -24,7 +24,7 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | Unique / index thường, FK, FK kép | Hỗ trợ ổn định | Khai báo trong `schema.prisma` |
 | Partial unique index (`WHERE …`) | Chỉ ở dạng **preview** `partialIndexes` (từ 7.4.0), cú pháp `@@unique([...], where: raw("..."))` | **SQL thủ công** cho tới khi chủ dự án chấp nhận dùng preview (xem DECISIONS D-007). Trước Phase 1 phải kiểm tra Prisma có sinh DROP cho partial index viết tay hay không. |
 | CHECK | Không hỗ trợ | SQL thủ công. Đã kiểm chứng 06/10/2026: `migrate dev` **không** sinh DROP cho CHECK viết tay (migration kiểm tra rỗng). |
-| EXCLUDE (btree_gist) | Không hỗ trợ | SQL thủ công |
+| EXCLUDE (btree_gist) | Không hỗ trợ | SQL thủ công. Đã kiểm chứng 06/10/2026: `migrate dev` **không** sinh DROP cho EXCLUDE viết tay. |
 | Khóa dòng `FOR UPDATE` | Không có API | `src/infrastructure/locking/lock-rows.ts` |
 
 ## Danh mục
@@ -36,6 +36,10 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `refresh_sessions_expiry_chk` | refresh_sessions | CHECK | `20261006033038_manual_constraints_phase0` | Hết hạn sau thời điểm tạo |
 | `idempotency_requests_key_format_chk` | idempotency_requests | CHECK | `20261006033038_manual_constraints_phase0` | Định dạng Idempotency-Key |
 | `idempotency_requests_done_has_status_chk` | idempotency_requests | CHECK | `20261006033038_manual_constraints_phase0` | Bản ghi DONE có HTTP status để trả lại |
+| `rooms_default_rent_nonneg_chk` | rooms | CHECK | `20261006044705_phase1_property` | Giá thuê mặc định không âm |
+| `rooms_max_occupants_chk` | rooms | CHECK | `20261006044705_phase1_property` | Sức chứa 1–50 |
+| `reservations_dates_order_chk` | reservations | CHECK | `20261006044705_phase1_property` | hold_from ≤ expected_move_in ≤ hold_until |
+| `no_overlapping_active_reservations` | reservations | EXCLUDE | `20261006044705_phase1_property` | Giữ phòng ACTIVE không chồng lịch |
 
 ```json manual-constraints
 [
@@ -68,6 +72,30 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "idempotency_requests",
     "definition": "CHECK (((status <> 'DONE'::\"IdempotencyStatus\") OR (response_status IS NOT NULL)))"
+  },
+  {
+    "name": "rooms_default_rent_nonneg_chk",
+    "kind": "check",
+    "table": "rooms",
+    "definition": "CHECK ((default_rent_vnd >= 0))"
+  },
+  {
+    "name": "rooms_max_occupants_chk",
+    "kind": "check",
+    "table": "rooms",
+    "definition": "CHECK (((max_occupants >= 1) AND (max_occupants <= 50)))"
+  },
+  {
+    "name": "reservations_dates_order_chk",
+    "kind": "check",
+    "table": "reservations",
+    "definition": "CHECK (((hold_from <= expected_move_in) AND (expected_move_in <= hold_until)))"
+  },
+  {
+    "name": "no_overlapping_active_reservations",
+    "kind": "exclude",
+    "table": "reservations",
+    "definition": "EXCLUDE USING gist (room_id WITH =, daterange(hold_from, (hold_until + 1), '[)'::text) WITH &&) WHERE ((status = 'ACTIVE'::\"ReservationStatus\"))"
   }
 ]
 ```
