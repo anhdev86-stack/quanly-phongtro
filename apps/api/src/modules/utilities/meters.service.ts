@@ -429,10 +429,29 @@ export class MetersService {
     return (await this.readingDtos([readingId]))[0]!;
   }
 
+  /**
+   * Ghi chỉ số FINAL (cuối kỳ khi trả phòng) cho đồng hồ của lần thuê; thay chỉ số FINAL cũ của cùng quyết toán.
+   * Chỉ số FINAL chưa bao giờ nằm trên chứng từ đã phát hành trước khi quyết toán hoàn tất nên thay được.
+   */
+  async setFinalReadingsInTx(tx: Prisma.TransactionClient, user: AuthUser, tenancyId: string, roomId: string, readOn: DateOnly, items: { meter_id: string; value: string }[]) {
+    const old = await tx.meterReading.findMany({ where: { tenancyId, kind: 'FINAL' } });
+    if (old.length) {
+      const used = await tx.invoiceItem.count({ where: { OR: [{ readingEndId: { in: old.map((o) => o.id) } }, { readingStartId: { in: old.map((o) => o.id) } }], invoice: { lifecycle: 'PUBLISHED' } } });
+      if (used) throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ số cuối kỳ đã dùng trên chứng từ đã phát hành.');
+      await tx.meterReading.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
+    }
+    for (const [i, item] of items.entries()) {
+      const meter = await tx.meter.findFirst({ where: { id: item.meter_id, roomId, retiredOn: null } });
+      if (!meter) throw new AppError('BUSINESS_RULE_VIOLATION', 'Đồng hồ không thuộc phòng hoặc đã ngưng.', { [`final_readings.${i}.meter_id`]: ['Đồng hồ không hợp lệ.'] });
+      await this.assertOrder(tx, meter, readOn, parseFixed2(item.value), null, `final_readings.${i}.value`);
+      await tx.meterReading.create({ data: { meterId: meter.id, tenancyId, readOn: toDbDate(readOn), value: item.value, kind: 'FINAL', note: 'Chỉ số trả phòng', createdBy: user.id } });
+    }
+  }
+
   // ------------------------------------------------------------------ Hỗ trợ
 
   /** Chỉ số tại ngày phải nằm giữa lần đọc trước và lần đọc sau của cùng đồng hồ (không tạo tiêu thụ âm). */
-  private async assertOrder(tx: Prisma.TransactionClient, meter: Meter, readOn: DateOnly, value: bigint, selfId: string | null, field: string) {
+  async assertOrder(tx: Prisma.TransactionClient, meter: Meter, readOn: DateOnly, value: bigint, selfId: string | null, field: string) {
     const others = (await tx.meterReading.findMany({ where: { meterId: meter.id } })).filter((r) => r.id !== selfId);
     if (readOn < day(meter.installedOn)) throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày đọc trước ngày lắp đồng hồ.', { read_on: ['Trước ngày lắp.'] });
     if (others.some((r) => day(r.readOn) === readOn)) throw new AppError('CONFLICT', 'Đồng hồ đã có chỉ số trong ngày này.', { read_on: ['Trùng ngày đọc.'] });

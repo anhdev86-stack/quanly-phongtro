@@ -266,3 +266,18 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   “Link không còn hiệu lực”; giới hạn 60 lượt/10 phút/IP trong bộ nhớ tiến trình (cùng giới hạn như D-009 khi chạy nhiều instance).
 - **Đảo sau quyết toán:** service phát sự kiện qua `REVERSAL_OBSERVERS`; Phase 7 cài observer ghi `settlement_events`.
 
+## D-032 — Quyết toán trả phòng
+
+- **Chỉ số FINAL** lưu ngay khi lưu nháp quyết toán (kind FINAL, gắn lần thuê, ngày = ngày cuối tính tiền); sửa nháp thì thay.
+  Chỉ số FINAL chỉ là mốc với chứng từ FINAL. Nhận và trả trong cùng ngày không thể có FINAL trùng ngày INITIAL (unique
+  theo đồng hồ + ngày) → dùng lý do miễn chỉ số.
+- **Khoản phí trả phòng** (hư hỏng/phạt/khác) là đơn vị `CHARGE:<settlement_item>`; sau khi phát hành giữ nguyên, không đối soát lại.
+- **Công thức 9.4:** Debt = Σ còn nợ của chứng từ đã phát hành + phần DEBIT của FINAL; Credit = Σ credit còn lại + phần CREDIT
+  mới. Cấn trừ credit và áp cọc theo đến hạn sớm nhất trước. `deposit_to_apply_vnd` bỏ trống = tối đa; nhập lớn hơn tối đa bị chặn.
+- **`input_hash`** băm toàn bộ kết quả xem trước (dòng FINAL, công nợ, credit, cọc) + đầu vào; hoàn tất tính lại và so khớp.
+- **FINAL** tạo thẳng ở PUBLISHED trong transaction hoàn tất (người duyệt quyết toán đã xem nội dung), đến hạn ngày hoàn tất.
+  Không có dòng DEBIT thì không tạo FINAL; CREDIT_ADJUSTMENT khi đó trỏ chứng từ phát hành gần nhất.
+- **Hợp đồng trả trước hạn:** `terminated_on = charge_end_exclusive` cho hợp đồng đang bao phủ ngày cuối và hết hạn sau đó.
+- **Tình trạng tài chính** không lưu: tính lại từ sổ mỗi lần xem (còn nợ > 0 → RECEIVABLE; còn credit/cọc phải hoàn → REFUND_PAYABLE).
+- Hoàn tất bị chặn nếu ngày cuối tính tiền ở tương lai.
+

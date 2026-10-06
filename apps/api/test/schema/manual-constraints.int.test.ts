@@ -612,6 +612,69 @@ describe('T47 — ràng buộc SQL thủ công', () => {
         await tx.creditApplication.create({ data: { workspaceId: W, tenancyId: tn, creditInvoiceId: credit.id, targetInvoiceId: credit.id, amountVnd: 1n, createdBy: userId } });
       }, 'credit_applications_distinct_chk');
     },
+
+    // ---------------- Phase 7 ----------------
+    one_active_notice_per_tenancy: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await notice(tx, tn, { status: 'CANCELLED' });
+        await notice(tx, tn, {});
+        await notice(tx, tn, { status: 'FULFILLED' });
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await notice(tx, tn, {});
+        await notice(tx, tn, {});
+      }, 'one_active_notice_per_tenancy');
+    },
+    one_live_settlement_per_tenancy: async () => {
+      await expectAccepted(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await settlement(tx, tn, { status: 'CANCELLED' });
+        await settlement(tx, tn, {});
+      });
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        await settlement(tx, tn, {});
+        await settlement(tx, tn, {});
+      }, 'one_live_settlement_per_tenancy');
+    },
+    move_out_notices_dates_chk: async () => {
+      await expectAccepted(async (tx) => notice(tx, await mkTenancy(tx, await mkRoom(tx)), { noticeDate: new Date('2026-11-20'), plannedLastChargeDate: new Date('2026-11-20') }));
+      await expectRejected(
+        async (tx) => notice(tx, await mkTenancy(tx, await mkRoom(tx)), { noticeDate: new Date('2026-11-20'), plannedLastChargeDate: new Date('2026-11-19') }),
+        'move_out_notices_dates_chk',
+      );
+    },
+    move_out_settlements_dates_chk: async () => {
+      await expectAccepted(async (tx) => settlement(tx, await mkTenancy(tx, await mkRoom(tx)), { lastChargeDate: new Date('2026-12-31'), chargeEndExclusive: new Date('2027-01-01') }));
+      await expectRejected(
+        async (tx) => settlement(tx, await mkTenancy(tx, await mkRoom(tx)), { lastChargeDate: new Date('2026-11-20'), chargeEndExclusive: new Date('2026-11-20') }),
+        'move_out_settlements_dates_chk',
+      );
+    },
+    move_out_settlements_workflow_chk: async () => {
+      const mk = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) => settlement(tx, await mkTenancy(tx, await mkRoom(tx)), extra);
+      await expectAccepted((tx) => mk(tx, { status: 'APPROVED', approvedBy: userId, inputHash: 'h' }));
+      await expectAccepted((tx) => mk(tx, { status: 'COMPLETED', approvedBy: userId, inputHash: 'h', completedAt: new Date() }));
+      await expectRejected((tx) => mk(tx, { status: 'APPROVED' }), 'move_out_settlements_workflow_chk');
+      await expectRejected((tx) => mk(tx, { status: 'COMPLETED', approvedBy: userId, inputHash: 'h' }), 'move_out_settlements_workflow_chk');
+      await expectRejected((tx) => mk(tx, { completedAt: new Date() }), 'move_out_settlements_workflow_chk');
+    },
+    move_out_settlements_deposit_chk: async () => {
+      await expectAccepted(async (tx) => settlement(tx, await mkTenancy(tx, await mkRoom(tx)), { depositToApplyVnd: 0n }));
+      await expectRejected(async (tx) => settlement(tx, await mkTenancy(tx, await mkRoom(tx)), { depositToApplyVnd: -1n }), 'move_out_settlements_deposit_chk');
+    },
+    settlement_items_amount_chk: async () => {
+      const item = async (tx: Prisma.TransactionClient, kind: string, amountVnd: bigint) => {
+        const st = await settlement(tx, await mkTenancy(tx, await mkRoom(tx)), {});
+        return tx.settlementItem.create({ data: { settlementId: st.id, kind, amountVnd, reason: 'x' } as never });
+      };
+      await expectAccepted((tx) => item(tx, 'DAMAGE', 1n));
+      await expectAccepted((tx) => item(tx, 'INVOICE_BALANCE', 0n));
+      await expectRejected((tx) => item(tx, 'DAMAGE', 0n), 'settlement_items_amount_chk');
+      await expectRejected((tx) => item(tx, 'INVOICE_BALANCE', -1n), 'settlement_items_amount_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
 
   const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>
@@ -665,6 +728,24 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       data: { workspaceId: W, tenancyId: tn, creditInvoiceId: credit.id, amountVnd: 1n, paidAt: new Date('2026-10-01'), method: 'CASH', createdBy: userId, ...extra } as never,
     });
   };
+
+  const notice = (tx: Prisma.TransactionClient, tenancyId: string, extra: Record<string, unknown>) =>
+    tx.moveOutNotice.create({
+      data: { workspaceId: W, tenancyId, noticeDate: new Date('2026-11-01'), plannedLastChargeDate: new Date('2026-11-30'), createdBy: userId, ...extra } as never,
+    });
+  const settlement = (tx: Prisma.TransactionClient, tenancyId: string, extra: Record<string, unknown>) =>
+    tx.moveOutSettlement.create({
+      data: {
+        workspaceId: W,
+        tenancyId,
+        code: `QT-P7-${++n}`,
+        lastChargeDate: new Date('2026-11-20'),
+        chargeEndExclusive: new Date('2026-11-21'),
+        destinationRoomStatus: 'READY',
+        createdBy: userId,
+        ...extra,
+      } as never,
+    });
 
   let cseq = 0;
   async function contract(tx: Prisma.TransactionClient, tenancyId: string, start: string, end: string, extra: Record<string, unknown> = {}) {

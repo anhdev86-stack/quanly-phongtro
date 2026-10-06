@@ -292,7 +292,35 @@ Kiểm tra (06/10/2026):
 
 **Chưa kiểm chứng:** quét QR bằng app ngân hàng thật với tài khoản thật của chủ trọ (T57 yêu cầu kiểm tay một lần) — đang dùng tài khoản demo.
 
-## Phase 7 — Trả phòng và quyết toán ⬜
+## Phase 7 — Trả phòng và quyết toán ✅
+
+Nhánh `phase/7-move-out`, merge vào `main` 06/10/2026.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Báo trả / hủy báo trả (lưu lịch sử), báo lùi ngày cần quyền + lý do, cảnh báo báo trước thiếu ngày | ✅ | T21, T22 |
+| Giữ phòng khi khách cũ báo trả: chỉ từ sau ngày dự kiến trả; hủy báo trả → “xung đột lịch”, không tự hủy | ✅ | T55 phần báo trả |
+| Wizard trả phòng: ngày cuối, chỉ số FINAL (hoặc lý do miễn), kiểm kê, khoản phí, cọc áp | ✅ | |
+| Đối soát cuối kỳ mốc FINAL: bù mọi khoản chưa phát hành, credit phần thu trước dư (P − E ở cấp tháng) | ✅ | Ba ví dụ mục 9.4 khớp từng đồng (T23, T24, T53, T27) |
+| Liệt kê công nợ cũ riêng, nháp đang mở bị hủy khi hoàn tất | ✅ | |
+| Duyệt chốt snapshot + `input_hash`; dữ liệu đổi sau duyệt → 409 STALE | ✅ | T28 |
+| Hợp đồng ký chưa bắt đầu chặn duyệt đến khi hủy có lý do; trả trước hạn chỉ cảnh báo, không tự tịch thu cọc | ✅ | T44, T20 |
+| Hoàn tất trong một transaction: FINAL/CREDIT_ADJUSTMENT, cấn trừ credit, áp cọc (deposit_allocations), ENDED, hợp đồng `terminated_on`, thành viên rời, báo trả FULFILLED, trạng thái phòng | ✅ | T26/T33 (lặp key), T32 (lỗi DB → rollback) |
+| Thu nợ / hoàn tiền dư / hoàn cọc theo quyết toán khi thực nhận/chi; tình trạng BALANCED/RECEIVABLE/REFUND_PAYABLE tính lại từ sổ | ✅ | T25 (không REFUND giả) |
+| Đảo áp cọc, đảo phiếu thu sau COMPLETED → `settlement_events`, nợ quay lại chứng từ gốc, snapshot không đổi | ✅ | T51, T52, T37 phần cọc |
+| Phòng bảo trì sau trả chặn nhận khách; khách mới không nhận nợ/cọc/credit/tiêu thụ cũ; nhận-trả cùng ngày tính 1 ngày | ✅ | T30, T31, T11 |
+| UI: nút Báo trả/Hủy/Trả phòng ở lần thuê, wizard `/tenancies/:id/move-out`, chi tiết `/settlements/:id` (lúc chốt vs hiện tại, sự kiện, thu/hoàn), `/move-outs`, biên bản `/print/settlements/:id` | ✅ | |
+| T47 cho 7 ràng buộc mới | ✅ | |
+
+Kiểm tra (06/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm test` | ✅ 89 |
+| `pnpm test:integration` | ✅ **282** (20 file) |
+| `pnpm test:e2e` | ✅ **32** (2 test dữ liệu dùng chung chỉ chạy desktop) |
 
 ## Phase 8A — Dashboard và báo cáo MVP ⬜
 

@@ -27,9 +27,17 @@ const include = {
 } satisfies Prisma.PaymentInclude;
 type PaymentFull = Prisma.PaymentGetPayload<{ include: typeof include }>;
 
-/** Hook khi đảo khoản thu sau quyết toán (Phase 7 ghi settlement_events). */
+/** Hook khi đảo khoản thu hoặc thu tiền muộn sau quyết toán (Phase 7 ghi settlement_events). */
 export interface ReversalObserver {
-  afterReversal(tx: Prisma.TransactionClient, user: AuthUser, tenancyId: string, kind: 'PAYMENT' | 'CREDIT_APPLICATION' | 'CREDIT_REFUND', refId: string, reason: string): Promise<void>;
+  afterReversal(
+    tx: Prisma.TransactionClient,
+    user: AuthUser,
+    tenancyId: string,
+    kind: 'PAYMENT' | 'CREDIT_APPLICATION' | 'CREDIT_REFUND' | 'DEPOSIT_TX',
+    refId: string,
+    reason: string,
+  ): Promise<void>;
+  afterPayment?(tx: Prisma.TransactionClient, user: AuthUser, tenancyId: string, paymentId: string): Promise<void>;
 }
 export const REVERSAL_OBSERVERS = Symbol('REVERSAL_OBSERVERS');
 
@@ -50,55 +58,62 @@ export class PaymentsService {
   ) {}
 
   async create(user: AuthUser, input: z.output<typeof paymentCreateSchema>, key: string | undefined) {
-    if (input.paid_at > this.clock.today()) throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày thu không được ở tương lai.', { paid_at: ['Ngày ở tương lai.'] });
     const result = await this.idempotency.execute({ user, route: 'POST /payments', key, payload: input, successStatus: 201 }, async (tx) => {
-      await lockRows(tx, 'tenancies', [input.tenancy_id]);
-      const tenancy = await tx.tenancy.findFirst({ where: { id: input.tenancy_id, room: this.rooms.roomWhere(user) } });
-      if (!tenancy) throw new AppError('NOT_FOUND');
-      const ids = input.allocations.map((a) => a.invoice_id);
-      await lockRows(tx, 'invoices', ids);
-      const invoices = await tx.invoice.findMany({ where: { id: { in: ids } } });
-      for (const [i, a] of input.allocations.entries()) {
-        const inv = invoices.find((x) => x.id === a.invoice_id);
-        const field = `allocations.${i}.amount_vnd`;
-        if (!inv || inv.tenancyId !== tenancy.id) throw new AppError('BUSINESS_RULE_VIOLATION', 'Thông báo không thuộc lần thuê này.', { [`allocations.${i}.invoice_id`]: ['Không thuộc lần thuê.'] });
-        if (inv.lifecycle !== 'PUBLISHED') throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ thu cho thông báo đã phát hành.', { [field]: ['Thông báo chưa phát hành hoặc đã hủy.'] });
-        if (inv.type === 'CREDIT_ADJUSTMENT') throw new AppError('BUSINESS_RULE_VIOLATION', 'Không thu tiền cho chứng từ credit.', { [field]: ['Chứng từ credit.'] });
-      }
-      const remaining = await this.balances.remaining(tx, invoices);
-      for (const [i, a] of input.allocations.entries()) {
-        const left = remaining.get(a.invoice_id) ?? 0n;
-        if (BigInt(a.amount_vnd) > left) {
-          throw new AppError('BUSINESS_RULE_VIOLATION', `Số tiền vượt số còn phải thu (${left.toString()}đ).`, { [`allocations.${i}.amount_vnd`]: [`Tối đa ${left.toString()}đ.`] });
-        }
-      }
-      const yyyymm = input.paid_at.slice(0, 7).replace('-', '');
-      const number = `PT-${yyyymm}-${String(await nextSequence(tx, user.workspaceId, 'PAYMENT', yyyymm)).padStart(4, '0')}`;
-      const payment = await tx.payment.create({
-        data: {
-          workspaceId: user.workspaceId,
-          tenancyId: tenancy.id,
-          number,
-          amountVnd: BigInt(input.amount_vnd),
-          method: input.method,
-          paidAt: toDbDate(input.paid_at),
-          reference: input.reference,
-          note: input.note,
-          createdBy: user.id,
-          allocations: { create: input.allocations.map((a) => ({ invoiceId: a.invoice_id, amountVnd: BigInt(a.amount_vnd) })) },
-        },
-      });
-      await this.audit.record(tx, {
-        workspaceId: user.workspaceId,
-        actorId: user.id,
-        action: 'payment.create',
-        entityType: 'payment',
-        entityId: payment.id,
-        after: { number, ...input },
-      });
-      return { body: { id: payment.id, number }, resultReference: payment.id };
+      const p = await this.createInTx(tx, user, input);
+      return { body: { id: p.id, number: p.number }, resultReference: p.id };
     });
     return { status: result.status, body: await this.get(user, result.body.id) };
+  }
+
+  /** Ghi phiếu thu trong transaction có sẵn (dùng cả cho thu nợ sau quyết toán). */
+  async createInTx(tx: Prisma.TransactionClient, user: AuthUser, input: z.output<typeof paymentCreateSchema>) {
+    if (input.paid_at > this.clock.today()) throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày thu không được ở tương lai.', { paid_at: ['Ngày ở tương lai.'] });
+    await lockRows(tx, 'tenancies', [input.tenancy_id]);
+    const tenancy = await tx.tenancy.findFirst({ where: { id: input.tenancy_id, room: this.rooms.roomWhere(user) } });
+    if (!tenancy) throw new AppError('NOT_FOUND');
+    const ids = input.allocations.map((a) => a.invoice_id);
+    await lockRows(tx, 'invoices', ids);
+    const invoices = await tx.invoice.findMany({ where: { id: { in: ids } } });
+    for (const [i, a] of input.allocations.entries()) {
+      const inv = invoices.find((x) => x.id === a.invoice_id);
+      const field = `allocations.${i}.amount_vnd`;
+      if (!inv || inv.tenancyId !== tenancy.id) throw new AppError('BUSINESS_RULE_VIOLATION', 'Thông báo không thuộc lần thuê này.', { [`allocations.${i}.invoice_id`]: ['Không thuộc lần thuê.'] });
+      if (inv.lifecycle !== 'PUBLISHED') throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ thu cho thông báo đã phát hành.', { [field]: ['Thông báo chưa phát hành hoặc đã hủy.'] });
+      if (inv.type === 'CREDIT_ADJUSTMENT') throw new AppError('BUSINESS_RULE_VIOLATION', 'Không thu tiền cho chứng từ credit.', { [field]: ['Chứng từ credit.'] });
+    }
+    const remaining = await this.balances.remaining(tx, invoices);
+    for (const [i, a] of input.allocations.entries()) {
+      const left = remaining.get(a.invoice_id) ?? 0n;
+      if (BigInt(a.amount_vnd) > left) {
+        throw new AppError('BUSINESS_RULE_VIOLATION', `Số tiền vượt số còn phải thu (${left.toString()}đ).`, { [`allocations.${i}.amount_vnd`]: [`Tối đa ${left.toString()}đ.`] });
+      }
+    }
+    const yyyymm = input.paid_at.slice(0, 7).replace('-', '');
+    const number = `PT-${yyyymm}-${String(await nextSequence(tx, user.workspaceId, 'PAYMENT', yyyymm)).padStart(4, '0')}`;
+    const payment = await tx.payment.create({
+      data: {
+        workspaceId: user.workspaceId,
+        tenancyId: tenancy.id,
+        number,
+        amountVnd: BigInt(input.amount_vnd),
+        method: input.method,
+        paidAt: toDbDate(input.paid_at),
+        reference: input.reference,
+        note: input.note,
+        createdBy: user.id,
+        allocations: { create: input.allocations.map((a) => ({ invoiceId: a.invoice_id, amountVnd: BigInt(a.amount_vnd) })) },
+      },
+    });
+    await this.audit.record(tx, {
+      workspaceId: user.workspaceId,
+      actorId: user.id,
+      action: 'payment.create',
+      entityType: 'payment',
+      entityId: payment.id,
+      after: { number, ...input },
+    });
+    for (const o of this.observers) await o.afterPayment?.(tx, user, tenancy.id, payment.id);
+    return payment;
   }
 
   /** Đảo toàn bộ phiếu thu: allocation mất hiệu lực, nợ quay lại đúng thông báo gốc (9.1). Không đảo hai lần. */

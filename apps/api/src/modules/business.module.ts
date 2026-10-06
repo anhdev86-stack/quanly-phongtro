@@ -16,7 +16,6 @@ import { BuildingsController } from './buildings/buildings.controller.js';
 import { BuildingsService } from './buildings/buildings.service.js';
 import { LedgersController } from './ledgers/ledgers.controller.js';
 import { DEPOSIT_REQUIREMENT, LedgersService } from './ledgers/ledgers.service.js';
-import { DefaultReservationExtras } from './reservations/reservation-extras.js';
 import { ReservationsController } from './reservations/reservations.controller.js';
 import { RESERVATION_EXTRAS, ReservationsService } from './reservations/reservations.service.js';
 import { RoomsController } from './rooms/rooms.controller.js';
@@ -29,6 +28,11 @@ import { TenantsController } from './tenants/tenants.controller.js';
 import { TenantsService } from './tenants/tenants.service.js';
 import { UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
+import { SettlementEventsObserver } from './settlements/events.observer.js';
+import { NoticeReservationExtras } from './settlements/notice-reservation-extras.js';
+import { NoticesService } from './settlements/notices.service.js';
+import { SettlementsController } from './settlements/settlements.controller.js';
+import { SettlementsService } from './settlements/settlements.service.js';
 import { MetersService } from './utilities/meters.service.js';
 import { PricesService } from './utilities/prices.service.js';
 import { SettingsService } from './utilities/settings.service.js';
@@ -53,6 +57,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     UtilitiesController,
     BillingController,
     PaymentsController,
+    SettlementsController,
   ],
   providers: [
     BuildingsService,
@@ -78,9 +83,11 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     CreditsService,
     DebtsService,
     SharingService,
-    // Phase 7 thêm observer ghi settlement_events khi đảo sau quyết toán.
-    { provide: REVERSAL_OBSERVERS, useValue: [] },
-    { provide: RESERVATION_EXTRAS, useClass: DefaultReservationExtras },
+    NoticesService,
+    SettlementsService,
+    SettlementEventsObserver,
+    { provide: REVERSAL_OBSERVERS, useFactory: (events: SettlementEventsObserver) => [events], inject: [SettlementEventsObserver] },
+    { provide: RESERVATION_EXTRAS, useClass: NoticeReservationExtras },
     { provide: DEPOSIT_REQUIREMENT, useClass: ContractDepositRequirement },
     { provide: RENTAL_MODE, useClass: ContractRentalMode },
     {
