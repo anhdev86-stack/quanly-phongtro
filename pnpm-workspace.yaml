@@ -1,0 +1,20 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e
+
+# Chỉ các gói được liệt kê "true" mới được chạy install script (tải engine/binary cần thiết).
+allowBuilds:
+  "@prisma/engines": true
+  prisma: true
+  argon2: true
+  esbuild: true
+  unrs-resolver: true
+  sharp: true
+  # Telemetry của swagger-ui, không cần thiết.
+  "@scarf/scarf": false
+  # Do @nestjs/cli kéo vào; dự án không dùng SWC (xem docs/DECISIONS.md D-004).
+  "@swc/core": false
+
+# Giữ mặc định minimumReleaseAge của pnpm (không cài gói vừa phát hành). Không thêm ngoại lệ
+# trừ khi có lý do bảo mật được ghi trong docs/DECISIONS.md.

@@ -1,0 +1,200 @@
+// Prisma schema — MASTER_PLAN mục 6. Phase 0: auth, quyền, phạm vi tòa, idempotency, audit.
+// Ràng buộc SQL thủ công (CHECK, EXCLUDE, partial index…) ghi trong prisma/MANUAL_SQL.md.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Workspace {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  timezone  String   @default("Asia/Ho_Chi_Minh")
+  currency  String   @default("VND")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  users               User[]
+  buildings           Building[]
+  idempotencyRequests IdempotencyRequest[]
+  auditLogs           AuditLog[]
+
+  @@map("workspaces")
+}
+
+model User {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  workspaceId  String   @map("workspace_id") @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  displayName  String   @map("display_name")
+  isActive     Boolean  @default(true) @map("is_active")
+  version      Int      @default(1)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspace       Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  roles           UserRole[]
+  buildingScopes  UserBuildingScope[]
+  refreshSessions RefreshSession[]
+
+  // Cho phép FK kép (id, workspace_id) để bảo đảm liên kết cùng workspace.
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  code        String   @unique
+  name        String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  code        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+/// Phase 0 chỉ có các trường tối thiểu để gán phạm vi; Phase 1 bổ sung đầy đủ (MASTER_PLAN 6.3).
+model Building {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  code        String
+  name        String
+  address     String?
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(3)
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspace  Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  userScopes UserBuildingScope[]
+
+  @@unique([workspaceId, code])
+  @@unique([id, workspaceId])
+  @@map("buildings")
+}
+
+/// Phạm vi tòa của người dùng. FK kép bảo đảm user và building cùng workspace.
+model UserBuildingScope {
+  userId      String   @map("user_id") @db.Uuid
+  buildingId  String   @map("building_id") @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user     User     @relation(fields: [userId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  building Building @relation(fields: [buildingId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+
+  @@id([userId, buildingId])
+  @@index([buildingId])
+  @@map("user_building_scopes")
+}
+
+model RefreshSession {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  familyId      String    @map("family_id") @db.Uuid
+  /// SHA-256 của phần bí mật trong refresh token. Không lưu token plaintext.
+  tokenHash     String    @unique @map("token_hash")
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  rotatedAt     DateTime? @map("rotated_at") @db.Timestamptz(3)
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(3)
+  revokedReason String?   @map("revoked_reason")
+  replacedById  String?   @map("replaced_by_id") @db.Uuid
+  userAgent     String?   @map("user_agent")
+  ip            String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([userId])
+  @@map("refresh_sessions")
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  DONE
+}
+
+model IdempotencyRequest {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  workspaceId     String            @map("workspace_id") @db.Uuid
+  actorId         String            @map("actor_id") @db.Uuid
+  route           String
+  key             String
+  requestHash     String            @map("request_hash")
+  status          IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus  Int?              @map("response_status")
+  responseBody    Json?             @map("response_body")
+  resultReference String?           @map("result_reference")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@unique([workspaceId, actorId, route, key])
+  @@map("idempotency_requests")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  actorId     String?  @map("actor_id") @db.Uuid
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  /// Đã che dữ liệu nhạy cảm trước khi ghi.
+  before      Json?
+  after       Json?
+  reason      String?
+  requestId   String?  @map("request_id")
+  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId, occurredAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

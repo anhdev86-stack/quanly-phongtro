@@ -1,0 +1,40 @@
+{
+  "name": "@ql-tro/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Next.js — chỉ hiển thị dữ liệu từ API, không tính tổng tiền chính thức",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "5.9.1",
+    "@ql-tro/shared": "workspace:*",
+    "@tanstack/react-query": "5.104.1",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.52.0",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "7.89.0",
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "vite": "8.3.2",
+    "vitest": "5.0.3"
+  }
+}
