@@ -57,11 +57,17 @@ model Invoice {
   createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  tenancy         Tenancy          @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  statementPeriod StatementPeriod? @relation(fields: [statementPeriodId], references: [id], onDelete: Restrict)
-  sourceInvoice   Invoice?         @relation("InvoiceAdjustments", fields: [sourceInvoiceId], references: [id], onDelete: Restrict)
-  adjustments     Invoice[]        @relation("InvoiceAdjustments")
-  items           InvoiceItem[]
+  tenancy            Tenancy             @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  statementPeriod    StatementPeriod?    @relation(fields: [statementPeriodId], references: [id], onDelete: Restrict)
+  sourceInvoice      Invoice?            @relation("InvoiceAdjustments", fields: [sourceInvoiceId], references: [id], onDelete: Restrict)
+  adjustments        Invoice[]           @relation("InvoiceAdjustments")
+  items              InvoiceItem[]
+  paymentAllocations PaymentAllocation[]
+  depositAllocations DepositAllocation[]
+  creditsGiven       CreditApplication[] @relation("CreditSource")
+  creditsReceived    CreditApplication[] @relation("CreditTarget")
+  creditRefunds      CreditRefund[]      @relation("CreditRefunds")
+  shareLinks         ShareLink[]
 
   @@unique([workspaceId, number])
   @@index([tenancyId, lifecycle])

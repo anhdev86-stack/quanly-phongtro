@@ -17,6 +17,7 @@ import { useCan } from '@/features/auth/permissions';
 import { useInvoice, useInvoiceAction } from '@/features/billing/api';
 import { InvoiceLines } from '@/features/billing/invoice-lines';
 import { InvoiceStatusBadges, invoiceTitle, periodText } from '@/features/billing/invoice-status';
+import { InvoiceMoneySection } from '@/features/payments/invoice-money-section';
 import { ReasonDialog } from '@/features/property/reservation-forms';
 import { ApiError } from '@/lib/api-client';
 import { formatBusinessDate, formatVnd } from '@/lib/format';
@@ -170,6 +171,8 @@ export default function InvoiceDetailPage() {
           </span>
         </CardContent>
       </Card>
+
+      <InvoiceMoneySection invoice={inv} />
 
       <PublishDialog open={publishing} onClose={() => setPublishing(false)} invoice={inv} />
       <AdjustDialog open={adjusting} onClose={() => setAdjusting(false)} invoice={inv} />

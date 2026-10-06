@@ -25,7 +25,7 @@ export function MeterPricesSection({ buildingId }: { buildingId: string }) {
   const can = useCan();
   const prices = useMeterPrices(buildingId);
   const [changing, setChanging] = useState<MeterPrices['items'][number] | null>(null);
-  const manage = can(PERMISSIONS.SERVICES_MANAGE);
+  const manage = can(PERMISSIONS.METER_PRICES_MANAGE);
 
   return (
     <Card>

@@ -43,7 +43,7 @@ describe('OpenAPI (MASTER_PLAN mục 10: mọi endpoint có request/response và
     expect(problems).toEqual([]);
   });
 
-  it('chỉ login, refresh, logout và health là public', () => {
+  it('chỉ login, refresh, logout, health và xem thông báo qua link là public (MASTER_PLAN 10)', () => {
     const publicOps = Object.entries(paths)
       .flatMap(([p, methods]) => Object.entries(methods).map(([m, op]) => ({ key: `${m.toUpperCase()} ${p}`, op })))
       .filter((x) => x.op['x-public'] === true)
@@ -52,6 +52,7 @@ describe('OpenAPI (MASTER_PLAN mục 10: mọi endpoint có request/response và
     expect(publicOps).toEqual([
       'GET /api/v1/health/live',
       'GET /api/v1/health/ready',
+      'GET /api/v1/public/invoices/{token}',
       'POST /api/v1/auth/login',
       'POST /api/v1/auth/logout',
       'POST /api/v1/auth/refresh',

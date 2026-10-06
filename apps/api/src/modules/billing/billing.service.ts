@@ -35,13 +35,6 @@ export interface InvoiceSettlementProvider {
 }
 export const INVOICE_SETTLEMENT = Symbol('INVOICE_SETTLEMENT');
 
-/** Mặc định trước Phase 6: chưa có khoản thu nào. */
-export class NoSettlements implements InvoiceSettlementProvider {
-  async settled(): Promise<Map<string, bigint>> {
-    return new Map();
-  }
-}
-
 const NUMBER_PREFIX: Record<InvoiceType, string> = { MONTHLY: 'TB', FINAL: 'TT', DEBIT_ADJUSTMENT: 'DCT', CREDIT_ADJUSTMENT: 'DCG' };
 
 const include = {

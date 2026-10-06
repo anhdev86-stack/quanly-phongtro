@@ -544,6 +544,74 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       await expectAccepted(async (tx) => item(tx, { chargeStart: null, chargeEndExclusive: null }));
       await expectRejected(async (tx) => item(tx, { chargeStart: new Date('2026-11-01'), chargeEndExclusive: new Date('2026-11-01') }), 'invoice_items_period_chk');
     },
+
+    // ---------------- Phase 6 ----------------
+    payments_amount_positive_chk: async () => {
+      await expectAccepted(async (tx) => pay(tx, { amountVnd: 1n }));
+      await expectRejected(async (tx) => pay(tx, { amountVnd: 0n }), 'payments_amount_positive_chk');
+    },
+    payment_allocations_amount_positive_chk: async () => {
+      const alloc = async (tx: Prisma.TransactionClient, amountVnd: bigint) => {
+        const p = await pay(tx, {});
+        const inv = await invoice(tx, p.tenancyId, { statementPeriodId: await period(tx, '2031-06-01') });
+        return tx.paymentAllocation.create({ data: { paymentId: p.id, invoiceId: inv.id, amountVnd } });
+      };
+      await expectAccepted((tx) => alloc(tx, 1n));
+      await expectRejected((tx) => alloc(tx, 0n), 'payment_allocations_amount_positive_chk');
+    },
+    credit_applications_amount_positive_chk: async () => {
+      await expectAccepted((tx) => creditApp(tx, { amountVnd: 1n }));
+      await expectRejected((tx) => creditApp(tx, { amountVnd: 0n }), 'credit_applications_amount_positive_chk');
+    },
+    credit_refunds_amount_positive_chk: async () => {
+      await expectAccepted((tx) => creditRefund(tx, { amountVnd: 1n }));
+      await expectRejected((tx) => creditRefund(tx, { amountVnd: 0n }), 'credit_refunds_amount_positive_chk');
+    },
+    deposit_allocations_amount_positive_chk: async () => {
+      const alloc = async (tx: Prisma.TransactionClient, amountVnd: bigint) => {
+        const d = await deposit(tx, { type: 'RECEIVED' });
+        const inv = await invoice(tx, d.tenancyId, { statementPeriodId: await period(tx, '2031-06-01') });
+        return tx.depositAllocation.create({ data: { depositTransactionId: d.id, invoiceId: inv.id, amountVnd } });
+      };
+      await expectAccepted((tx) => alloc(tx, 1n));
+      await expectRejected((tx) => alloc(tx, 0n), 'deposit_allocations_amount_positive_chk');
+    },
+    payments_reversal_chk: async () => {
+      await expectAccepted((tx) => pay(tx, { status: 'REVERSED', reversedAt: new Date(), reversalReason: 'Ghi nhầm' }));
+      await expectRejected((tx) => pay(tx, { status: 'REVERSED' }), 'payments_reversal_chk');
+      await expectRejected((tx) => pay(tx, { reversedAt: new Date(), reversalReason: 'x' }), 'payments_reversal_chk');
+    },
+    credit_applications_reversal_chk: async () => {
+      await expectAccepted((tx) => creditApp(tx, { status: 'REVERSED', reversedAt: new Date(), reversalReason: 'Ghi nhầm' }));
+      await expectRejected((tx) => creditApp(tx, { status: 'REVERSED' }), 'credit_applications_reversal_chk');
+    },
+    credit_refunds_reversal_chk: async () => {
+      await expectAccepted((tx) => creditRefund(tx, { status: 'REVERSED', reversedAt: new Date(), reversalReason: 'Ghi nhầm' }));
+      await expectRejected((tx) => creditRefund(tx, { status: 'REVERSED' }), 'credit_refunds_reversal_chk');
+    },
+    one_active_payment_account: async () => {
+      const acc = (tx: Prisma.TransactionClient, isActive: boolean) =>
+        tx.paymentAccount.create({ data: { workspaceId: W, bankBin: '970436', bankName: 'VCB', accountNumber: '1', accountName: 'A', isActive, createdBy: userId } });
+      await expectAccepted(async (tx) => {
+        await tx.paymentAccount.updateMany({ where: { workspaceId: W }, data: { isActive: false } });
+        await acc(tx, true);
+        await acc(tx, false);
+        await acc(tx, false);
+      });
+      await expectRejected(async (tx) => {
+        await tx.paymentAccount.updateMany({ where: { workspaceId: W }, data: { isActive: false } });
+        await acc(tx, true);
+        await acc(tx, true);
+      }, 'one_active_payment_account');
+    },
+    credit_applications_distinct_chk: async () => {
+      await expectRejected(async (tx) => {
+        const tn = await mkTenancy(tx, await mkRoom(tx));
+        const src = await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-06-01'), lifecycle: 'PUBLISHED', number: `TB-P6-${++n}` });
+        const credit = await invoice(tx, tn, { type: 'CREDIT_ADJUSTMENT', lifecycle: 'PUBLISHED', number: `GC-P6-${++n}`, sourceInvoiceId: src.id });
+        await tx.creditApplication.create({ data: { workspaceId: W, tenancyId: tn, creditInvoiceId: credit.id, targetInvoiceId: credit.id, amountVnd: 1n, createdBy: userId } });
+      }, 'credit_applications_distinct_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
 
   const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>
@@ -574,6 +642,27 @@ describe('T47 — ràng buộc SQL thủ công', () => {
         calculationSnapshot: {},
         ...extra,
       } as never,
+    });
+  };
+
+  const pay = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
+    tx.payment.create({
+      data: { workspaceId: W, tenancyId: await mkTenancy(tx, await mkRoom(tx)), number: `PT-P6-${++n}`, amountVnd: 1n, method: 'CASH', paidAt: new Date('2026-10-01'), createdBy: userId, ...extra } as never,
+    });
+  const creditPair = async (tx: Prisma.TransactionClient) => {
+    const tn = await mkTenancy(tx, await mkRoom(tx));
+    const src = await invoice(tx, tn, { statementPeriodId: await period(tx, '2031-06-01'), lifecycle: 'PUBLISHED', number: `TB-P6-${++n}` });
+    const credit = await invoice(tx, tn, { type: 'CREDIT_ADJUSTMENT', lifecycle: 'PUBLISHED', number: `GC-P6-${++n}`, sourceInvoiceId: src.id });
+    return { tn, src, credit };
+  };
+  const creditApp = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) => {
+    const { tn, src, credit } = await creditPair(tx);
+    return tx.creditApplication.create({ data: { workspaceId: W, tenancyId: tn, creditInvoiceId: credit.id, targetInvoiceId: src.id, amountVnd: 1n, createdBy: userId, ...extra } as never });
+  };
+  const creditRefund = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) => {
+    const { tn, credit } = await creditPair(tx);
+    return tx.creditRefund.create({
+      data: { workspaceId: W, tenancyId: tn, creditInvoiceId: credit.id, amountVnd: 1n, paidAt: new Date('2026-10-01'), method: 'CASH', createdBy: userId, ...extra } as never,
     });
   };
 

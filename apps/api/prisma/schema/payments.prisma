@@ -1,0 +1,154 @@
+// Phase 6: phiếu thu, credit, tài khoản nhận tiền, link xem thông báo (MASTER_PLAN 6.5, 8.8, 9.1, 9.6).
+
+enum PostingStatus {
+  POSTED
+  REVERSED
+}
+
+enum CreditApplicationStatus {
+  ACTIVE
+  REVERSED
+}
+
+/// Phiếu thu. Đảo = đổi status sang REVERSED (một cơ chế duy nhất, MASTER_PLAN 6.5); allocation của phiếu đảo mất hiệu lực.
+model Payment {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  workspaceId    String        @map("workspace_id") @db.Uuid
+  tenancyId      String        @map("tenancy_id") @db.Uuid
+  number         String
+  amountVnd      BigInt        @map("amount_vnd")
+  method         PaymentMethod
+  paidAt         DateTime      @map("paid_at") @db.Date
+  reference      String?
+  note           String?
+  status         PostingStatus @default(POSTED)
+  reversedAt     DateTime?     @map("reversed_at") @db.Timestamptz(3)
+  reversedBy     String?       @map("reversed_by") @db.Uuid
+  reversalReason String?       @map("reversal_reason")
+  createdBy      String        @map("created_by") @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  tenancy     Tenancy             @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  allocations PaymentAllocation[]
+
+  @@unique([workspaceId, number])
+  @@index([tenancyId])
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id        String @id @default(uuid(7)) @db.Uuid
+  paymentId String @map("payment_id") @db.Uuid
+  invoiceId String @map("invoice_id") @db.Uuid
+  amountVnd BigInt @map("amount_vnd")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId, invoiceId])
+  @@index([invoiceId])
+  @@map("payment_allocations")
+}
+
+/// Cấn trừ credit (CREDIT_ADJUSTMENT) vào thông báo loại nợ của cùng tenancy.
+model CreditApplication {
+  id              String                  @id @default(uuid(7)) @db.Uuid
+  workspaceId     String                  @map("workspace_id") @db.Uuid
+  tenancyId       String                  @map("tenancy_id") @db.Uuid
+  creditInvoiceId String                  @map("credit_invoice_id") @db.Uuid
+  targetInvoiceId String                  @map("target_invoice_id") @db.Uuid
+  amountVnd       BigInt                  @map("amount_vnd")
+  status          CreditApplicationStatus @default(ACTIVE)
+  reversedAt      DateTime?               @map("reversed_at") @db.Timestamptz(3)
+  reversedBy      String?                 @map("reversed_by") @db.Uuid
+  reversalReason  String?                 @map("reversal_reason")
+  createdBy       String                  @map("created_by") @db.Uuid
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  tenancy       Tenancy @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  creditInvoice Invoice @relation("CreditSource", fields: [creditInvoiceId], references: [id], onDelete: Restrict)
+  targetInvoice Invoice @relation("CreditTarget", fields: [targetInvoiceId], references: [id], onDelete: Restrict)
+
+  @@index([creditInvoiceId])
+  @@index([targetInvoiceId])
+  @@map("credit_applications")
+}
+
+/// Hoàn tiền credit dư (không dùng sổ cọc). Ghi khi thực chi.
+model CreditRefund {
+  id              String        @id @default(uuid(7)) @db.Uuid
+  workspaceId     String        @map("workspace_id") @db.Uuid
+  tenancyId       String        @map("tenancy_id") @db.Uuid
+  creditInvoiceId String        @map("credit_invoice_id") @db.Uuid
+  amountVnd       BigInt        @map("amount_vnd")
+  paidAt          DateTime      @map("paid_at") @db.Date
+  method          PaymentMethod
+  reference       String?
+  status          PostingStatus @default(POSTED)
+  reversedAt      DateTime?     @map("reversed_at") @db.Timestamptz(3)
+  reversedBy      String?       @map("reversed_by") @db.Uuid
+  reversalReason  String?       @map("reversal_reason")
+  createdBy       String        @map("created_by") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  tenancy       Tenancy @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  creditInvoice Invoice @relation("CreditRefunds", fields: [creditInvoiceId], references: [id], onDelete: Restrict)
+
+  @@index([creditInvoiceId])
+  @@map("credit_refunds")
+}
+
+/// Phân bổ giao dịch cọc APPLIED_TO_INVOICE vào thông báo; hiệu lực khi giao dịch gốc chưa bị đảo (8.8).
+model DepositAllocation {
+  id                   String @id @default(uuid(7)) @db.Uuid
+  depositTransactionId String @map("deposit_transaction_id") @db.Uuid
+  invoiceId            String @map("invoice_id") @db.Uuid
+  amountVnd            BigInt @map("amount_vnd")
+
+  depositTransaction DepositTransaction @relation(fields: [depositTransactionId], references: [id], onDelete: Restrict)
+  invoice            Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([depositTransactionId, invoiceId])
+  @@index([invoiceId])
+  @@map("deposit_allocations")
+}
+
+/// Tài khoản nhận tiền cho VietQR. Tối đa một tài khoản active mỗi workspace (partial unique).
+model PaymentAccount {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  workspaceId   String   @map("workspace_id") @db.Uuid
+  bankBin       String   @map("bank_bin")
+  bankName      String   @map("bank_name")
+  accountNumber String   @map("account_number")
+  /// Không dấu, chữ hoa.
+  accountName   String   @map("account_name")
+  isActive      Boolean  @default(true) @map("is_active")
+  isDemo        Boolean  @default(false) @map("is_demo")
+  version       Int      @default(1)
+  createdBy     String   @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([workspaceId])
+  @@map("payment_accounts")
+}
+
+/// Link xem thông báo cho khách. DB chỉ lưu hash của token.
+model ShareLink {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  workspaceId  String    @map("workspace_id") @db.Uuid
+  invoiceId    String    @map("invoice_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  revokedBy    String?   @map("revoked_by") @db.Uuid
+  createdBy    String    @map("created_by") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastViewedAt DateTime? @map("last_viewed_at") @db.Timestamptz(3)
+  viewCount    Int       @default(0) @map("view_count")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+  @@index([invoiceId])
+  @@map("share_links")
+}
