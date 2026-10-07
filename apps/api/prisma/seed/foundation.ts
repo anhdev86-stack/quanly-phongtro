@@ -16,6 +16,9 @@ export const SEED_USERS = {
   owner: { email: 'owner@example.test', displayName: 'Chủ trọ Demo', role: 'OWNER' as RoleCode, buildings: [] as string[] },
   staffA: { email: 'staff.a@example.test', displayName: 'Nhân viên Tòa A', role: 'STAFF' as RoleCode, buildings: ['A'] },
   staffBC: { email: 'staff.bc@example.test', displayName: 'Nhân viên Tòa B, C', role: 'STAFF' as RoleCode, buildings: ['B', 'C'] },
+  // V1.1 (Phase 10)
+  managerA: { email: 'manager.a@example.test', displayName: 'Quản lý Tòa A', role: 'MANAGER' as RoleCode, buildings: ['A'] },
+  accountantB: { email: 'accountant.b@example.test', displayName: 'Kế toán Tòa B', role: 'ACCOUNTANT' as RoleCode, buildings: ['B'] },
 } as const;
 
 const BUILDINGS = [

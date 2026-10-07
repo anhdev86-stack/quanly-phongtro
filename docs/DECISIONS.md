@@ -337,3 +337,23 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - **Sao lưu/khôi phục:** script Node chạy `pg_dump`/`pg_restore` trong container postgres (giống nhau trên Windows/macOS/Linux),
   file `.dump` + `.sha256`, kiểm tra `pg_restore --list` trước khi nhận, retention theo ngày nhưng luôn giữ 3 bản. Khôi phục mặc định
   vào `ql_tro_restore_drill`; ghi đè database chính cần `--overwrite-main` + `CONFIRM_RESTORE=<tên>` và tự sao lưu trước.
+
+## D-036 — Vai trò MANAGER/ACCOUNTANT, quyền theo người dùng, nhật ký (Phase 10)
+
+- **Một vai trò mỗi người dùng** (giữ mô hình MVP); `PUT /users/:id/roles` nhận `{ role }`. Tinh chỉnh từng người bằng quyền riêng.
+- **MANAGER** (vận hành, trong tòa được giao): phòng, giữ chỗ, tiền giữ chỗ, người thuê, nhận phòng (kèm ghi nhận cọc), hợp đồng,
+  chỉ số; thông báo chỉ xem/tạo nháp/gửi link; báo trả và nháp quyết toán; nhật ký vận hành. Theo bảng 11.2: **không** ghi nhận thu,
+  không duyệt quyết toán, không đảo/hoàn tiền mặc định — cấp riêng khi cần.
+- **ACCOUNTANT** (tài chính, trong tòa được giao): tạo nháp, phát hành, điều chỉnh thông báo; ghi nhận thu, cọc; nháp quyết toán;
+  báo cáo; cấu hình nhắc và gửi lại; nhật ký tài chính. Đảo, hoàn cọc, hoàn tiền dư chỉ khi được cấp riêng. Không thấy CCCD.
+- **Quyền riêng** (`user_permission_overrides`): quyền hiệu lực = vai trò ∪ cấp thêm − thu hồi; đọc lại từ DB mỗi request nên có
+  hiệu lực ngay. Chống tự nâng quyền: không ai tự đổi vai trò/quyền của mình; không áp quyền riêng cho OWNER; không cấp riêng
+  `workspace.all_buildings`, `users.manage`, `audit.view` (`OWNER_ONLY_PERMISSIONS`). Đổi sang OWNER thì xóa quyền riêng.
+- **Nhật ký:** `audit_logs.building_id` (không FK) được `AuditService` suy ra từ đối tượng lúc ghi; migration điền cho nhật ký cũ
+  theo cùng quy tắc. Nhóm theo phần đầu của `action` (`auditCategory`): VẬN HÀNH / TÀI CHÍNH / HỆ THỐNG. `audit.view` (chủ trọ) xem tất cả;
+  `audit.view_operations` / `audit.view_finance` chỉ xem nhóm tương ứng **và** chỉ nhật ký gắn tòa được giao (nhật ký cấp nhà trọ —
+  người dùng, cấu hình, người thuê, dịch vụ — chỉ chủ trọ xem). Endpoint khai báo `@RequirePermissions()` rỗng, kiểm tra “một trong ba”
+  trong service.
+- Thời điểm nhật ký là giờ thật lúc ghi (`now()` của DB), không theo đồng hồ nghiệp vụ.
+- Sửa lỗi giao diện chung tìm thấy khi test mobile: khung cuộn của `Table` cần `relative` (tiêu đề `sr-only` định vị tuyệt đối làm
+  trang rộng ra trên điện thoại); thân `Dialog` cần `min-h-0`.

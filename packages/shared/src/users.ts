@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { expectedVersionSchema } from './common.js';
+import { ALL_PERMISSIONS } from './permissions.js';
 import { uuidSchema } from './primitives.js';
 
 const emailSchema = z
@@ -52,7 +53,29 @@ export const userSchema = z.object({
   is_active: z.boolean(),
   roles: z.array(z.string()),
   buildings: z.array(z.object({ id: z.string(), code: z.string(), name: z.string() })),
+  /** V1.1: quyền cấp thêm (granted = true) hoặc thu hồi (false) so với vai trò. */
+  permission_overrides: z.array(z.object({ permission: z.string(), granted: z.boolean() })),
+  /** Quyền hiệu lực = quyền của vai trò ∪ cấp thêm − thu hồi. */
+  effective_permissions: z.array(z.string()),
   version: z.number(),
   created_at: z.string(),
 });
 export type UserDto = z.infer<typeof userSchema>;
+
+/** PUT /users/:id/roles — mỗi người dùng một vai trò. */
+export const userRoleSchema = z.strictObject({
+  role: z.enum(ASSIGNABLE_ROLES),
+  expected_version: expectedVersionSchema,
+});
+
+/** PUT /users/:id/permission-overrides — thay toàn bộ danh sách quyền riêng. */
+export const permissionOverridesSchema = z.strictObject({
+  overrides: z
+    .array(z.strictObject({ permission: z.enum(ALL_PERMISSIONS as [string, ...string[]]), granted: z.boolean() }))
+    .max(100)
+    .refine((xs) => new Set(xs.map((x) => x.permission)).size === xs.length, 'Một quyền bị khai báo trùng.'),
+  expected_version: expectedVersionSchema,
+});
+
+export const roleSchema = z.object({ code: z.string(), name: z.string(), permissions: z.array(z.string()) });
+export type RoleDto = z.infer<typeof roleSchema>;

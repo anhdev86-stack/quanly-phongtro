@@ -3,7 +3,8 @@ import { cn } from '@/lib/utils';
 
 export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-x-auto">
+    // `relative`: phần tử định vị tuyệt đối (VD tiêu đề sr-only) phải nằm trong khung cuộn, không làm trang rộng ra trên mobile.
+    <div className="relative w-full overflow-x-auto">
       <table className={cn('w-full border-collapse text-sm', className)} {...props} />
     </div>
   );

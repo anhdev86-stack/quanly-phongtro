@@ -71,7 +71,8 @@ pnpm dev
 
 API mất khoảng 15 giây để biên dịch lần đầu. Nếu web báo lỗi ngay khi mở, chờ một chút rồi bấm “Thử lại”.
 
-Tài khoản dev: `owner@example.test` (mọi tòa), `staff.a@example.test` (tòa A), `staff.bc@example.test` (tòa B, C).
+Tài khoản dev: `owner@example.test` (mọi tòa), `staff.a@example.test` (tòa A), `staff.bc@example.test` (tòa B, C),
+`manager.a@example.test` (quản lý tòa A), `accountant.b@example.test` (kế toán tòa B).
 Mật khẩu lấy từ `SEED_OWNER_PASSWORD` / `SEED_STAFF_PASSWORD` trong `.env`.
 
 ## Kiểm tra

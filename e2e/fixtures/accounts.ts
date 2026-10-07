@@ -9,4 +9,6 @@ export const accounts = {
   owner: { email: 'owner@example.test', password: () => required('SEED_OWNER_PASSWORD'), name: 'Chủ trọ Demo' },
   staffA: { email: 'staff.a@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Nhân viên Tòa A' },
   staffBC: { email: 'staff.bc@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Nhân viên Tòa B, C' },
+  managerA: { email: 'manager.a@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Quản lý Tòa A' },
+  accountantB: { email: 'accountant.b@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Kế toán Tòa B' },
 } as const;
