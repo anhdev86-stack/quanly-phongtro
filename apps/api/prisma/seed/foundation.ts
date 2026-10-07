@@ -19,7 +19,14 @@ export const SEED_USERS = {
   // V1.1 (Phase 10)
   managerA: { email: 'manager.a@example.test', displayName: 'Quản lý Tòa A', role: 'MANAGER' as RoleCode, buildings: ['A'] },
   accountantB: { email: 'accountant.b@example.test', displayName: 'Kế toán Tòa B', role: 'ACCOUNTANT' as RoleCode, buildings: ['B'] },
+  managerBC: { email: 'manager.bc@example.test', displayName: 'Quản lý Tòa B, C', role: 'MANAGER' as RoleCode, buildings: ['B', 'C'] },
 } as const;
+
+/**
+ * Tài khoản cho seed dev và E2E: chỉ Chủ trọ + Quản lý (D-041). Integration test dùng thêm các tài khoản vai trò cũ (Nhân viên, Kế toán)
+ * để kiểm tra backend chặn quyền với tập quyền hẹp.
+ */
+export const DEV_SEED_USER_KEYS = ['owner', 'managerA', 'managerBC'] as const satisfies readonly (keyof typeof SEED_USERS)[];
 
 const BUILDINGS = [
   { key: 'A', code: 'A', name: 'Tòa A — Hẻm 12 Đường Số 7', address: '12 Đường Số 7, Phường Mẫu, TP. Demo' },
@@ -78,10 +85,14 @@ export async function seedDefaultServices(prisma: PrismaClient, workspaceId: str
 }
 
 /**
- * Seed nền tảng, idempotent: quyền, vai trò, workspace, 3 tòa, 1 OWNER và 2 STAFF với phạm vi tòa khác nhau.
+ * Seed nền tảng, idempotent: quyền, vai trò, workspace, 3 tòa và các tài khoản (mặc định tất cả; seed dev chỉ DEV_SEED_USER_KEYS).
  * Dùng chung cho `prisma db seed` và integration test.
  */
-export async function seedFoundation(prisma: PrismaClient, passwords: FoundationPasswords): Promise<void> {
+export async function seedFoundation(
+  prisma: PrismaClient,
+  passwords: FoundationPasswords,
+  userKeys: readonly (keyof typeof SEED_USERS)[] = Object.keys(SEED_USERS) as (keyof typeof SEED_USERS)[],
+): Promise<void> {
   await syncRolesAndPermissions(prisma);
 
   const workspace = await prisma.workspace.upsert({
@@ -103,7 +114,7 @@ export async function seedFoundation(prisma: PrismaClient, passwords: Foundation
   const ownerHash = await hashPassword(passwords.owner);
   const staffHash = await hashPassword(passwords.staff);
 
-  for (const u of Object.values(SEED_USERS)) {
+  for (const u of userKeys.map((k) => SEED_USERS[k])) {
     const passwordHash = u.role === 'OWNER' ? ownerHash : staffHash;
     const user = await prisma.user.upsert({
       where: { email: u.email },

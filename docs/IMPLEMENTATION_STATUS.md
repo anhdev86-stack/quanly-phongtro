@@ -534,6 +534,13 @@ Kiểm tra (07/10/2026):
 | Build lại image Docker | ⏳ Chưa build (ổ Docker tạm nằm trên C:); thay đổi Dockerfile: tạo `/data/files` thuộc user node |
 | `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
 
+## Điều chỉnh sau Phase 14 — chỉ hai vai trò (D-041) ✅
+
+Chủ dự án chốt: chỉ Chủ trọ + Quản lý. API/giao diện chỉ gán hai vai trò; Quản lý thêm quyền ghi nhận thu; Nhân viên/Kế toán là vai trò cũ.
+Database dev: `db:bootstrap` (chỉ đồng bộ quyền) + chuyển 3 tài khoản sang Quản lý qua API; không seed lại.
+Kiểm tra: lint, typecheck, build ✅; `pnpm test` 102 ✅; `pnpm test:integration` **333** ✅; E2E auth, property, maintenance, finance,
+contracts-v11, reminders, reports, permissions ✅ (sửa phụ thuộc giữa `permissions.spec` và `reports.spec`: cấp quyền riêng cho Quản lý Tòa B, C).
+
 ## Phase 14 — Chuyển phòng ✅ (ẩn danh dữ liệu chờ yêu cầu pháp lý)
 
 Nhánh `phase/14-transfers`. Quyết định: D-040.

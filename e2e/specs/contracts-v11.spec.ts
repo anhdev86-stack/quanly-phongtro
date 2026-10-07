@@ -36,7 +36,7 @@ test.describe('Phase 11 — phụ lục hợp đồng, cảnh báo hết hạn, 
     await page.getByRole('link', { name: 'Kỳ phát hành' }).click();
     await expect(page.getByRole('heading', { name: 'Kỳ phát hành', level: 1 })).toBeVisible();
     await expect(page.getByText(/Đang mở|Đã đóng|Chưa có kỳ phát hành/).first()).toBeVisible();
-    await loginAs(page, 'staffA');
+    await loginAs(page, 'managerA');
     await page.goto('/invoices/periods');
     await expect(page.getByRole('heading', { name: 'Kỳ phát hành', level: 1 })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Đóng kỳ' })).toHaveCount(0);

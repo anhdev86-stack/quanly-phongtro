@@ -19,27 +19,30 @@ describe('Phase 1 — quản lý người dùng', () => {
   });
   afterAll(() => t.close());
 
-  it('tạo nhân viên với phạm vi tòa; nhân viên đăng nhập được và chỉ thấy tòa đó', async () => {
+  it('tạo quản lý với phạm vi tòa; đăng nhập được và chỉ thấy tòa đó', async () => {
     const res = await send('post', '/api/v1/users', {
       email: 'Moi.NV@example.test',
-      display_name: 'Nhân viên mới',
+      display_name: 'Quản lý mới',
       password: 'mat-khau-moi-123',
-      role: 'STAFF',
+      role: 'MANAGER',
       building_ids: [SEED_IDS.buildings.C],
     });
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ email: 'moi.nv@example.test', roles: ['STAFF'], buildings: [{ code: 'C' }] });
+    expect(res.body).toMatchObject({ email: 'moi.nv@example.test', roles: ['MANAGER'], buildings: [{ code: 'C' }] });
     expect(JSON.stringify(res.body)).not.toContain('mat-khau');
 
     const login2 = await request(t.server).post('/api/v1/auth/login').send({ email: 'moi.nv@example.test', password: 'mat-khau-moi-123' });
     expect(login2.status).toBe(200);
   });
 
-  it('email trùng trả 409; MANAGER/ACCOUNTANT đã kích hoạt từ Phase 10', async () => {
-    expect((await send('post', '/api/v1/users', { email: 'owner@example.test', display_name: 'x', password: '12345678', role: 'STAFF' })).status).toBe(409);
-    const kt = await send('post', '/api/v1/users', { email: 'kt@example.test', display_name: 'x', password: '12345678', role: 'ACCOUNTANT' });
-    expect(kt.status, JSON.stringify(kt.body)).toBe(201);
-    expect(kt.body.roles).toEqual(['ACCOUNTANT']);
+  it('email trùng trả 409; chỉ gán được Chủ trọ/Quản lý — vai trò cũ Nhân viên/Kế toán bị từ chối (D-041)', async () => {
+    expect((await send('post', '/api/v1/users', { email: 'owner@example.test', display_name: 'x', password: '12345678', role: 'MANAGER' })).status).toBe(409);
+    for (const role of ['STAFF', 'ACCOUNTANT']) {
+      expect((await send('post', '/api/v1/users', { email: `${role.toLowerCase()}@example.test`, display_name: 'x', password: '12345678', role })).status).toBe(400);
+    }
+    const ql = await send('post', '/api/v1/users', { email: 'ql@example.test', display_name: 'x', password: '12345678', role: 'MANAGER' });
+    expect(ql.status, JSON.stringify(ql.body)).toBe(201);
+    expect(ql.body.roles).toEqual(['MANAGER']);
   });
 
   it('STAFF không truy cập được quản lý người dùng', async () => {
@@ -50,7 +53,7 @@ describe('Phase 1 — quản lý người dùng', () => {
   it('không tự vô hiệu hóa, không tự bỏ vai trò chủ trọ, luôn còn ít nhất một chủ trọ', async () => {
     const me = (await owner.agent.get('/api/v1/auth/me')).body;
     expect((await send('patch', `/api/v1/users/${me.id}`, { is_active: false, expected_version: 1 })).status).toBe(422);
-    expect((await send('patch', `/api/v1/users/${me.id}`, { role: 'STAFF', expected_version: 1 })).status).toBe(422);
+    expect((await send('patch', `/api/v1/users/${me.id}`, { role: 'MANAGER', expected_version: 1 })).status).toBe(422);
   });
 
   it('vô hiệu hóa nhân viên thu hồi phiên ngay', async () => {

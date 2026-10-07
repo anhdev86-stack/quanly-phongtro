@@ -12,13 +12,17 @@ const emailSchema = z
 
 export const passwordSchema = z.string().min(8, 'Mật khẩu tối thiểu 8 ký tự.').max(200);
 
-export const ASSIGNABLE_ROLES = ['OWNER', 'STAFF', 'MANAGER', 'ACCOUNTANT'] as const;
+/**
+ * Vai trò gán được (chủ dự án chốt 07/10/2026, D-041): chỉ Chủ trọ và Quản lý; tinh chỉnh từng người bằng quyền riêng.
+ * STAFF/ACCOUNTANT là vai trò cũ: không gán mới, vẫn hoạt động cho tài khoản đang mang (nếu có).
+ */
+export const ASSIGNABLE_ROLES = ['OWNER', 'MANAGER'] as const;
 export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
 export const ROLE_LABELS: Record<string, string> = {
   OWNER: 'Chủ trọ',
-  STAFF: 'Nhân viên',
   MANAGER: 'Quản lý',
-  ACCOUNTANT: 'Kế toán',
+  STAFF: 'Nhân viên (vai trò cũ)',
+  ACCOUNTANT: 'Kế toán (vai trò cũ)',
 };
 
 export const userCreateSchema = z.strictObject({
@@ -77,5 +81,5 @@ export const permissionOverridesSchema = z.strictObject({
   expected_version: expectedVersionSchema,
 });
 
-export const roleSchema = z.object({ code: z.string(), name: z.string(), permissions: z.array(z.string()) });
+export const roleSchema = z.object({ code: z.string(), name: z.string(), permissions: z.array(z.string()), assignable: z.boolean() });
 export type RoleDto = z.infer<typeof roleSchema>;

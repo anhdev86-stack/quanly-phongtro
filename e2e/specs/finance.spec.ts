@@ -36,13 +36,9 @@ test.describe('Phase 12 — chi phí và báo cáo tài chính', () => {
     await expect(page.getByRole('columnheader', { name: 'Tỷ lệ' })).toBeVisible();
   });
 
-  test('kế toán thấy Chi phí và báo cáo; quản lý xem chi phí nhưng không ghi', async ({ page }) => {
-    await loginAs(page, 'accountantB');
-    await page.goto('/expenses');
-    await expect(page.getByRole('button', { name: 'Ghi chi phí' })).toBeVisible();
-    await page.goto('/reports');
-    await expect(page.getByRole('heading', { name: 'Báo cáo', level: 1 })).toBeVisible();
+  test('quản lý xem chi phí nhưng không ghi, không có mục Báo cáo (mặc định)', async ({ page }) => {
     await loginAs(page, 'managerA');
+    await expect(page.getByRole('link', { name: 'Báo cáo' })).toHaveCount(0);
     await page.goto('/expenses');
     await expect(page.getByRole('heading', { name: 'Chi phí', level: 1 })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ghi chi phí' })).toHaveCount(0);

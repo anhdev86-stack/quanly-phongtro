@@ -17,10 +17,8 @@ Tài khoản (mật khẩu lấy từ `.env`: `SEED_OWNER_PASSWORD`, `SEED_STAFF
 | Email | Vai trò | Phạm vi |
 |---|---|---|
 | `owner@example.test` | OWNER | Mọi tòa |
-| `staff.a@example.test` | STAFF | Tòa A |
-| `staff.bc@example.test` | STAFF | Tòa B, C |
-| `manager.a@example.test` | MANAGER (V1.1) | Tòa A |
-| `accountant.b@example.test` | ACCOUNTANT (V1.1) | Tòa B |
+| `manager.a@example.test` | MANAGER | Tòa A |
+| `manager.bc@example.test` | MANAGER | Tòa B, C |
 
 ### Kịch bản kiểm tra tay
 

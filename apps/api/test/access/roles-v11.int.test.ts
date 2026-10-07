@@ -63,7 +63,7 @@ describe('Phase 10 — vai trò MANAGER/ACCOUNTANT, quyền theo người dùng,
       ['đặt giá điện nước', 'post', `/api/v1/buildings/${ZERO}/meter-prices`, ['owner']],
       ['tạo nháp thông báo', 'post', '/api/v1/billing/generate', ['owner', 'managerA', 'accountantB']],
       ['phát hành thông báo', 'post', `/api/v1/invoices/${ZERO}/publish`, ['owner', 'accountantB']],
-      ['ghi nhận thu', 'post', '/api/v1/payments', ['owner', 'staffA', 'accountantB']],
+      ['ghi nhận thu', 'post', '/api/v1/payments', ['owner', 'staffA', 'managerA', 'accountantB']],
       ['đảo phiếu thu', 'post', `/api/v1/payments/${ZERO}/reverse`, ['owner']],
       ['báo trả phòng', 'post', `/api/v1/tenancies/${ZERO}/move-out-notices`, ['owner', 'managerA', 'accountantB']],
       ['duyệt quyết toán', 'post', `/api/v1/settlements/${ZERO}/approve`, ['owner']],
@@ -139,7 +139,7 @@ describe('Phase 10 — vai trò MANAGER/ACCOUNTANT, quyền theo người dùng,
     // Không tự sửa quyền/vai trò của mình; không áp quyền riêng cho chủ trọ
     const owner = await userDto('owner');
     expect((await put('owner', owner.id, [], owner.version)).status).toBe(422);
-    expect((await send('owner', 'put', `/api/v1/users/${owner.id}/roles`, { role: 'STAFF', expected_version: owner.version })).status).toBe(422);
+    expect((await send('owner', 'put', `/api/v1/users/${owner.id}/roles`, { role: 'MANAGER', expected_version: owner.version })).status).toBe(422);
     // Người không có users.manage không gọi được
     expect((await put('managerA', (await userDto('managerA')).id, [{ permission: 'reports.view', granted: true }], 1)).status).toBe(403);
 
@@ -153,8 +153,10 @@ describe('Phase 10 — vai trò MANAGER/ACCOUNTANT, quyền theo người dùng,
     const logs = await t.prisma.auditLog.findMany({ where: { action: { in: ['user.set_permission_overrides', 'user.update'] }, entityId: acc.id } });
     expect(logs.length).toBeGreaterThanOrEqual(2);
     // Danh sách vai trò
-    const roles = (await send('owner', 'get', '/api/v1/roles')).body.map((x: { code: string }) => x.code);
-    expect(roles).toEqual(['OWNER', 'MANAGER', 'ACCOUNTANT', 'STAFF']);
+    const roles = (await send('owner', 'get', '/api/v1/roles')).body.map((x: { code: string; assignable: boolean }) => [x.code, x.assignable]);
+    expect(roles).toEqual([['OWNER', true], ['MANAGER', true], ['STAFF', false], ['ACCOUNTANT', false]]);
+    // Vai trò cũ không gán được qua API (D-041)
+    expect((await send('owner', 'put', `/api/v1/users/${acc.id}/roles`, { role: 'ACCOUNTANT', expected_version: role.body.version })).status).toBe(400);
   });
 
   it('nhật ký: chủ trọ xem toàn bộ; quản lý chỉ vận hành, kế toán chỉ tài chính, đều trong tòa được giao; nhân viên không xem', async () => {

@@ -24,8 +24,8 @@ test.describe('Phase 8A — tổng quan và báo cáo', () => {
     await expect(page.getByText('Cọc đang giữ (nghĩa vụ phải trả)')).toBeVisible();
   });
 
-  test('nhân viên không thấy mục Báo cáo; tổng quan chỉ trong tòa được giao', async ({ page }) => {
-    await loginAs(page, 'staffA');
+  test('quản lý không thấy mục Báo cáo (mặc định); tổng quan chỉ trong tòa được giao', async ({ page }) => {
+    await loginAs(page, 'managerA');
     await expect(page.getByRole('heading', { name: 'Việc cần xử lý' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Báo cáo' })).toHaveCount(0);
   });

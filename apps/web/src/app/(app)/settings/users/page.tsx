@@ -26,7 +26,7 @@ export default function UsersPage() {
       <PageHeader
         back={{ href: '/settings', label: 'Cấu hình' }}
         title="Người dùng & phân quyền"
-        description="Chủ trọ thấy mọi tòa. Quản lý, kế toán, nhân viên chỉ thấy và thao tác trong tòa được giao; quyền có thể cấp thêm hoặc thu hồi theo từng người."
+        description="Hai vai trò: Chủ trọ (mọi tòa, mọi quyền) và Quản lý (trong tòa được giao). Cần khác mặc định thì bấm “Quyền” để cấp thêm hoặc thu hồi quyền cho từng người."
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" aria-hidden />

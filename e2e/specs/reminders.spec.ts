@@ -37,8 +37,8 @@ test.describe('Phase 8B — nhắc đóng tiền', () => {
     await expect(page.getByText(/^Đã chạy: \d+ tin mới/)).toBeVisible();
   });
 
-  test('nhân viên xem được nhật ký nhắc nhưng không chạy hay sửa cấu hình', async ({ page }) => {
-    await loginAs(page, 'staffA');
+  test('quản lý xem được nhật ký nhắc nhưng không chạy hay sửa cấu hình', async ({ page }) => {
+    await loginAs(page, 'managerA');
     await page.goto('/reminders');
     await expect(page.getByRole('heading', { name: 'Nhắc đóng tiền', level: 1 })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Chạy nhắc ngay' })).toHaveCount(0);

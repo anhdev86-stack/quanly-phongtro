@@ -1,6 +1,6 @@
 'use client';
 
-import { ROLE_LABELS, type UserDto } from '@ql-tro/shared';
+import { ASSIGNABLE_ROLES, ROLE_LABELS, type UserDto } from '@ql-tro/shared';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -10,8 +10,8 @@ import { useBuildings } from '@/features/property/api';
 import { ApiError } from '@/lib/api-client';
 import { useCreateUser, useResetPassword, useSetUserScopes, useUpdateUser } from './api';
 
-/** Vai trò có thể gán (MANAGER/ACCOUNTANT được kích hoạt ở Phase 10; trước đó API trả 422). */
-export const ROLE_OPTIONS = ['OWNER', 'STAFF', 'MANAGER', 'ACCOUNTANT'] as const;
+/** Vai trò gán được: Chủ trọ, Quản lý (D-041). Tài khoản mang vai trò cũ vẫn hiện vai trò đó (không chọn lại được). */
+export const ROLE_OPTIONS = ASSIGNABLE_ROLES;
 
 function BuildingChecklist({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   const buildings = useBuildings();
@@ -38,6 +38,11 @@ const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : 'Đã có l�
 function RoleSelect({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
   return (
     <Select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+      {!(ROLE_OPTIONS as readonly string[]).includes(value) ? (
+        <option value={value} disabled>
+          {ROLE_LABELS[value] ?? value}
+        </option>
+      ) : null}
       {ROLE_OPTIONS.map((r) => (
         <option key={r} value={r}>
           {ROLE_LABELS[r]}
@@ -54,7 +59,7 @@ export function UserCreateDialog({ open, onClose }: { open: boolean; onClose: ()
 function UserCreateForm({ onClose }: { onClose: () => void }) {
   const toast = useToast();
   const create = useCreateUser();
-  const [v, setV] = useState({ email: '', display_name: '', password: '', role: 'STAFF', building_ids: [] as string[] });
+  const [v, setV] = useState({ email: '', display_name: '', password: '', role: 'MANAGER', building_ids: [] as string[] });
   const [error, setError] = useState('');
   const submit = async () => {
     setError('');
@@ -108,7 +113,7 @@ function UserEditForm({ user, onClose }: { user: UserDto; onClose: () => void })
   const scopes = useSetUserScopes();
   const reset = useResetPassword();
   const [name, setName] = useState(user.display_name);
-  const [role, setRole] = useState(user.roles[0] ?? 'STAFF');
+  const [role, setRole] = useState(user.roles[0] ?? 'MANAGER');
   const [buildingIds, setBuildingIds] = useState(user.buildings.map((b) => b.id));
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

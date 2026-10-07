@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ASSIGNABLE_ROLES,
   OWNER_ONLY_PERMISSIONS,
   PERMISSION_LABELS,
   type permissionOverridesSchema,
@@ -83,10 +84,15 @@ export class UsersService {
   /** Vai trò mặc định và quyền của chúng (đọc từ database, đồng bộ bởi seed/`db:bootstrap`). */
   async roles(): Promise<RoleDto[]> {
     const rows = await this.prisma.role.findMany({ include: { permissions: { include: { permission: true } } }, orderBy: { code: 'asc' } });
-    const order = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'STAFF'];
+    const order = ['OWNER', 'MANAGER', 'STAFF', 'ACCOUNTANT'];
     return rows
       .sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code))
-      .map((r) => ({ code: r.code, name: r.name, permissions: r.permissions.map((p) => p.permission.code).sort() }));
+      .map((r) => ({
+        code: r.code,
+        name: r.name,
+        permissions: r.permissions.map((p) => p.permission.code).sort(),
+        assignable: (ASSIGNABLE_ROLES as readonly string[]).includes(r.code),
+      }));
   }
 
   /** PUT /users/:id/roles — đổi vai trò (một vai trò mỗi người). Không ai tự đổi vai trò của mình. */

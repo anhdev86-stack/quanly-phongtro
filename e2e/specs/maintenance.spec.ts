@@ -6,7 +6,7 @@ const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a
 test.describe('Phase 13 — bảo trì và tệp riêng tư', () => {
   test('tạo yêu cầu bảo trì, đính kèm ảnh, mở ảnh qua link có kiểm tra quyền, đánh dấu xong', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'Luồng nhập liệu: kiểm trên desktop; mobile kiểm hiển thị ở test sau.');
-    await loginAs(page, 'staffA');
+    await loginAs(page, 'managerA');
     await page.getByRole('link', { name: 'Bảo trì' }).click();
     await expect(page.getByRole('heading', { name: 'Bảo trì', level: 1 })).toBeVisible();
     const title = `Vòi nước rò rỉ ${uniqueCode('M')}`;
@@ -38,12 +38,11 @@ test.describe('Phase 13 — bảo trì và tệp riêng tư', () => {
     await expect(dialog(page).getByText('Đã xong')).toBeVisible();
   });
 
-  test('kế toán xem được danh sách bảo trì nhưng không tạo; quản lý thấy mục Bảo trì', async ({ page }) => {
-    await loginAs(page, 'accountantB');
+  test('quản lý tòa B, C chỉ chọn được phòng của tòa B, C khi tạo yêu cầu', async ({ page }) => {
+    await loginAs(page, 'managerBC');
     await page.goto('/maintenance');
-    await expect(page.getByRole('heading', { name: 'Bảo trì', level: 1 })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Tạo yêu cầu' })).toHaveCount(0);
-    await loginAs(page, 'managerA');
-    await expect(page.getByRole('link', { name: 'Bảo trì' })).toBeVisible();
+    await page.getByRole('button', { name: 'Tạo yêu cầu' }).click();
+    const options = (await dialog(page).locator('#mc-building option').allTextContents()).slice(1).map((t) => t.slice(0, 1));
+    expect(options.sort()).toEqual(['B', 'C']);
   });
 });

@@ -46,13 +46,12 @@ test.describe('Phase 1 — tòa, phòng, giữ phòng', () => {
     await expect(page.getByText('Đã lưu trữ phòng.')).toBeVisible();
   });
 
-  test('STAFF tòa A chỉ thấy phòng tòa A và không có nút thêm phòng', async ({ page }) => {
-    await loginAs(page, 'staffA');
+  test('quản lý tòa B, C chỉ thấy phòng của tòa B, C', async ({ page }) => {
+    await loginAs(page, 'managerBC');
     await page.goto('/rooms');
     await expect(page.getByTestId('room-grid')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Thêm phòng' })).toHaveCount(0);
     const buildingCodes = await page.getByTestId('room-building').allTextContents();
     expect(buildingCodes.length).toBeGreaterThan(0);
-    expect(new Set(buildingCodes)).toEqual(new Set(['A']));
+    expect(new Set(buildingCodes)).toEqual(new Set(['B', 'C']));
   });
 });

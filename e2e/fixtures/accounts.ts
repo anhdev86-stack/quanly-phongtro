@@ -7,8 +7,7 @@ function required(name: string): string {
 
 export const accounts = {
   owner: { email: 'owner@example.test', password: () => required('SEED_OWNER_PASSWORD'), name: 'Chủ trọ Demo' },
-  staffA: { email: 'staff.a@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Nhân viên Tòa A' },
-  staffBC: { email: 'staff.bc@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Nhân viên Tòa B, C' },
+  // Seed dev/E2E chỉ có Chủ trọ + Quản lý (D-041).
   managerA: { email: 'manager.a@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Quản lý Tòa A' },
-  accountantB: { email: 'accountant.b@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Kế toán Tòa B' },
+  managerBC: { email: 'manager.bc@example.test', password: () => required('SEED_STAFF_PASSWORD'), name: 'Quản lý Tòa B, C' },
 } as const;

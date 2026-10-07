@@ -438,3 +438,16 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - Ràng buộc: `room_transfers_deposit_chk` (số tiền ≥ 0; có tiền ⇔ có đủ cặp giao dịch), `room_transfers_distinct_chk`; FK tới hai giao dịch cọc.
   Tính liên kết hai chiều của cặp giao dịch được kiểm tra bằng service + integration test (như cặp giữ chỗ → cọc).
 - **Chính sách lưu trữ và ẩn danh dữ liệu cá nhân: chưa làm** — chờ chủ dự án xác nhận yêu cầu pháp lý và thời hạn (MASTER_PLAN 2.3 mục 1, 11.4).
+
+## D-041 — Chỉ hai vai trò: Chủ trọ và Quản lý (chủ dự án chốt 07/10/2026)
+
+- Thay cho bộ 4 vai trò ở MASTER_PLAN 11.2 (OWNER/STAFF ở MVP, thêm MANAGER/ACCOUNTANT ở V1.1): thực tế vận hành chỉ có chủ trọ và người
+  quản lý. Chỉ gán được `OWNER` và `MANAGER` (API từ chối vai trò khác — 400; giao diện chỉ hiện hai lựa chọn). Khác mặc định thì dùng
+  **quyền riêng theo người dùng** (D-036).
+- **Quản lý** (trong tòa được giao): phòng, giữ chỗ, tiền giữ chỗ, người thuê, nhận phòng, chuyển phòng, ghi cọc, hợp đồng, chỉ số, bảo trì,
+  tạo nháp thông báo, gửi link, **ghi nhận thu** (thêm so với D-036), báo trả/nháp quyết toán, xem chi phí, nhật ký vận hành. Không mặc định:
+  phát hành/điều chỉnh thông báo, đảo, hoàn tiền, duyệt quyết toán, báo cáo, ghi chi phí, cấu hình, xem CCCD.
+- `STAFF`, `ACCOUNTANT` thành **vai trò cũ**: không gán mới; vẫn được đồng bộ quyền để tài khoản đang mang (nếu có) không bị khóa; nhãn
+  “(vai trò cũ)”. Integration test vẫn dùng chúng làm tập quyền hẹp để kiểm tra backend chặn đúng.
+- Seed dev/E2E chỉ tạo `owner@`, `manager.a@` (tòa A), `manager.bc@` (tòa B, C). Database dev 07/10/2026: đồng bộ quyền bằng `db:bootstrap`
+  (không seed lại) và chuyển `staff.a@`, `staff.bc@`, `accountant.b@` sang Quản lý qua API (có nhật ký).

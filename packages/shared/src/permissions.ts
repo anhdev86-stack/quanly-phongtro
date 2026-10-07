@@ -89,8 +89,9 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
     name: 'Chủ trọ',
     permissions: ALL_PERMISSIONS,
   },
+  // Vai trò cũ (không gán mới — D-041), giữ để tài khoản đang mang vẫn chạy.
   STAFF: {
-    name: 'Nhân viên',
+    name: 'Nhân viên (vai trò cũ)',
     permissions: [
       PERMISSIONS.BUILDINGS_VIEW,
       PERMISSIONS.ROOMS_VIEW,
@@ -108,7 +109,8 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
       PERMISSIONS.MAINTENANCE_MANAGE,
     ],
   },
-  // Vận hành trong tòa được giao: phòng, giữ chỗ, người thuê, nhận phòng, hợp đồng, điện nước; thông báo chỉ xem/tạo nháp.
+  // Quản lý (D-041): vận hành trong tòa được giao — phòng, giữ chỗ, người thuê, nhận phòng, hợp đồng, điện nước, bảo trì, ghi nhận thu;
+  // thông báo tạo nháp/gửi link (phát hành, đảo/hoàn tiền, báo cáo, chi phí: chủ trọ, hoặc cấp riêng). Không thấy CCCD.
   MANAGER: {
     name: 'Quản lý',
     permissions: [
@@ -127,6 +129,7 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
       PERMISSIONS.INVOICES_VIEW,
       PERMISSIONS.BILLING_GENERATE,
       PERMISSIONS.INVOICES_SHARE,
+      PERMISSIONS.PAYMENTS_RECORD,
       PERMISSIONS.SETTLEMENTS_VIEW,
       PERMISSIONS.SETTLEMENT_MANAGE,
       PERMISSIONS.REMINDERS_VIEW,
@@ -136,9 +139,9 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
       PERMISSIONS.AUDIT_VIEW_OPERATIONS,
     ],
   },
-  // Tài chính trong tòa được giao: phát hành, điều chỉnh, thu tiền, báo cáo; đảo/hoàn tiền chỉ khi được cấp riêng.
+  // Vai trò cũ (không gán mới — D-041): tài chính trong tòa được giao.
   ACCOUNTANT: {
-    name: 'Kế toán',
+    name: 'Kế toán (vai trò cũ)',
     permissions: [
       PERMISSIONS.BUILDINGS_VIEW,
       PERMISSIONS.ROOMS_VIEW,

@@ -57,9 +57,9 @@ test('OWNER đăng nhập thấy cả 3 tòa; token phiên không đọc đượ
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test('STAFF chỉ thấy tòa trong phạm vi được giao', async ({ page }) => {
-  await login(page, accounts.staffA.email, accounts.staffA.password());
-  await expect(page.getByRole('heading', { name: `Xin chào, ${accounts.staffA.name}` })).toBeVisible();
+test('quản lý chỉ thấy tòa trong phạm vi được giao', async ({ page }) => {
+  await login(page, accounts.managerA.email, accounts.managerA.password());
+  await expect(page.getByRole('heading', { name: `Xin chào, ${accounts.managerA.name}` })).toBeVisible();
   const items = page.getByTestId('building-list').getByRole('listitem');
   await expect(items).toHaveCount(1);
   await expect(items.first()).toContainText('Tòa A');
@@ -67,8 +67,8 @@ test('STAFF chỉ thấy tòa trong phạm vi được giao', async ({ page }) =
 });
 
 test('access token hết hạn thì web tự refresh và giữ phiên', async ({ page, context }) => {
-  await login(page, accounts.staffBC.email, accounts.staffBC.password());
-  await expect(page.getByRole('heading', { name: `Xin chào, ${accounts.staffBC.name}` })).toBeVisible();
+  await login(page, accounts.managerBC.email, accounts.managerBC.password());
+  await expect(page.getByRole('heading', { name: `Xin chào, ${accounts.managerBC.name}` })).toBeVisible();
 
   // Giả lập access token hết hạn: xóa riêng cookie access, giữ refresh + CSRF.
   const remaining = (await context.cookies()).filter((c) => c.name !== 'qt_access');
@@ -76,7 +76,7 @@ test('access token hết hạn thì web tự refresh và giữ phiên', async ({
   await context.addCookies(remaining);
 
   await page.reload();
-  await expect(page.getByRole('heading', { name: `Xin chào, ${accounts.staffBC.name}` })).toBeVisible();
+  await expect(page.getByRole('heading', { name: `Xin chào, ${accounts.managerBC.name}` })).toBeVisible();
   expect((await context.cookies()).some((c) => c.name === 'qt_access')).toBe(true);
   await logout(page);
 });

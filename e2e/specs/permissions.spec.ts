@@ -5,7 +5,8 @@ test.describe('Phase 10 — phân quyền theo người dùng và nhật ký', (
   test('chủ trọ cấp riêng quyền xem báo cáo cho quản lý; quản lý thấy Báo cáo và Nhật ký vận hành', async ({ page }) => {
     await loginAs(page, 'owner');
     await page.goto('/settings/users');
-    const row = page.getByRole('row', { name: /Quản lý Tòa A/ });
+    // Cấp cho Quản lý Tòa B, C (spec khác kiểm tra Quản lý Tòa A không có Báo cáo theo mặc định).
+    const row = page.getByRole('row', { name: /Quản lý Tòa B, C/ });
     await row.getByRole('button', { name: 'Quyền' }).click();
     const reports = dialog(page).getByTestId('perm-reports.view');
     await reports.getByRole('combobox').selectOption('grant');
@@ -31,8 +32,10 @@ test.describe('Phase 10 — phân quyền theo người dùng và nhật ký', (
     await expect(page.getByText(/không có quyền|Bạn không có quyền/i).first()).toBeVisible();
   });
 
-  test('nhân viên không thấy mục Nhật ký', async ({ page }) => {
-    await loginAs(page, 'staffA');
-    await expect(page.getByRole('link', { name: 'Nhật ký' })).toHaveCount(0);
+  test('thêm tài khoản chỉ chọn được Chủ trọ hoặc Quản lý', async ({ page }) => {
+    await loginAs(page, 'owner');
+    await page.goto('/settings/users');
+    await page.getByRole('button', { name: 'Thêm tài khoản' }).click();
+    await expect(dialog(page).locator('#u-role option')).toHaveText(['Chủ trọ', 'Quản lý']);
   });
 });
