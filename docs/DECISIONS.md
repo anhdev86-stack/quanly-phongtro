@@ -398,3 +398,25 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   trì vẫn trong mẫu số (ghi chú trên báo cáo). Tử số = ngày nằm trong [ngày nhận phòng, charge_end_exclusive).
 - Phạm vi: các báo cáo mới cần `reports.view`, luôn ghép phạm vi tòa bằng `AND`; lọc tòa ngoài phạm vi cho kết quả rỗng.
 - **Báo cáo kê khai thuế: chưa làm** — chờ chủ dự án xác nhận mẫu (MASTER_PLAN 2.3 mục 2); không dựng mẫu giả.
+
+## D-039 — Tệp riêng tư, bảo trì, sao lưu kèm tệp (Phase 13)
+
+- **Kho tệp** `StorageAdapter`: hiện chỉ có `LocalStorageAdapter` (thư mục `STORAGE_DIR`; Docker: volume `files` ở `/data/files`). S3/R2 chưa
+  làm vì triển khai mục tiêu là một máy chủ; giao diện adapter giữ nguyên để thêm sau. Readiness kiểm tra cả kho tệp (ghi/đọc thử).
+- **Không bao giờ phục vụ tệp trực tiếp**: chỉ qua `GET /files/:id/content`, kiểm tra quyền + phạm vi theo đối tượng sở hữu mỗi lần tải,
+  header `nosniff`, `Cache-Control: private, no-store`, `Content-Security-Policy: sandbox`. Khóa lưu trữ do server sinh
+  (`<workspace>/<YYYY-MM>/<uuid>`), không chứa tên gốc. Nội dung được kiểm sha256 khi tải.
+- **Nhận tệp**: JPG/PNG/WEBP/PDF ≤ 10 MB, nhận diện bằng chữ ký đầu tệp (không tin đuôi/MIME trình duyệt). Tên tiếng Việt: multer
+  `defParamCharset: 'utf8'` (lỗi mã hóa tìm thấy khi test).
+- **Quyền**: theo loại đối tượng — tenant/tenancy (`tenants.view`/`tenants.manage`), contract, meter_reading, maintenance_request,
+  expense. Ảnh giấy tờ tùy thân (`IDENTITY`) cần thêm `files.identity.view` (mặc định chỉ chủ trọ): người không có quyền không thấy cả
+  tên tệp, tải trả 404. Mỗi lần mở ảnh CCCD ghi nhật ký `file.view_identity`.
+- **Không xóa vĩnh viễn**: “lưu trữ” (ẩn) cần lý do, có nhật ký; tệp vẫn ở kho và trong bản sao lưu. Xóa thật thuộc chính sách lưu
+  trữ/ẩn danh (Phase 14, chờ yêu cầu pháp lý).
+- **Bảo trì** (`maintenance_requests`): mã BT-YYMM-nnnn, gắn phòng và lần thuê đang mở; trạng thái OPEN → IN_PROGRESS → DONE/CANCELLED,
+  mở lại được; DONE ⇔ có `resolved_at` (CHECK). Không tự đổi trạng thái vận hành của phòng. Liên kết được khoản chi. Quyền mới
+  `maintenance.view` (STAFF, MANAGER, ACCOUNTANT) và `maintenance.manage` (STAFF, MANAGER). “Việc cần xử lý” có mục bảo trì đang mở.
+- **Sao lưu kèm tệp**: `db:backup` ghi thêm `ql_tro-<giờ>.files.tar` (+ `.sha256`) cạnh bản dump; `FILES_BACKUP=local` (thư mục
+  `STORAGE_DIR` hiểu từ `apps/api`) | `container` (volume của service api) | `off`. Dùng `tar` của hệ điều hành (Windows: `System32\tar.exe`
+  vì GNU tar của Git Bash hiểu `C:` là máy chủ từ xa). Diễn tập giải nén vào thư mục tạm và đối chiếu **từng dòng bảng `files`** của database
+  khôi phục (có tệp + đúng sha256); khôi phục database chính thì chép thêm tệp vào kho (chỉ thêm, không ghi đè).

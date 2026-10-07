@@ -16,6 +16,7 @@ export const TODO_KINDS = [
   'RECEIVABLE_AFTER_MOVE_OUT',
   'RESIDENCE_UNREGISTERED',
   'REMINDERS_FAILED',
+  'MAINTENANCE_OPEN',
 ] as const;
 export type TodoKind = (typeof TODO_KINDS)[number];
 

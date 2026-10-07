@@ -742,6 +742,23 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       await expectAccepted(async (tx) => expense(tx, { buildingId: SEED_IDS.buildings.A, roomId: await mkRoom(tx) }));
       await expectRejected(async (tx) => expense(tx, { roomId: await mkRoom(tx) }), 'expenses_room_building_chk');
     },
+
+    // ---------------- Phase 13 ----------------
+    files_size_chk: async () => {
+      await expectAccepted((tx) => file(tx, { sizeBytes: 10485760 }));
+      await expectRejected((tx) => file(tx, { sizeBytes: 0 }), 'files_size_chk');
+      await expectRejected((tx) => file(tx, { sizeBytes: 10485761 }), 'files_size_chk');
+      await expectRejected((tx) => file(tx, { sha256: 'xyz' }), 'files_size_chk');
+    },
+    files_archive_chk: async () => {
+      await expectAccepted((tx) => file(tx, { archivedAt: new Date(), archiveReason: 'Tải nhầm' }));
+      await expectRejected((tx) => file(tx, { archivedAt: new Date() }), 'files_archive_chk');
+    },
+    maintenance_resolved_chk: async () => {
+      await expectAccepted(async (tx) => maintenance(tx, { status: 'DONE', resolvedAt: new Date() }));
+      await expectRejected(async (tx) => maintenance(tx, { status: 'DONE' }), 'maintenance_resolved_chk');
+      await expectRejected(async (tx) => maintenance(tx, { status: 'OPEN', resolvedAt: new Date() }), 'maintenance_resolved_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
 
   const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>
@@ -813,6 +830,26 @@ describe('T47 — ràng buộc SQL thủ công', () => {
         ...extra,
       } as never,
     });
+
+  let fseq = 0;
+  const file = (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
+    tx.storedFile.create({
+      data: {
+        workspaceId: W,
+        storageKey: `t47/${++fseq}`,
+        originalName: 'a.jpg',
+        mime: 'image/jpeg',
+        sizeBytes: 10,
+        sha256: 'a'.repeat(64),
+        category: 'OTHER',
+        ownerEntityType: 'tenant',
+        ownerEntityId: W,
+        uploadedBy: userId,
+        ...extra,
+      } as never,
+    });
+  const maintenance = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
+    tx.maintenanceRequest.create({ data: { workspaceId: W, code: `BT-T47-${++fseq}`, roomId: await mkRoom(tx), title: 'Hỏng vòi', createdBy: userId, ...extra } as never });
 
   let eseq = 0;
   const expense = (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>

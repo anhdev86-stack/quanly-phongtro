@@ -69,3 +69,23 @@ export function assertDbName(name) {
 
 export const backupDir = () => path.resolve(ROOT, process.env.BACKUP_DIR || 'backups');
 export const BACKUP_RE = /^ql_tro-\d{8}-\d{6}\.dump$/;
+
+// ------------------------------------------------------------------ Tệp riêng tư (V1.1 Phase 13)
+// FILES_BACKUP: local (mặc định: thư mục STORAGE_DIR trên máy chạy lệnh, như `pnpm dev`) | container (volume /data/files của
+// service api trong profile full) | off. Dùng `tar` có sẵn trên Windows 10+, macOS, Linux và trong image api.
+
+export const filesMode = () => (process.env.FILES_BACKUP || 'local').toLowerCase();
+
+/** Thư mục tệp ở chế độ local: STORAGE_DIR tương đối được hiểu từ apps/api (nơi `pnpm dev` chạy api). */
+export const localFilesDir = () => path.resolve(ROOT, 'apps/api', process.env.STORAGE_DIR || '.data/files');
+
+export function composeApiExecArgs(envFile, cmd) {
+  return ['compose', ...(envFile ? ['--env-file', envFile] : []), '--profile', 'full', 'exec', '-T', 'api', ...cmd];
+}
+
+export const filesArchiveOf = (dumpFile) => dumpFile.replace(/\.dump$/, '.files.tar');
+
+/** `tar` của hệ điều hành. Trên Windows dùng bsdtar của Windows (GNU tar của Git Bash hiểu “C:” là máy chủ từ xa). */
+export const TAR = process.platform === 'win32' && fs.existsSync(path.join(process.env.SystemRoot || 'C:\Windows', 'System32', 'tar.exe'))
+  ? path.join(process.env.SystemRoot || 'C:\Windows', 'System32', 'tar.exe')
+  : 'tar';

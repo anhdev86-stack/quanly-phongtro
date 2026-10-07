@@ -1,0 +1,83 @@
+// V1.1 Phase 13: vận hành — tệp riêng tư, yêu cầu bảo trì (MASTER_PLAN 6.7, 11.4).
+
+enum FileCategory {
+  IDENTITY
+  CONTRACT_SCAN
+  METER_PHOTO
+  MAINTENANCE_PHOTO
+  RECEIPT
+  OTHER
+}
+
+/// Tệp riêng tư. Nội dung nằm ở StorageAdapter (thư mục riêng/S3), không bao giờ phục vụ trực tiếp: chỉ qua endpoint kiểm tra quyền.
+model StoredFile {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  workspaceId     String       @map("workspace_id") @db.Uuid
+  /// Khóa trong kho lưu trữ (không chứa tên gốc hay dữ liệu cá nhân).
+  storageKey      String       @unique @map("storage_key")
+  originalName    String       @map("original_name")
+  mime            String
+  sizeBytes       Int          @map("size_bytes")
+  sha256          String
+  category        FileCategory
+  /// Đối tượng sở hữu: tenant | tenancy | contract | meter_reading | maintenance_request | expense.
+  ownerEntityType String       @map("owner_entity_type")
+  ownerEntityId   String       @map("owner_entity_id") @db.Uuid
+  /// Tòa của đối tượng (null với người thuê — xét theo lần thuê). Dùng cho phạm vi và nhật ký.
+  buildingId      String?      @map("building_id") @db.Uuid
+  uploadedBy      String       @map("uploaded_by") @db.Uuid
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  archivedAt      DateTime?    @map("archived_at") @db.Timestamptz(3)
+  archivedBy      String?      @map("archived_by") @db.Uuid
+  archiveReason   String?      @map("archive_reason")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+
+  @@index([ownerEntityType, ownerEntityId])
+  @@index([workspaceId, createdAt])
+  @@map("files")
+}
+
+enum MaintenancePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model MaintenanceRequest {
+  id             String              @id @default(uuid(7)) @db.Uuid
+  workspaceId    String              @map("workspace_id") @db.Uuid
+  /// Mã BT-YYMM-nnnn.
+  code           String
+  roomId         String              @map("room_id") @db.Uuid
+  tenancyId      String?             @map("tenancy_id") @db.Uuid
+  title          String
+  description    String?
+  priority       MaintenancePriority @default(NORMAL)
+  status         MaintenanceStatus   @default(OPEN)
+  assigneeId     String?             @map("assignee_id") @db.Uuid
+  reportedBy     String?             @map("reported_by")
+  resolvedAt     DateTime?           @map("resolved_at") @db.Timestamptz(3)
+  resolutionNote String?             @map("resolution_note")
+  expenseId      String?             @map("expense_id") @db.Uuid
+  createdBy      String              @map("created_by") @db.Uuid
+  version        Int                 @default(1)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  room      Room      @relation(fields: [roomId], references: [id], onDelete: Restrict)
+
+  @@unique([workspaceId, code])
+  @@index([workspaceId, status])
+  @@index([roomId])
+  @@map("maintenance_requests")
+}

@@ -26,6 +26,9 @@ model Workspace {
 
   expenses Expense[]
 
+  files               StoredFile[]
+  maintenanceRequests MaintenanceRequest[]
+
   @@map("workspaces")
 }
 
@@ -175,6 +178,8 @@ model Room {
   meters          Meter[]
 
   expenses Expense[]
+
+  maintenanceRequests MaintenanceRequest[]
 
   @@unique([buildingId, code])
   @@unique([id, workspaceId])

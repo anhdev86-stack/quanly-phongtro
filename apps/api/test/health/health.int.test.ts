@@ -20,7 +20,7 @@ describe('health, error envelope, request id', () => {
   it('readiness kiểm tra database và không lộ biến môi trường', async () => {
     const res = await request(t.server).get('/api/v1/health/ready');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: 'ok', checks: { database: 'ok' } });
+    expect(res.body).toEqual({ status: 'ok', checks: { database: 'ok', storage: 'ok' } });
     const text = JSON.stringify(res.body);
     expect(text).not.toMatch(/postgres|DATABASE_URL|secret|password/i);
   });

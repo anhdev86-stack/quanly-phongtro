@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import os from 'node:os';
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 import { oxc } from './vitest.config.mjs';
@@ -21,6 +22,8 @@ export default defineConfig({
       NODE_ENV: 'test',
       LOG_LEVEL: 'silent',
       REMINDER_JOB_ENABLED: 'false',
+      // Kho tệp của test: thư mục tạm riêng, không đụng dữ liệu dev.
+      STORAGE_DIR: path.join(os.tmpdir(), 'ql-tro-test-files'),
       ...(testDatabaseUrl ? { DATABASE_URL: testDatabaseUrl } : {}),
     },
   },

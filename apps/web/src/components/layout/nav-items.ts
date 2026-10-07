@@ -42,10 +42,10 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Báo cáo', href: '/reports', icon: BarChart3, availableFromPhase: 8, anyPermission: ['reports.view'] },
   { label: 'Nhắc đóng tiền', href: '/reminders', icon: Bell, availableFromPhase: 8.5, anyPermission: ['reminders.view'] },
   { label: 'Chi phí', href: '/expenses', icon: Wallet, availableFromPhase: 12, anyPermission: ['expenses.view'] },
-  { label: 'Bảo trì', href: '/maintenance', icon: Wrench, availableFromPhase: 13 },
+  { label: 'Bảo trì', href: '/maintenance', icon: Wrench, availableFromPhase: 13, anyPermission: ['maintenance.view'] },
   { label: 'Nhật ký', href: '/audit', icon: ClipboardList, availableFromPhase: 10, anyPermission: ['audit.view', 'audit.view_operations', 'audit.view_finance'] },
   { label: 'Cấu hình', href: '/settings', icon: Settings, availableFromPhase: 1 },
 ];
 
 /** Phase đã hoàn thành của bản build hiện tại. */
-export const CURRENT_PHASE = 12;
+export const CURRENT_PHASE = 13;

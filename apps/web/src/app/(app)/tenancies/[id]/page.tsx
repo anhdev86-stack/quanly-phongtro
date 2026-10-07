@@ -15,6 +15,7 @@ import { useCan } from '@/features/auth/permissions';
 import { RentPriceDialog } from '@/features/contracts/contract-dialogs';
 import { useDepositLedger, useTenancy } from '@/features/tenancy/api';
 import { LedgerTable, LedgerTxDialog } from '@/features/tenancy/ledger';
+import { Attachments } from '@/features/files/attachments';
 import { MembersSection } from '@/features/tenancy/members-section';
 import { TenancyExtraSections, TenancyHeaderActions } from '@/features/tenancy/tenancy-extra-sections';
 import { RentalModeBadge, TenancyStatusBadge } from '@/features/tenancy/tenancy-status';
@@ -71,6 +72,8 @@ export default function TenancyDetailPage() {
       <TenancyExtraSections tenancy={t} />
 
       <MembersSection tenancy={t} />
+
+      <Attachments ownerType="tenancy" ownerId={t.id} title="Hợp đồng scan, tệp đính kèm" categories={['CONTRACT_SCAN', 'METER_PHOTO', 'OTHER']} canManage={can(PERMISSIONS.TENANTS_MANAGE) && t.status !== 'ENDED'} />
 
       <Card>
         <CardHeader className="flex items-center justify-between">

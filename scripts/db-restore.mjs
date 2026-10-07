@@ -9,9 +9,10 @@
 //   CONFIRM_RESTORE=<tên database chính> pnpm db:restore <file> --target <tên database chính> --overwrite-main
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { backup } from './db-backup.mjs';
-import { BACKUP_RE, assertDbName, backupDir, composeExecArgs, loadEnvFile, parseArgs, pgConfig, pipe, run } from './db-common.mjs';
+import { BACKUP_RE, TAR, assertDbName, backupDir, composeApiExecArgs, composeExecArgs, filesArchiveOf, filesMode, loadEnvFile, localFilesDir, parseArgs, pgConfig, pipe, run } from './db-common.mjs';
 
 const DRILL_DB = 'ql_tro_restore_drill';
 
@@ -58,6 +59,46 @@ async function restoreInto(file, target) {
   await pipe('docker', composeExecArgs(envFile, ['pg_restore', '-U', user, '-d', target, '--no-owner', '--no-privileges', '--exit-on-error']), { stdinFile: file });
 }
 
+/**
+ * Đối chiếu tệp riêng tư: giải nén .files.tar vào thư mục tạm và so từng dòng bảng `files` của database đã khôi phục
+ * (storage_key + sha256). Trả số tệp khớp; thiếu/lệch thì báo lỗi.
+ */
+function verifyFiles(file, database) {
+  const archive = filesArchiveOf(file);
+  if (filesMode() === 'off') return null;
+  if (!fs.existsSync(archive)) throw new Error(`Thiếu ${path.basename(archive)} đi kèm bản sao lưu.`);
+  verifyChecksum(archive);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ql-tro-files-'));
+  try {
+    run(TAR, ['-xf', archive, '-C', tmp]);
+    const rows = psql(database, `SELECT storage_key || '|' || sha256 FROM files`).split(/\r?\n/).filter(Boolean);
+    const bad = [];
+    for (const row of rows) {
+      const [key, sha] = row.split('|');
+      const p = path.join(tmp, ...key.split('/'));
+      if (!fs.existsSync(p)) bad.push(`${key}: thiếu`);
+      else if (createHash('sha256').update(fs.readFileSync(p)).digest('hex') !== sha) bad.push(`${key}: sai sha256`);
+    }
+    if (bad.length) throw new Error(`Tệp riêng tư không khớp database (${bad.length}): ${bad.slice(0, 5).join('; ')}`);
+    return rows.length;
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+/** Giải nén tệp vào kho đang dùng (chỉ thêm; tệp bất biến, khóa duy nhất nên không ghi đè nội dung khác). */
+async function restoreFiles(file) {
+  const archive = filesArchiveOf(file);
+  if (filesMode() === 'off' || !fs.existsSync(archive)) return false;
+  if (filesMode() === 'container') {
+    await pipe('docker', composeApiExecArgs(envFile, ['tar', '-xf', '-', '-C', '/data/files']), { stdinFile: archive });
+  } else {
+    fs.mkdirSync(localFilesDir(), { recursive: true });
+    run(TAR, ['-xf', archive, '-C', localFilesDir()]);
+  }
+  return true;
+}
+
 function latestBackup() {
   const dir = backupDir();
   const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => BACKUP_RE.test(f)).sort() : [];
@@ -84,7 +125,9 @@ async function main() {
       process.exitCode = 2;
       return;
     }
-    console.log(`ĐẠT: số dòng mọi bảng, số ràng buộc và index khớp với ${mainDb}. Database ${DRILL_DB} giữ lại để kiểm tra; có thể xóa sau.`);
+    const files = verifyFiles(file, DRILL_DB);
+    if (files !== null) console.log(`Tệp riêng tư: ${files} tệp trong bản sao lưu khớp bảng files (sha256).`);
+    console.log(`ĐẠT: số dòng mọi bảng, số ràng buộc và index khớp với ${mainDb}${files !== null ? '; tệp riêng tư đầy đủ' : ''}. Database ${DRILL_DB} giữ lại để kiểm tra; có thể xóa sau.`);
     return;
   }
 
@@ -99,8 +142,11 @@ async function main() {
     console.log(`Đã sao lưu an toàn bản hiện tại trước khi ghi đè: ${path.relative(process.cwd(), safety)}`);
   }
   await restoreInto(file, target);
+  const files = verifyFiles(file, target);
+  // Chỉ chép tệp vào kho đang dùng khi khôi phục database chính (database thử chỉ cần đối chiếu).
+  if (target === mainDb && (await restoreFiles(file))) console.log('Đã chép lại tệp riêng tư vào kho.');
   const s = snapshot(target);
-  console.log(`Đã khôi phục ${path.basename(file)} → ${target}: ${Object.keys(s.counts).length} bảng, ${s.constraints} ràng buộc, ${s.indexes} index.`);
+  console.log(`Đã khôi phục ${path.basename(file)} → ${target}: ${Object.keys(s.counts).length} bảng, ${s.constraints} ràng buộc, ${s.indexes} index${files !== null ? `, ${files} tệp khớp` : ''}.`);
 }
 
 main().catch((e) => {

@@ -57,6 +57,9 @@ nên máy chạy lệnh chỉ cần Node và Docker (Windows PowerShell, macOS, 
 | Khôi phục vào database khác | `pnpm db:restore <file> --target ql_tro_staging` |
 
 - File: `backups/ql_tro-<giờ UTC>.dump` (định dạng custom của PostgreSQL) kèm `.sha256`. Đổi thư mục bằng `BACKUP_DIR`.
+- Tệp riêng tư (ảnh CCCD, hợp đồng scan, ảnh bảo trì…) được gói cùng lúc vào `ql_tro-<giờ>.files.tar` (+ `.sha256`). Nguồn tệp theo
+  `FILES_BACKUP`: `local` (mặc định, thư mục `STORAGE_DIR` của `pnpm dev`, tức `apps/api/.data/files`), `container` (volume `files` của
+  service api — **đặt `FILES_BACKUP=container` trong `.env.production`**), `off`. Diễn tập đối chiếu từng tệp với bảng `files` (sha256).
 - Sau khi dump, script kiểm tra file đọc được (`pg_restore --list`) rồi mới đổi tên từ `.partial`.
 - Giữ `BACKUP_RETENTION_DAYS` ngày (mặc định 14), luôn giữ ít nhất 3 bản mới nhất; chỉ xóa file đúng mẫu tên do script tạo.
 - **Lịch sao lưu (production):** chạy `pnpm db:backup --env-file .env.production` mỗi ngày (cron trên Linux, Task Scheduler trên
@@ -97,7 +100,7 @@ tự lấy chứng chỉ HTTPS. PostgreSQL chỉ mở cổng trên `127.0.0.1`.
 |---|---|---|
 | `postgres` | `postgres:18.6-alpine` | Volume `<project>_pgdata` |
 | `migrate` | `migrate` | Chạy một lần: `prisma migrate deploy` rồi `db:bootstrap`; api chỉ khởi động khi bước này thành công |
-| `api` | `api` | `NODE_ENV=production`, healthcheck `/api/v1/health/ready`, chạy bằng user `node` |
+| `api` | `api` | `NODE_ENV=production`, healthcheck `/api/v1/health/ready` (database + kho tệp), chạy bằng user `node`; volume `files` ở `/data/files` |
 | `web` | `web` | Next.js standalone, chạy bằng user `node` |
 | `caddy` | `caddy:2.10-alpine` | `infra/caddy/Caddyfile`; trả 404 cho `/api/v1/docs*` và `/api/v1/health*` từ bên ngoài; log che token link |
 
@@ -195,6 +198,7 @@ Mỗi lượt build image dùng vài GB build cache; kiểm tra dung lượng �
 | Đăng nhập báo “Bạn đã thử quá nhiều lần” | Sai 5 lần trong 15 phút. Chờ hết thời gian, hoặc khởi động lại API (bộ đếm lưu trong bộ nhớ, D-009). |
 | `Failed to load native binding` từ `@swc/core` | Dự án không dùng SWC (D-004). Kiểm tra không có công cụ nào bật builder `swc`. |
 | `pnpm` không chạy trong Git Bash | Dùng PowerShell hoặc `pnpm.cmd` (D-005). |
+| Docker Desktop không khởi động, log có `sailor-ingest.sock … cannot be accessed` | Tắt Docker Desktop, đổi tên `%LOCALAPPDATA%\Docker\run` (VD `run.broken`), mở lại. **Sau đó kiểm tra** Settings → Resources → Advanced → Disk image location: nếu đã về mặc định thì Docker đang dùng ổ trống mới; trỏ lại thư mục cũ (VD `D:\DockerData\DockerDesktopWSL`) — trước đó chép dự phòng `docker_data.vhdx` cũ để không bị ghi đè. |
 | Docker báo lỗi 500 / build treo, ổ đĩa đầy | Image và build cache nằm trong ổ dữ liệu của Docker Desktop. Kiểm tra `docker system df`, dọn `docker builder prune`, hoặc dời Disk image location sang ổ còn trống. |
 | api trong profile full không lên, log `Cấu hình môi trường không hợp lệ` | Sửa `.env.production` theo dòng báo lỗi (secret, `PUBLIC_BASE_URL` https). Giá trị bí mật không bị in ra. |
 | Đăng nhập được nhưng bị đăng xuất ngay (profile full) | Truy cập qua `http://` thay vì `https://`: cookie `Secure` không được gửi. Dùng đúng địa chỉ https. |

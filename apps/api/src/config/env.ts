@@ -27,6 +27,8 @@ export const envSchema = z
     PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
     /** Job nhắc đóng tiền chạy mỗi 15 phút trong tiến trình API (tắt ở test). */
     REMINDER_JOB_ENABLED: booleanString.default(true),
+    /** V1.1: thư mục tệp riêng tư (ảnh CCCD, hợp đồng scan…). Không đặt trong thư mục web công khai. Docker: volume /data/files. */
+    STORAGE_DIR: z.string().min(1).default('.data/files'),
     // Khóa nhà cung cấp tin nhắn: chỉ ở biến môi trường server, không lưu DB, không ghi log (MASTER_PLAN 9.7).
     ZALO_ZNS_ACCESS_TOKEN: optional(z.string().min(1)),
     ZALO_ZNS_TEMPLATE_ID: optional(z.string().min(1)),

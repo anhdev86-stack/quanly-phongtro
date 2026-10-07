@@ -14,6 +14,7 @@ import { AuthGuard } from './modules/auth/auth.guard.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { IdempotencyModule } from './modules/idempotency/idempotency.module.js';
+import { StorageModule } from './infrastructure/storage/storage.module.js';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { IdempotencyModule } from './modules/idempotency/idempotency.module.js';
     LoggingModule,
     ClockModule,
     PrismaModule,
+    StorageModule,
     AuditModule,
     AccessModule,
     IdempotencyModule,
