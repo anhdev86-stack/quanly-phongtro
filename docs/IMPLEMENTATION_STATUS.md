@@ -551,6 +551,9 @@ Bổ sung sau demo: thẻ phòng có dòng tổng “điện + nước = tổng�
 không chia từ công tơ tổng); nhãn dòng điện nước trên thông báo ghi tháng tiêu thụ (“Điện tháng 09/2026 (01/09–07/10/2026): …”); liên kết
 Điện nước ↔ Thông báo giữ tòa và đúng tháng; form đăng nhập `method="post"` (khi JS chưa chạy không đưa mật khẩu lên URL).
 Kiểm tra: lint, typecheck ✅; `pnpm test` 102 ✅; integration billing/settlements/utilities 39 ✅; E2E utilities 4 ✅ (2 bỏ qua có chủ đích), billing, auth ✅.
+Lối vào giá điện nước (chủ dự án không tìm thấy trong hộp “Sửa tòa”): danh sách tòa có cột “Giá điện · nước” (bấm tới mục giá), hộp “Sửa tòa” có
+dòng hướng dẫn + liên kết, trang tòa có neo `#gia-dien-nuoc` tự cuộn tới mục giá; màn hình chốt chỉ số liên kết thẳng tới mục này.
+Kiểm tra: lint, typecheck ✅; E2E property + utilities 8 ✅ (2 bỏ qua có chủ đích).
 
 ## Điều chỉnh sau Phase 14 — chỉ hai vai trò (D-041) ✅
 

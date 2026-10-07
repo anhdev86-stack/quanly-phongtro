@@ -12,6 +12,7 @@ import { Checkbox, Field, Select, TextInput } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
 import { useBuildings } from '@/features/property/api';
 import { useReadingSheet, useSaveReadings } from '@/features/utilities/api';
+import { meterPricesHref } from '@/features/utilities/meter-prices-section';
 import { normalizeReading } from '@/features/utilities/estimate';
 import { entryState, type Row, RoomReadingCard, type SheetEntries } from '@/features/utilities/reading-sheet';
 import { ApiError } from '@/lib/api-client';
@@ -79,7 +80,11 @@ function ReadingsContent() {
             <li>Chọn tòa chỉ để lọc danh sách: chỉ hiện các phòng của tòa {data.building_code}.</li>
             <li>
               Đơn giá đặt theo tòa, dùng chung cho mọi phòng trong tòa: điện {data.unit_prices.ELECTRICITY ? `${formatVnd(data.unit_prices.ELECTRICITY.split('.')[0]!)}/kWh` : 'chưa có giá'}, nước{' '}
-              {data.unit_prices.WATER ? `${formatVnd(data.unit_prices.WATER.split('.')[0]!)}/m³` : 'chưa có giá'}.
+              {data.unit_prices.WATER ? `${formatVnd(data.unit_prices.WATER.split('.')[0]!)}/m³` : 'chưa có giá'} (
+              <Link href={meterPricesHref(data.building_id)} className="underline">
+                đặt/đổi giá ở trang tòa
+              </Link>
+              ).
             </li>
             <li>Mỗi phòng có đồng hồ riêng: tiền = (số mới − số cũ) × đơn giá, tính riêng từng phòng. Không dùng công tơ tổng để chia tiền.</li>
           </ul>
@@ -89,7 +94,7 @@ function ReadingsContent() {
       {missingPrice.length && data ? (
         <p role="status" className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           Tòa {data.building_code} chưa có giá {missingPrice.map((t) => (t === 'ELECTRICITY' ? 'điện' : 'nước')).join(' và ')}: vẫn nhập được chỉ số nhưng chưa tạm tính được.{' '}
-          <Link href={`/buildings/${data.building_id}`} className="font-medium underline">
+          <Link href={meterPricesHref(data.building_id)} className="font-medium underline">
             Đặt giá ở trang tòa
           </Link>
         </p>

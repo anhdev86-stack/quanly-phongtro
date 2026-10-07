@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Building } from '@ql-tro/shared';
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, FormError, TextInput, Textarea } from '@/components/ui/form';
 import { useToast } from '@/components/ui/toast';
+import { meterPricesHref } from '@/features/utilities/meter-prices-section';
 import { applyApiErrors, blankToNull, intOrNull } from '@/lib/forms';
 import { useCreateBuilding, useUpdateBuilding } from './api';
 
@@ -113,6 +115,18 @@ export function BuildingFormDialog({ open, onClose, building }: { open: boolean;
         <Field id="b-note" label="Ghi chú" error={errors.note?.message} className="sm:col-span-2">
           <Textarea {...reg('note')} />
         </Field>
+        <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900 sm:col-span-2">
+          Đơn giá điện (đ/kWh) và nước (đ/m³) không nằm ở đây mà ở mục “Giá điện nước” của trang tòa
+          {building ? (
+            <>
+              {' '}—{' '}
+              <Link href={meterPricesHref(building.id)} className="font-medium underline" onClick={onClose}>
+                mở mục Giá điện nước
+              </Link>
+            </>
+          ) : ' (đặt sau khi tạo tòa)'}
+          .
+        </p>
         <button type="submit" hidden />
       </form>
     </Dialog>

@@ -2,7 +2,8 @@
 
 import { type MeterPrices, PERMISSIONS } from '@ql-tro/shared';
 import { Pencil } from 'lucide-react';
-import { useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { ErrorState, LoadingState } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,87 +21,118 @@ import { useCreateMeterPrice, useMeterPrices } from './api';
 export const periodLabel = (monthStart: string) => `kỳ ${monthStart.slice(5, 7)}/${monthStart.slice(0, 4)}`;
 const unitPrice = (v: string, unit: string) => `${formatVnd(v.split('.')[0]!)}/${unit}`;
 
+/** Neo của mục giá trên trang tòa: liên kết từ danh sách tòa, hộp “Sửa tòa”, màn hình chốt chỉ số. */
+export const METER_PRICES_ANCHOR = 'gia-dien-nuoc';
+export const meterPricesHref = (buildingId: string) => `/buildings/${buildingId}#${METER_PRICES_ANCHOR}`;
+
+/** Giá điện/nước hiện hành của một tòa, dạng gọn cho danh sách tòa; bấm để tới mục đặt giá. */
+export function BuildingPriceSummary({ buildingId, code }: { buildingId: string; code: string }) {
+  const prices = useMeterPrices(buildingId);
+  if (!prices.data) return <span className="text-slate-400">…</span>;
+  const missing = prices.data.items.filter((i) => !i.current);
+  return (
+    <Link href={meterPricesHref(buildingId)} className="hover:underline" aria-label={`Giá điện nước tòa ${code}`}>
+      {missing.length === prices.data.items.length ? (
+        <span className="font-medium text-amber-800">Chưa đặt giá</span>
+      ) : (
+        <span className="tabular text-slate-700">
+          {prices.data.items.map((i) => (i.current ? unitPrice(i.current.unit_price, i.unit) : `${i.name.toLowerCase()}: chưa đặt`)).join(' · ')}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 /** Giá điện nước theo tòa (MASTER_PLAN 8.5): đặt một lần, “Thay đổi giá” áp dụng từ kỳ đọc tiếp theo, có lịch sử. */
 export function MeterPricesSection({ buildingId }: { buildingId: string }) {
   const can = useCan();
   const prices = useMeterPrices(buildingId);
   const [changing, setChanging] = useState<MeterPrices['items'][number] | null>(null);
   const manage = can(PERMISSIONS.METER_PRICES_MANAGE);
+  const ref = useRef<HTMLElement>(null);
+  const loaded = prices.isSuccess;
+  // Mở trang từ liên kết “#gia-dien-nuoc”: dữ liệu tải xong mới có chiều cao thật, nên cuộn sau khi tải.
+  useEffect(() => {
+    if (loaded && window.location.hash === `#${METER_PRICES_ANCHOR}`) ref.current?.scrollIntoView({ block: 'start' });
+  }, [loaded]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Giá điện nước</CardTitle>
-      </CardHeader>
-      {prices.isPending ? (
-        <LoadingState />
-      ) : prices.isError ? (
-        <ErrorState error={prices.error} onRetry={() => void prices.refetch()} />
-      ) : (
-        <>
-          <CardContent className="grid gap-3 border-b border-slate-100 sm:grid-cols-2">
-            {prices.data.items.map((item) => (
-              <div key={item.meter_type} className="flex items-start justify-between gap-3 rounded-md border border-slate-200 p-3" data-testid={`meter-price-${item.meter_type}`}>
-                <div>
-                  <p className="text-sm text-slate-500">{item.name}</p>
-                  {item.current ? (
-                    <p className="text-lg font-semibold tabular">{unitPrice(item.current.unit_price, item.unit)}</p>
-                  ) : (
-                    <p className="font-medium text-amber-800">Chưa đặt giá — chưa tạm tính và sẽ chặn phát hành thông báo</p>
-                  )}
-                  {item.upcoming.map((u) => (
-                    <p key={u.id} className="mt-1 text-sm">
-                      <Badge tone="violet">Từ {periodLabel(u.effective_from)}</Badge> <span className="tabular">{unitPrice(u.unit_price, item.unit)}</span>
-                    </p>
-                  ))}
+    <section id={METER_PRICES_ANCHOR} ref={ref} className="scroll-mt-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Giá điện nước</CardTitle>
+          <p className="text-sm text-slate-500">Đơn giá đặt theo tòa, dùng chung cho mọi phòng trong tòa. Đổi giá áp dụng từ kỳ sau, không đổi các tháng đã tính.</p>
+        </CardHeader>
+        {prices.isPending ? (
+          <LoadingState />
+        ) : prices.isError ? (
+          <ErrorState error={prices.error} onRetry={() => void prices.refetch()} />
+        ) : (
+          <>
+            <CardContent className="grid gap-3 border-b border-slate-100 sm:grid-cols-2">
+              {prices.data.items.map((item) => (
+                <div key={item.meter_type} className="flex items-start justify-between gap-3 rounded-md border border-slate-200 p-3" data-testid={`meter-price-${item.meter_type}`}>
+                  <div>
+                    <p className="text-sm text-slate-500">{item.name}</p>
+                    {item.current ? (
+                      <p className="text-lg font-semibold tabular">{unitPrice(item.current.unit_price, item.unit)}</p>
+                    ) : (
+                      <p className="font-medium text-amber-800">Chưa đặt giá — chưa tạm tính và sẽ chặn phát hành thông báo</p>
+                    )}
+                    {item.upcoming.map((u) => (
+                      <p key={u.id} className="mt-1 text-sm">
+                        <Badge tone="violet">Từ {periodLabel(u.effective_from)}</Badge> <span className="tabular">{unitPrice(u.unit_price, item.unit)}</span>
+                      </p>
+                    ))}
+                  </div>
+                  {manage ? (
+                    <Button size="sm" variant="outline" onClick={() => setChanging(item)}>
+                      <Pencil className="size-4" aria-hidden />
+                      {item.current || item.upcoming.length ? 'Thay đổi giá' : 'Đặt giá'}
+                    </Button>
+                  ) : null}
                 </div>
-                {manage ? (
-                  <Button size="sm" variant="outline" onClick={() => setChanging(item)}>
-                    <Pencil className="size-4" aria-hidden />
-                    {item.current || item.upcoming.length ? 'Thay đổi giá' : 'Đặt giá'}
-                  </Button>
-                ) : null}
-              </div>
-            ))}
-          </CardContent>
-          <Table>
-            <thead>
-              <tr>
-                <Th>Khoản</Th>
-                <Th>Áp dụng từ</Th>
-                <Th className="text-right">Đơn giá</Th>
-                <Th className="hidden md:table-cell">Lý do</Th>
-                <Th className="hidden md:table-cell">Người đổi</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {prices.data.items.flatMap((item) =>
-                item.history.map((p) => (
-                  <Tr key={p.id}>
-                    <Td>{item.name}</Td>
-                    <Td className="whitespace-nowrap">{periodLabel(p.effective_from)}</Td>
-                    <Td className="text-right tabular whitespace-nowrap">{unitPrice(p.unit_price, item.unit)}</Td>
-                    <Td className="hidden text-slate-600 md:table-cell">{p.reason ?? '—'}</Td>
-                    <Td className="hidden text-slate-600 md:table-cell">
-                      {p.created_by_name ?? '—'}
-                      <div className="text-xs text-slate-400">{formatBusinessDate(p.created_at.slice(0, 10))}</div>
+              ))}
+            </CardContent>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Khoản</Th>
+                  <Th>Áp dụng từ</Th>
+                  <Th className="text-right">Đơn giá</Th>
+                  <Th className="hidden md:table-cell">Lý do</Th>
+                  <Th className="hidden md:table-cell">Người đổi</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {prices.data.items.flatMap((item) =>
+                  item.history.map((p) => (
+                    <Tr key={p.id}>
+                      <Td>{item.name}</Td>
+                      <Td className="whitespace-nowrap">{periodLabel(p.effective_from)}</Td>
+                      <Td className="text-right tabular whitespace-nowrap">{unitPrice(p.unit_price, item.unit)}</Td>
+                      <Td className="hidden text-slate-600 md:table-cell">{p.reason ?? '—'}</Td>
+                      <Td className="hidden text-slate-600 md:table-cell">
+                        {p.created_by_name ?? '—'}
+                        <div className="text-xs text-slate-400">{formatBusinessDate(p.created_at.slice(0, 10))}</div>
+                      </Td>
+                    </Tr>
+                  )),
+                )}
+                {prices.data.items.every((i) => i.history.length === 0) ? (
+                  <Tr>
+                    <Td colSpan={5} className="text-center text-slate-500">
+                      Chưa có lịch sử giá.
                     </Td>
                   </Tr>
-                )),
-              )}
-              {prices.data.items.every((i) => i.history.length === 0) ? (
-                <Tr>
-                  <Td colSpan={5} className="text-center text-slate-500">
-                    Chưa có lịch sử giá.
-                  </Td>
-                </Tr>
-              ) : null}
-            </tbody>
-          </Table>
-          <MeterPriceDialog item={changing} nextPeriod={prices.data.next_period_start} buildingId={buildingId} onClose={() => setChanging(null)} />
-        </>
-      )}
-    </Card>
+                ) : null}
+              </tbody>
+            </Table>
+            <MeterPriceDialog item={changing} nextPeriod={prices.data.next_period_start} buildingId={buildingId} onClose={() => setChanging(null)} />
+          </>
+        )}
+      </Card>
+    </section>
   );
 }
 

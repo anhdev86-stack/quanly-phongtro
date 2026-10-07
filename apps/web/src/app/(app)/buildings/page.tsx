@@ -13,6 +13,7 @@ import { Table, Td, Th, Tr } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useCan } from '@/features/auth/permissions';
 import { useArchiveBuilding, useBuildings } from '@/features/property/api';
+import { BuildingPriceSummary } from '@/features/utilities/meter-prices-section';
 import { BuildingFormDialog } from '@/features/property/building-form';
 import { PropertyTabs } from '@/features/property/property-tabs';
 import { ApiError } from '@/lib/api-client';
@@ -71,6 +72,7 @@ export default function BuildingsPage() {
                 <Th>Tên</Th>
                 <Th className="hidden md:table-cell">Địa chỉ</Th>
                 <Th className="text-right">Số phòng</Th>
+                <Th className="hidden md:table-cell">Giá điện · nước</Th>
                 <Th className="hidden sm:table-cell">Liên hệ</Th>
                 <Th />
               </tr>
@@ -89,6 +91,9 @@ export default function BuildingsPage() {
                   </Td>
                   <Td className="hidden text-slate-600 md:table-cell">{b.address ?? '—'}</Td>
                   <Td className="text-right tabular">{b.room_count}</Td>
+                  <Td className="hidden whitespace-nowrap text-sm md:table-cell">
+                    <BuildingPriceSummary buildingId={b.id} code={b.code} />
+                  </Td>
                   <Td className="hidden text-slate-600 sm:table-cell">{[b.contact_name, b.contact_phone].filter(Boolean).join(' · ') || '—'}</Td>
                   <Td className="text-right whitespace-nowrap">
                     {canManage ? (
