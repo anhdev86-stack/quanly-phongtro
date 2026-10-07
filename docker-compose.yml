@@ -64,6 +64,10 @@ services:
       SMS_API_URL: ${SMS_API_URL:-}
       SMS_API_KEY: ${SMS_API_KEY:-}
       SMS_BRANDNAME: ${SMS_BRANDNAME:-}
+      STORAGE_DIR: /data/files
+    volumes:
+      # Tệp riêng tư (ảnh CCCD, hợp đồng scan…). Sao lưu cùng database: pnpm db:backup (FILES_BACKUP=container).
+      - files:/data/files
     depends_on:
       migrate: { condition: service_completed_successfully }
 
@@ -95,4 +99,5 @@ services:
 volumes:
   pgdata:
   caddy_data:
+  files:
   caddy_config:

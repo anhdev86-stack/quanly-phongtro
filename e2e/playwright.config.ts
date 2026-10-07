@@ -38,7 +38,8 @@ export default defineConfig({
       // live (không phải ready): webServer khởi động trước globalSetup, lúc đó database E2E có thể chưa tồn tại.
       url: `http://localhost:${E2E_API_PORT}/api/v1/health/live`,
       cwd: ROOT,
-      env: { DATABASE_URL: E2E_DATABASE_URL, API_PORT: String(E2E_API_PORT), NODE_ENV: 'test', LOG_LEVEL: 'warn' },
+      // Kho tệp E2E riêng (apps/api/.data/files-e2e), không lẫn tệp dev.
+      env: { DATABASE_URL: E2E_DATABASE_URL, API_PORT: String(E2E_API_PORT), NODE_ENV: 'test', LOG_LEVEL: 'warn', STORAGE_DIR: '.data/files-e2e' },
       reuseExistingServer: true,
       timeout: 180_000,
     },

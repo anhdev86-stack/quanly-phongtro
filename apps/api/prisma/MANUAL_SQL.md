@@ -106,6 +106,9 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `expenses_amount_chk` | expenses | CHECK | `20261007004652_phase12_expenses` | Số tiền chi > 0 |
 | `expenses_state_chk` | expenses | CHECK | `20261007004652_phase12_expenses` | REVERSED ⇔ có thời điểm và lý do đảo |
 | `expenses_room_building_chk` | expenses | CHECK | `20261007004652_phase12_expenses` | Chi cho phòng thì có tòa |
+| `files_size_chk` | files | CHECK | `20261007010744_phase13_operations` | 0 < kích thước ≤ 10 MB; sha256 hex |
+| `files_archive_chk` | files | CHECK | `20261007010744_phase13_operations` | Lưu trữ tệp có thời điểm ⇔ có lý do |
+| `maintenance_resolved_chk` | maintenance_requests | CHECK | `20261007010744_phase13_operations` | DONE ⇔ có thời điểm xử lý |
 
 ```json manual-constraints
 [
@@ -552,6 +555,24 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "expenses",
     "definition": "CHECK (((room_id IS NULL) OR (building_id IS NOT NULL)))"
+  },
+  {
+    "name": "files_size_chk",
+    "kind": "check",
+    "table": "files",
+    "definition": "CHECK (((size_bytes > 0) AND (size_bytes <= 10485760) AND (sha256 ~ '^[0-9a-f]{64}$'::text)))"
+  },
+  {
+    "name": "files_archive_chk",
+    "kind": "check",
+    "table": "files",
+    "definition": "CHECK (((archived_at IS NULL) = (archive_reason IS NULL)))"
+  },
+  {
+    "name": "maintenance_resolved_chk",
+    "kind": "check",
+    "table": "maintenance_requests",
+    "definition": "CHECK (((status = 'DONE'::\"MaintenanceStatus\") = (resolved_at IS NOT NULL)))"
   }
 ]
 ```

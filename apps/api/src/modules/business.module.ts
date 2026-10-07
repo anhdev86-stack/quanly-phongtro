@@ -33,6 +33,10 @@ import { TenantsService } from './tenants/tenants.service.js';
 import { RolesController, UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
 import { ExpensesController } from './expenses/expenses.controller.js';
+import { FilesController } from './files/files.controller.js';
+import { FilesService } from './files/files.service.js';
+import { MaintenanceController } from './maintenance/maintenance.controller.js';
+import { MaintenanceService } from './maintenance/maintenance.service.js';
 import { ExpensesService } from './expenses/expenses.service.js';
 import { ReportsController } from './reports/reports.controller.js';
 import { ReportsFinanceService } from './reports/reports-finance.service.js';
@@ -75,6 +79,8 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     RemindersController,
     AuditLogsController,
     ExpensesController,
+    FilesController,
+    MaintenanceController,
   ],
   providers: [
     BuildingsService,
@@ -108,6 +114,8 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     ReportsService,
     ReportsFinanceService,
     ExpensesService,
+    FilesService,
+    MaintenanceService,
     ChannelRegistry,
     AuditLogsService,
     RemindersService,

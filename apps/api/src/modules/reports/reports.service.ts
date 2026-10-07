@@ -24,6 +24,7 @@ import { InvoiceBalances } from '../payments/balances.js';
 import { DebtsService } from '../payments/debts.service.js';
 import { OPEN_TENANCY_STATUSES, RoomsService } from '../rooms/rooms.service.js';
 import { RENTAL_MODE, type RentalModeProvider } from '../tenancies/tenancies.service.js';
+import { MaintenanceService } from '../maintenance/maintenance.service.js';
 
 /** Hook cho Phase 8B: số tin nhắc đóng tiền lỗi cần xử lý. */
 export interface DashboardTodoExtension {
@@ -47,6 +48,7 @@ export class ReportsService {
     private readonly ledgers: LedgersService,
     private readonly balances: InvoiceBalances,
     private readonly debts: DebtsService,
+    private readonly maintenance: MaintenanceService,
     @Inject(RENTAL_MODE) private readonly rentalMode: RentalModeProvider,
     @Inject(DASHBOARD_TODO) private readonly todoExt: DashboardTodoExtension,
     @Inject(CLOCK) private readonly clock: Clock,
@@ -141,6 +143,9 @@ export class ReportsService {
     });
     push('RESIDENCE_UNREGISTERED', unregistered, 'Người ở chưa đăng ký tạm trú', '/tenancies');
     push('REMINDERS_FAILED', await this.todoExt.failedReminders(user, q.building_id), 'Tin nhắc đóng tiền gửi lỗi', '/reminders?status=FAILED');
+    if (user.permissions.has(PERMISSIONS.MAINTENANCE_VIEW)) {
+      push('MAINTENANCE_OPEN', await this.maintenance.openCount(user, q.building_id), 'Yêu cầu bảo trì đang mở', '/maintenance');
+    }
 
     return {
       period,

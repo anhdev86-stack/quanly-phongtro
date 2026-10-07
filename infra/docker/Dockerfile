@@ -30,6 +30,9 @@ FROM ${NODE_IMAGE} AS api
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build --chown=node:node /out/api ./
+# Kho tệp riêng tư (volume `files`): tạo sẵn thuộc user node để volume mới mang đúng quyền ghi.
+RUN mkdir -p /data/files && chown node:node /data/files
+ENV STORAGE_DIR=/data/files
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \

@@ -2,11 +2,12 @@
 // Sao lưu database (pg_dump định dạng custom) — RUNBOOK.md mục “Sao lưu”.
 //   pnpm db:backup                       # dùng .env
 //   pnpm db:backup --env-file .env.production
-// Biến: BACKUP_DIR (mặc định ./backups), BACKUP_RETENTION_DAYS (mặc định 14; luôn giữ ít nhất 3 bản mới nhất).
+// Biến: BACKUP_DIR (mặc định ./backups), BACKUP_RETENTION_DAYS (mặc định 14; luôn giữ ít nhất 3 bản mới nhất),
+//       FILES_BACKUP (local | container | off — tệp riêng tư, lưu cạnh bản dump: ql_tro-<giờ>.files.tar).
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { BACKUP_RE, backupDir, composeExecArgs, loadEnvFile, parseArgs, pgConfig, pipe, run } from './db-common.mjs';
+import { BACKUP_RE, backupDir, TAR, composeApiExecArgs, composeExecArgs, filesArchiveOf, filesMode, loadEnvFile, localFilesDir, parseArgs, pgConfig, pipe, run } from './db-common.mjs';
 
 export async function backup({ envFile, quiet = false } = {}) {
   const { user, db } = pgConfig();
@@ -27,8 +28,31 @@ export async function backup({ envFile, quiet = false } = {}) {
   fs.writeFileSync(`${file}.sha256`, `${sha}  ${path.basename(file)}\n`);
   if (!quiet) console.log(`Đã sao lưu ${db} → ${path.relative(process.cwd(), file)} (${(size / 1024).toFixed(0)} KB, ${tables} bảng, sha256 ${sha.slice(0, 12)}…)`);
 
+  const files = await backupFiles(envFile, file);
+  if (!quiet && files) console.log(`Đã sao lưu tệp riêng tư → ${path.relative(process.cwd(), files.archive)} (${files.count} tệp, ${(files.size / 1024).toFixed(0)} KB)`);
+
   pruneOldBackups(dir, quiet);
   return file;
+}
+
+/** Gói toàn bộ kho tệp thành .files.tar cạnh bản dump (tệp bất biến, khóa duy nhất nên gói đầy đủ mỗi lần). */
+async function backupFiles(envFile, dumpFile) {
+  const mode = filesMode();
+  if (mode === 'off') return null;
+  const archive = filesArchiveOf(dumpFile);
+  const tmp = `${archive}.partial`;
+  if (mode === 'container') {
+    await pipe('docker', composeApiExecArgs(envFile, ['tar', '-cf', '-', '-C', '/data/files', '.']), { stdoutFile: tmp });
+  } else {
+    const dir = localFilesDir();
+    fs.mkdirSync(dir, { recursive: true });
+    run(TAR, ['-cf', tmp, '-C', dir, '.']);
+  }
+  const list = run(TAR, ['-tf', tmp]).split(/\r?\n/).filter((l) => l && !l.endsWith('/'));
+  fs.renameSync(tmp, archive);
+  const sha = createHash('sha256').update(fs.readFileSync(archive)).digest('hex');
+  fs.writeFileSync(`${archive}.sha256`, `${sha}  ${path.basename(archive)}\n`);
+  return { archive, count: list.length, size: fs.statSync(archive).size };
 }
 
 function pruneOldBackups(dir, quiet) {
@@ -45,6 +69,8 @@ function pruneOldBackups(dir, quiet) {
     if (fs.statSync(p).mtimeMs < cutoff) {
       fs.rmSync(p);
       fs.rmSync(`${p}.sha256`, { force: true });
+      fs.rmSync(filesArchiveOf(p), { force: true });
+      fs.rmSync(`${filesArchiveOf(p)}.sha256`, { force: true });
       if (!quiet) console.log(`Xóa bản sao lưu quá ${days} ngày: ${f}`);
     }
   }

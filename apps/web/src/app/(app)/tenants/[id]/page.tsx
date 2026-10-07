@@ -14,6 +14,7 @@ import { ReminderConsentSection } from '@/features/reminders/consent-section';
 import { useTenancies, useTenant } from '@/features/tenancy/api';
 import { TenancyTable } from '@/features/tenancy/tenancy-table';
 import { TenantDialog } from '@/features/tenancy/tenant-dialog';
+import { Attachments } from '@/features/files/attachments';
 import { formatBusinessDate } from '@/lib/format';
 
 export default function TenantDetailPage() {
@@ -89,6 +90,13 @@ export default function TenantDetailPage() {
           <EmptyState title="Chưa có lần thuê" />
         )}
       </Card>
+      <Attachments
+        ownerType="tenant"
+        ownerId={t.id}
+        title="Giấy tờ, tệp đính kèm"
+        categories={can(PERMISSIONS.FILES_IDENTITY_VIEW) ? ['IDENTITY', 'OTHER'] : ['OTHER']}
+        canManage={can(PERMISSIONS.TENANTS_MANAGE)}
+      />
       <TenantDialog open={editing} onClose={() => setEditing(false)} tenant={t} />
     </div>
   );

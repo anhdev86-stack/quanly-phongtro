@@ -505,4 +505,36 @@ Kiểm tra (07/10/2026):
 | `pnpm test:e2e specs/finance.spec.ts specs/reports.spec.ts` | ✅ (mỗi spec 1 bỏ qua có chủ đích trên mobile) |
 | `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
 
-## Phase 13–14 — V1.1 ⬜
+## Phase 13 — Vận hành ✅
+
+Nhánh `phase/13-operations`. Quyết định: D-039.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Kho tệp riêng tư (`StorageAdapter` thư mục riêng; volume `files` ở Docker), readiness kiểm tra kho | ✅ | S3/R2 chưa cần |
+| `POST/GET /files`, `GET /files/:id/content`, `POST /files/:id/archive`; quyền theo đối tượng, ảnh CCCD cần `files.identity.view` | ✅ | T34 cho tệp |
+| Yêu cầu bảo trì `GET/POST /maintenance-requests`, `PATCH /maintenance-requests/:id`; việc cần xử lý | ✅ | |
+| Sao lưu/khôi phục/diễn tập gồm tệp, đối chiếu sha256 với bảng `files` | ✅ | Diễn tập đạt; diễn tập phát hiện đúng tệp bị sửa |
+| UI: khối “Tệp đính kèm” ở người thuê, lần thuê, yêu cầu bảo trì; trang Bảo trì | ✅ | |
+| Ràng buộc SQL `files_size_chk`, `files_archive_chk`, `maintenance_resolved_chk` | ✅ | T47 |
+
+**Lỗi tìm thấy khi test và đã sửa:** tên tệp tiếng Việt bị hỏng mã hóa (multer đọc latin1); `tar` của Git Bash không hiểu đường dẫn Windows.
+
+**Sự cố môi trường 07/10/2026 8:37:** Docker Desktop không khởi động (socket hỏng `%LOCALAPPDATA%\Docker\run\sailor-ingest.sock`, lỗi 1920).
+Đã đổi tên thư mục `run` → `run.broken-20261007` để Docker chạy lại; nhưng cấu hình vị trí ổ dữ liệu bị mất nên Docker đang dùng **ổ tạm trống
+trên C:**. Dữ liệu dev thật vẫn nguyên ở `D:\DockerData\DockerDesktopWSL\disk\docker_data.vhdx`. Chủ dự án cần trỏ lại vị trí ổ (xem RUNBOOK
+“Sự cố thường gặp”). Test integration/E2E chạy trên ổ tạm.
+
+Kiểm tra (07/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint`, `pnpm typecheck`, `pnpm build` | ✅ |
+| `pnpm test` | ✅ 102 (api 80 — thêm test nhận diện tệp) |
+| `pnpm test:integration` | ✅ **326** (27 file; T47: 155) |
+| `pnpm test:e2e specs/maintenance.spec.ts` | ✅ (1 bỏ qua có chủ đích trên mobile) |
+| `node scripts/db-restore.mjs --drill` (database tạm, có tệp) | ✅ ĐẠT; sửa nội dung tệp → báo “sai sha256” |
+| Build lại image Docker | ⏳ Chưa build (ổ Docker tạm nằm trên C:); thay đổi Dockerfile: tạo `/data/files` thuộc user node |
+| `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
+
+## Phase 14 — V1.1 ⬜

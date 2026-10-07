@@ -17,6 +17,8 @@ export class ApiError extends Error {
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
+  /** multipart/form-data (tải tệp). Trình duyệt tự đặt Content-Type kèm boundary. */
+  form?: FormData;
   /** Bắt buộc cho thao tác tài chính (MASTER_PLAN 9.5). Tạo một lần cho mỗi lần người dùng bấm. */
   idempotencyKey?: string;
   signal?: AbortSignal;
@@ -51,7 +53,7 @@ function refreshOnce(): Promise<boolean> {
 function send(path: string, options: ApiRequestOptions): Promise<Response> {
   const method = options.method ?? 'GET';
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (options.body !== undefined && !options.form) headers['Content-Type'] = 'application/json';
   if (method !== 'GET') {
     const csrf = readCookie(COOKIE_NAMES.CSRF);
     if (csrf) headers[CSRF_HEADER] = csrf;
@@ -61,7 +63,7 @@ function send(path: string, options: ApiRequestOptions): Promise<Response> {
     method,
     headers,
     credentials: 'same-origin',
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.form ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
     signal: options.signal,
   });
 }

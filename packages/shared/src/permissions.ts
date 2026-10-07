@@ -50,6 +50,9 @@ export const PERMISSIONS = {
   /** V1.1 Phase 12: chi phí vận hành. Đảo chi phí cần finance.reverse. */
   EXPENSES_VIEW: 'expenses.view',
   EXPENSES_RECORD: 'expenses.record',
+  /** V1.1 Phase 13: yêu cầu bảo trì. */
+  MAINTENANCE_VIEW: 'maintenance.view',
+  MAINTENANCE_MANAGE: 'maintenance.manage',
   REMINDERS_VIEW: 'reminders.view',
   REMINDERS_MANAGE: 'reminders.manage',
   USERS_MANAGE: 'users.manage',
@@ -101,6 +104,8 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
       PERMISSIONS.PAYMENTS_RECORD,
       PERMISSIONS.REMINDERS_VIEW,
       PERMISSIONS.SETTLEMENTS_VIEW,
+      PERMISSIONS.MAINTENANCE_VIEW,
+      PERMISSIONS.MAINTENANCE_MANAGE,
     ],
   },
   // Vận hành trong tòa được giao: phòng, giữ chỗ, người thuê, nhận phòng, hợp đồng, điện nước; thông báo chỉ xem/tạo nháp.
@@ -126,6 +131,8 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
       PERMISSIONS.SETTLEMENT_MANAGE,
       PERMISSIONS.REMINDERS_VIEW,
       PERMISSIONS.EXPENSES_VIEW,
+      PERMISSIONS.MAINTENANCE_VIEW,
+      PERMISSIONS.MAINTENANCE_MANAGE,
       PERMISSIONS.AUDIT_VIEW_OPERATIONS,
     ],
   },
@@ -151,6 +158,7 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
       PERMISSIONS.REMINDERS_MANAGE,
       PERMISSIONS.EXPENSES_VIEW,
       PERMISSIONS.EXPENSES_RECORD,
+      PERMISSIONS.MAINTENANCE_VIEW,
       PERMISSIONS.AUDIT_VIEW_FINANCE,
     ],
   },
@@ -178,7 +186,7 @@ export const PERMISSION_GROUPS: { label: string; permissions: [PermissionCode, s
       [PERMISSIONS.TENANTS_VIEW, 'Xem người thuê'],
       [PERMISSIONS.TENANTS_MANAGE, 'Thêm/sửa người thuê, đồng ý nhận tin'],
       [PERMISSIONS.SENSITIVE_DATA_VIEW, 'Xem số CCCD, địa chỉ thường trú'],
-      [PERMISSIONS.FILES_IDENTITY_VIEW, 'Xem ảnh giấy tờ'],
+      [PERMISSIONS.FILES_IDENTITY_VIEW, 'Xem/tải ảnh giấy tờ tùy thân'],
       [PERMISSIONS.TENANCIES_MOVE_IN, 'Nhận phòng'],
       [PERMISSIONS.CONTRACTS_VIEW, 'Xem hợp đồng'],
       [PERMISSIONS.CONTRACTS_MANAGE, 'Tạo/ký/gia hạn hợp đồng'],
@@ -191,6 +199,8 @@ export const PERMISSION_GROUPS: { label: string; permissions: [PermissionCode, s
       [PERMISSIONS.SERVICES_MANAGE, 'Quản lý dịch vụ, giá dịch vụ'],
       [PERMISSIONS.METER_PRICES_MANAGE, 'Đặt/thay đổi giá điện nước'],
       [PERMISSIONS.METER_READINGS_RECORD, 'Nhập chỉ số điện nước'],
+      [PERMISSIONS.MAINTENANCE_VIEW, 'Xem yêu cầu bảo trì'],
+      [PERMISSIONS.MAINTENANCE_MANAGE, 'Tạo/xử lý yêu cầu bảo trì'],
     ],
   },
   {
@@ -240,7 +250,7 @@ export const PERMISSION_LABELS: Record<string, string> = Object.fromEntries(PERM
 export type AuditCategory = 'OPERATIONS' | 'FINANCE' | 'SYSTEM';
 
 export const AUDIT_FINANCE_PREFIXES = ['invoice', 'payment', 'credit', 'deposit', 'holding', 'holding_conversion', 'settlement', 'share_link', 'billing', 'reminder', 'expense'];
-export const AUDIT_OPERATIONS_PREFIXES = ['building', 'room', 'reservation', 'tenant', 'tenancy', 'contract', 'meter', 'meter_reading', 'meter_price', 'service', 'tenancy_service', 'rent', 'notice', 'member'];
+export const AUDIT_OPERATIONS_PREFIXES = ['building', 'room', 'reservation', 'tenant', 'tenancy', 'contract', 'meter', 'meter_reading', 'meter_price', 'service', 'tenancy_service', 'rent', 'notice', 'member', 'maintenance', 'file'];
 
 /**
  * Nhóm nhật ký theo phần đầu của `action` (VD `payment.reverse` → FINANCE). SYSTEM (đăng nhập, người dùng, cấu hình, tài khoản
