@@ -441,6 +441,8 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 
 ## D-041 — Chỉ hai vai trò: Chủ trọ và Quản lý (chủ dự án chốt 07/10/2026)
 
+- MASTER_PLAN đã cập nhật lên **v2.5** (mục 1.1, 1.2, 2.2, 11.2, 15, Phase 10, 20) theo quyết định này; bảng 11.2 khớp đúng quyền mặc định trong `ROLE_PRESETS`.
+
 - Thay cho bộ 4 vai trò ở MASTER_PLAN 11.2 (OWNER/STAFF ở MVP, thêm MANAGER/ACCOUNTANT ở V1.1): thực tế vận hành chỉ có chủ trọ và người
   quản lý. Chỉ gán được `OWNER` và `MANAGER` (API từ chối vai trò khác — 400; giao diện chỉ hiện hai lựa chọn). Khác mặc định thì dùng
   **quyền riêng theo người dùng** (D-036).

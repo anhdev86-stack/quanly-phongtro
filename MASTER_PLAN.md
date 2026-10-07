@@ -1,12 +1,18 @@
 # MASTER PLAN — PHẦN MỀM QUẢN LÝ NHÀ TRỌ
 
-**Phiên bản:** 2.4 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
-**Ngày:** 06/10/2026  
+**Phiên bản:** 2.5 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
+**Ngày:** 07/10/2026  
 **Ngôn ngữ UI:** Tiếng Việt  
 **Tiền tệ:** VND  
 **Múi giờ nghiệp vụ:** Asia/Ho_Chi_Minh
 
 > Đọc toàn bộ tài liệu trước khi triển khai. Đây là nguồn yêu cầu nghiệp vụ chính thức. Những mặc định kỹ thuật được ghi rõ bên dưới dùng để triển khai mà không phải tự đoán. Nếu có yêu cầu mới của chủ dự án, cập nhật tài liệu và ghi lại quyết định trước khi thay đổi nghiệp vụ.
+
+### Thay đổi so với v2.4 (yêu cầu của chủ dự án, 07/10/2026)
+
+| # | Mục | Thay đổi |
+|---|---|---|
+| 1 | 1.1, 1.2, 2.2, 11.2, 15, Phase 10, 20 | **Chỉ hai vai trò: OWNER (Chủ trọ) và MANAGER (Quản lý).** Bỏ STAFF và ACCOUNTANT. Khác mặc định thì cấp thêm/thu hồi quyền riêng cho từng người. Quản lý được ghi nhận thu tiền. Quyết định: `docs/DECISIONS.md` D-041. |
 
 ### Thay đổi so với v2.3 (yêu cầu mới của chủ dự án, 06/10/2026)
 
@@ -78,7 +84,7 @@ Bạn là kỹ sư full-stack chịu trách nhiệm xây dựng sản phẩm ch�
 
 ### 1.1 Mô hình
 
-**Một chủ trọ → nhiều tòa/khu → nhiều phòng → nhiều người thuê.** Có nhiều tài khoản nhân viên và phạm vi quyền theo tòa.
+**Một chủ trọ → nhiều tòa/khu → nhiều phòng → nhiều người thuê.** Có thể có nhiều tài khoản quản lý, mỗi người làm trong các tòa được giao.
 
 Phần mềm lưu điều khoản do hai bên thỏa thuận. Phần mềm không tự suy diễn quyền tăng giá, phạt hay tịch thu cọc từ trạng thái hợp đồng.
 
@@ -86,7 +92,7 @@ Phần mềm lưu điều khoản do hai bên thỏa thuận. Phần mềm khôn
 
 | Nhóm | MVP (bản dùng được đầu tiên) | V1.1 |
 |---|---|---|
-| Nền tảng | Đăng nhập, OWNER/STAFF, phạm vi theo tòa, audit backend, idempotency, transaction | Thêm vai trò MANAGER/ACCOUNTANT, chỉnh quyền theo người dùng, giao diện xem audit |
+| Nền tảng | Đăng nhập, hai vai trò OWNER/MANAGER, phạm vi theo tòa, audit backend, idempotency, transaction | Chỉnh quyền theo người dùng, giao diện xem audit |
 | Tòa/phòng | Tòa, phòng, trạng thái vận hành, giữ phòng, **tiền giữ chỗ** | — |
 | Thuê | Người thuê, thành viên, nhận phòng, cọc, **trạng thái tạm trú** | **Chuyển phòng**, ẩn danh dữ liệu cá nhân theo chính sách lưu trữ |
 | Hợp đồng | Nháp/ký, kỳ tương lai, hết hạn suy ra từ ngày, thuê tiếp theo tháng, gia hạn, chặn chồng kỳ, hủy kỳ chưa bắt đầu có lý do | Phụ lục/revision, thông báo theo mốc 30/15/7 ngày |
@@ -126,7 +132,7 @@ QR chỉ là hình thức ghi nhận thanh toán thủ công. Tạo QR không ph
 | Chứng từ đã phát hành | Bất biến nội dung tiền; sửa bằng chứng từ hoặc dòng điều chỉnh có liên kết |
 | Tiền và lịch sử | Không hard-delete chứng từ tài chính, hợp đồng đã ký hoặc tenancy |
 | Tên gọi trên UI | “Thông báo tiền phòng” (invoice), “Thông báo điều chỉnh” (adjustment), “Phiếu thu” (payment), “Biên bản quyết toán trả phòng”. Đây là chứng từ nội bộ, không phải hóa đơn GTGT/hóa đơn điện tử. Backend giữ tên `invoice`. |
-| **Mã QR đóng tiền** | VietQR chứa tài khoản nhận, số tiền còn phải trả, nội dung chuyển khoản theo mã thông báo. Khách quét bằng app ngân hàng. Chủ trọ/nhân viên **tự ghi nhận phiếu thu** khi thấy tiền vào. Tạo hay quét QR không bao giờ làm thông báo thành “đã thu”. |
+| **Mã QR đóng tiền** | VietQR chứa tài khoản nhận, số tiền còn phải trả, nội dung chuyển khoản theo mã thông báo. Khách quét bằng app ngân hàng. Chủ trọ/quản lý **tự ghi nhận phiếu thu** khi thấy tiền vào. Tạo hay quét QR không bao giờ làm thông báo thành “đã thu”. |
 | **Nhắc đóng tiền** | Hệ thống tự gửi Zalo/SMS tới người thuê theo mốc ngày đến hạn. Chỉ gửi cho thông báo đã phát hành và còn nợ. Mỗi mốc gửi tối đa một lần. Gửi tin không thay đổi trạng thái tiền. |
 | **Giá điện nước** | Đơn giá điện (đ/kWh) và nước (đ/m³) đặt **riêng cho từng tòa**, có lịch sử phiên bản. Đổi giá áp dụng từ kỳ đọc số tiếp theo. |
 
@@ -150,7 +156,7 @@ QR chỉ là hình thức ghi nhận thanh toán thủ công. Tạo QR không ph
 | Chỉ số chốt điện nước | Một đợt chốt cho mỗi tháng phát hành, thường nhập từ ngày cuối tháng trước đến ngày 3 |
 | Chia ngày | Theo số ngày thực tế của tháng (`ACTUAL_DAYS`) |
 | Làm tròn | HALF_UP đến 1 VND, áp dụng cho từng dòng |
-| STAFF ghi thu tiền | Được ghi thu; không được đảo, hoàn hoặc duyệt |
+| Quản lý ghi thu tiền | Được ghi thu trong tòa được giao; không được đảo, hoàn hoặc duyệt (trừ khi chủ trọ cấp riêng) |
 | Nội dung chuyển khoản VietQR | `<mã thông báo> <mã phòng>`, không dấu, tối đa 25 ký tự, ví dụ `TB2611-0012 A101` |
 | Mốc nhắc đóng tiền | Trước hạn 3 ngày, đúng ngày đến hạn, quá hạn 3 ngày; mỗi thông báo tối đa 3 tin |
 | Giờ gửi nhắc | 9:00 giờ Việt Nam; không gửi từ 21:00 đến 7:00 |
@@ -1050,7 +1056,7 @@ Bắt buộc có `Idempotency-Key` cho: nhận phòng, tiền giữ chỗ, gener
 - QR xuất hiện ở: trang chi tiết thông báo, trang in/lưu PDF, trang xem công khai qua link (bên dưới), và link trong tin nhắc đóng tiền.
 - Bên cạnh QR luôn ghi rõ ngân hàng, số tài khoản, tên chủ tài khoản, số tiền, nội dung, để khách chuyển tay nếu không quét được.
 
-**Ghi nhận tiền:** QR **không** làm thay đổi trạng thái. Khi thấy tiền vào tài khoản, chủ trọ/nhân viên bấm “Ghi nhận thu” (mục 9.1), chọn phương thức QR, nhập mã giao dịch ngân hàng vào `reference`. Màn hình thu tiền gợi ý sẵn số tiền và nội dung theo thông báo để đối chiếu nhanh.
+**Ghi nhận tiền:** QR **không** làm thay đổi trạng thái. Khi thấy tiền vào tài khoản, chủ trọ/quản lý bấm “Ghi nhận thu” (mục 9.1), chọn phương thức QR, nhập mã giao dịch ngân hàng vào `reference`. Màn hình thu tiền gợi ý sẵn số tiền và nội dung theo thông báo để đối chiếu nhanh.
 
 **Link xem thông báo** (`share_links`):
 
@@ -1147,34 +1153,38 @@ Bắt buộc có `Idempotency-Key` cho: nhận phòng, tiền giữ chỗ, gener
 
 Permission chi tiết theo dạng `module.action`, gồm thêm: `sensitive_data.view`, `files.identity.view`, `finance.reverse`, `settlement.approve`, `deposit.refund`, `credit.refund`, `holding.forfeit`, `contracts.cancel_signed`, `period.reopen`, `meter_prices.manage`, `payment_accounts.manage`, `invoices.share`, `reminders.view`, `reminders.manage`.
 
-### 11.2 MVP: OWNER và STAFF
+### 11.2 Vai trò: OWNER (Chủ trọ) và MANAGER (Quản lý)
 
-| Nhóm quyền | OWNER | STAFF (mặc định) |
+Hệ thống chỉ có **hai vai trò**. Mỗi người dùng mang một vai trò; cần khác mặc định thì chủ trọ **cấp thêm hoặc thu hồi từng quyền**
+cho người đó (V1.1).
+
+| Nhóm quyền | OWNER | MANAGER (mặc định, trong tòa được giao) |
 |---|---|---|
-| Tòa/phòng/người thuê | Toàn quyền | Xem trong tòa được giao; không thấy số CCCD |
-| Giữ phòng, tiền giữ chỗ | Có | Tạo giữ phòng, ghi nhận tiền giữ chỗ đã thu |
-| Nhận phòng/hợp đồng | Có | Không |
-| Chỉ số điện nước | Có | Nhập trong tòa được giao |
-| Thông báo tiền phòng | Tạo, phát hành, điều chỉnh | Xem; xem QR; tạo link gửi khách trong tòa được giao |
-| Giá điện nước theo tòa | Đặt và thay đổi giá | Xem |
-| Nhắc đóng tiền | Cấu hình, xem nhật ký, gửi lại | Xem nhật ký trong tòa được giao |
-| Thu tiền | Có | Ghi phiếu thu trong tòa được giao |
+| Phạm vi | Mọi tòa | Chỉ các tòa được giao |
+| Tòa | Thêm, sửa, lưu trữ | Xem |
+| Phòng, trạng thái vận hành | Có | Thêm, sửa phòng, đổi trạng thái vận hành |
+| Giữ phòng, tiền giữ chỗ | Có | Tạo giữ phòng, ghi nhận tiền giữ chỗ đã thu; không hoàn/giữ lại |
+| Người thuê, thành viên, tạm trú | Có | Có; **không thấy số CCCD, ảnh giấy tờ** |
+| Nhận phòng, ghi cọc, chuyển phòng | Có | Có |
+| Hợp đồng | Tạo, ký, gia hạn, phụ lục, hủy kỳ đã ký chưa bắt đầu | Tạo, ký, gia hạn, phụ lục; không hủy kỳ đã ký |
+| Dịch vụ, giá điện nước theo tòa | Đặt và thay đổi giá | Xem |
+| Chỉ số điện nước | Có | Nhập, sửa có lý do |
+| Thông báo tiền phòng | Tạo nháp, phát hành, điều chỉnh, hủy | Tạo nháp, xem, xem QR, tạo link gửi khách; không phát hành |
+| Thu tiền | Có | **Ghi nhận phiếu thu** |
 | Đảo, hoàn tiền, khấu trừ, giữ lại tiền giữ chỗ | Có | Không |
-| Quyết toán | Tạo, duyệt, hoàn tất | Xem |
-| Người dùng và cấu hình | Có | Không |
+| Báo trả, quyết toán | Tạo, duyệt, hoàn tất | Báo trả, tạo nháp quyết toán; không duyệt |
+| Đóng/mở kỳ phát hành | Có | Không |
+| Nhắc đóng tiền | Cấu hình, xem nhật ký, gửi lại | Xem nhật ký |
+| Bảo trì | Có | Tạo, xử lý |
+| Chi phí | Ghi, đảo | Xem |
+| Báo cáo, xuất CSV | Có | Không |
+| Nhật ký (audit) | Toàn bộ | Nhật ký vận hành trong tòa được giao |
+| Người dùng, phân quyền, cấu hình, tài khoản nhận tiền | Có | Không |
 
 - Phạm vi theo tòa được enforce ở backend ngay từ MVP.
-- **V1.1** thêm MANAGER, ACCOUNTANT và quyền chi tiết theo người dùng:
-
-| Nhóm quyền | MANAGER | ACCOUNTANT |
-|---|---|---|
-| Tòa/phòng/người thuê | Trong tòa được giao | Xem thông tin cần cho thu tiền |
-| Nhận phòng/hợp đồng | Có | Chỉ xem |
-| Thông báo/thu tiền/chi phí | Xem, tạo nháp | Tạo, phát hành, thu, chi trong phạm vi |
-| Duyệt quyết toán/khấu trừ | Nếu được cấp | Tạo nháp |
-| Hoàn tiền/đảo tài chính | Không mặc định | Khi được cấp riêng |
-| Audit | Phạm vi vận hành | Phạm vi tài chính |
-
+- Quyền chỉ chủ trọ có, **không cấp riêng** cho quản lý: xem mọi tòa, quản lý người dùng/phân quyền, xem toàn bộ nhật ký.
+- Quyền riêng theo người dùng (V1.1): quyền hiệu lực = quyền của vai trò ∪ quyền cấp thêm − quyền thu hồi; có hiệu lực ngay, có audit.
+  Ví dụ: cấp `invoices.publish` cho một quản lý được phát hành thông báo, `reports.view` để xem báo cáo.
 - Backend là nơi enforce; ẩn nút ở frontend chưa đủ. Test truy cập object ID thuộc tòa khác, export và dashboard. Không người dùng nào tự cấp quyền cho mình.
 
 ### 11.3 Bảo mật phiên
@@ -1354,7 +1364,7 @@ Tổng = 45; “sắp trả” không cộng thêm. Có ít nhất 2 tenancy END
 
 Fixture cần có: hợp đồng ACTIVE/EXPIRED/SCHEDULED; thuê theo tháng; gia hạn cùng tenancy; giá đổi từ kỳ sau; dịch vụ theo người/số lượng; chỉ số usage 0; ít nhất 3 tháng thông báo thu trước có lịch sử; invoice PARTIAL/OVERDUE/PAID; dòng đối soát do thành viên rời đi giữa tháng; trả trước hạn không phạt; quyết toán đủ cọc và thiếu cọc; credit refund và deposit refund chưa chi; tiền giữ chỗ chưa xử lý sau khi hủy giữ phòng; phòng sau trả cần bảo trì; người chưa đăng ký tạm trú.
 
-Ngày seed tính tương đối từ anchor date cấu hình, không dùng ngày ngẫu nhiên. Ghi mã phòng và kịch bản demo trong `docs/DEMO_SCENARIOS.md`. Tài khoản dev: 1 OWNER, 2 STAFF với phạm vi tòa khác nhau (V1.1 thêm MANAGER/ACCOUNTANT). Mật khẩu lấy từ biến môi trường seed; không bật tài khoản seed ở production.
+Ngày seed tính tương đối từ anchor date cấu hình, không dùng ngày ngẫu nhiên. Ghi mã phòng và kịch bản demo trong `docs/DEMO_SCENARIOS.md`. Tài khoản dev: 1 OWNER và 2 MANAGER với phạm vi tòa khác nhau. Mật khẩu lấy từ biến môi trường seed; không bật tài khoản seed ở production.
 
 ## 16. Thứ tự triển khai và tiêu chí nghiệm thu
 
@@ -1434,9 +1444,9 @@ E2E đầy đủ (mục 14), test concurrency và rollback, production build, r�
 
 #### Phase 10 — Quyền mở rộng và audit UI
 
-MANAGER, ACCOUNTANT, quyền theo người dùng, giao diện tra cứu audit.
+Vai trò MANAGER (mục 11.2), quyền theo người dùng, giao diện tra cứu audit.
 
-**Đạt:** ma trận quyền mục 11.2 có test; T34 cho các vai trò mới.
+**Đạt:** ma trận quyền mục 11.2 có test; T34 cho MANAGER; không ai tự cấp quyền cho mình.
 
 #### Phase 11 — Hợp đồng nâng cao và kỳ phát hành
 
@@ -1588,7 +1598,7 @@ main khi tôi chưa đồng ý.
 
 ### V1.1
 
-- [ ] Vai trò MANAGER/ACCOUNTANT và quyền theo người dùng.
+- [ ] Hai vai trò OWNER/MANAGER và quyền theo người dùng.
 - [ ] Phụ lục hợp đồng, đóng/mở kỳ, thông báo theo mốc.
 - [ ] Chi phí và báo cáo tài chính đầy đủ, tách doanh thu/thực thu/cọc/chi phí.
 - [ ] Tệp riêng tư, bảo trì.
