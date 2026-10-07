@@ -38,7 +38,7 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  workspace       Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  workspace           Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   roles               UserRole[]
   buildingScopes      UserBuildingScope[]
   refreshSessions     RefreshSession[]

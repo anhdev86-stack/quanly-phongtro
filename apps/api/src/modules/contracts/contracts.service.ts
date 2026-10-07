@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  type contractRevisionCreateSchema,
+  type ContractRevisionDto,
   type ContractDto,
   type contractCancelSchema,
   type contractCreateSchema,
@@ -14,7 +16,7 @@ import type { AuthUser } from '../../common/auth/auth-user.js';
 import { PG, pgErrorCode, violatedConstraint } from '../../common/db/pg-errors.js';
 import { nextSequence, yymm } from '../../common/db/sequences.js';
 import { updateVersioned } from '../../common/db/versioned.js';
-import { day, dayOrNull, naturalCompare, paged } from '../../common/dto/mappers.js';
+import { day, dayOrNull, iso, naturalCompare, paged } from '../../common/dto/mappers.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { contractStatus, type ContractDates, daysUntil, latestStartedSigned } from '../../domain/contracts/contract-status.js';
 import { addMonths, fromDbDate, toDbDate } from '../../domain/dates/date-only.js';
@@ -25,6 +27,7 @@ import { type Db, PrismaService } from '../../infrastructure/prisma/prisma.servi
 import { runInTransaction } from '../../infrastructure/prisma/transaction.js';
 import { AuditService } from '../audit/audit.service.js';
 import { RoomsService } from '../rooms/rooms.service.js';
+import { userNames } from '../utilities/user-names.js';
 
 type CreateInput = z.output<typeof contractCreateSchema>;
 
@@ -33,6 +36,15 @@ interface Terms {
   deposit_required_vnd: string | null;
   monthly_rent_vnd: string | null;
   terms_note: string | null;
+}
+
+/**
+ * Điều khoản của hợp đồng tại một ngày (V1.1): hợp đồng lưu điều khoản sau phụ lục mới nhất; phụ lục chưa tới ngày hiệu lực thì
+ * dùng điều khoản trước phụ lục đó.
+ */
+function termsOn(c: Contract & { revisions: { effectiveFrom: Date; termsBefore: unknown }[] }, onDate: string): Terms {
+  const pending = c.revisions.find((r) => fromDbDate(r.effectiveFrom) > onDate);
+  return (pending ? pending.termsBefore : c.termsSnapshot) as unknown as Terms;
 }
 
 const include = {
@@ -263,6 +275,131 @@ export class ContractsService {
     return { rent: rent.map((r) => r.id), services: services.map((s) => s.id) };
   }
 
+  // ------------------------------------------------------------------ Phụ lục (V1.1)
+
+  /**
+   * Phụ lục hợp đồng đã ký (V1.1, MASTER_PLAN 5.3: “sửa điều khoản qua phụ lục có liên kết”). Hợp đồng lưu điều khoản hiện hành;
+   * phụ lục lưu điều khoản trước/sau và ngày hiệu lực. Giá thuê mới → phiên bản giá có source_contract_id (hủy hợp đồng chưa bắt
+   * đầu sẽ vô hiệu hóa cùng). Mức cọc yêu cầu theo phụ lục áp từ ngày hiệu lực (requiredDepositOn). Kỳ hạn đổi được nhưng không
+   * chồng kỳ hợp đồng khác (EXCLUDE) và không kết thúc trước hôm nay.
+   */
+  async createRevision(user: AuthUser, contractId: string, input: z.output<typeof contractRevisionCreateSchema>): Promise<ContractRevisionDto> {
+    const id = await this.mapErrors(() =>
+      runInTransaction(this.prisma, async (tx) => {
+        const head = await this.getRow(tx, user, contractId);
+        await lockRows(tx, 'tenancies', [head.tenancyId]);
+        const row = await this.getRow(tx, user, contractId);
+        if (row.version !== input.expected_version) throw new AppError('VERSION_CONFLICT');
+        if (row.tenancy.status === 'ENDED') throw new AppError('BUSINESS_RULE_VIOLATION', 'Lần thuê đã kết thúc.');
+        const today = this.clock.today();
+        const status = contractStatus(toDates(row), today);
+        if (row.lifecycle !== 'SIGNED' || (status !== 'ACTIVE' && status !== 'SCHEDULED')) {
+          throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ lập phụ lục cho hợp đồng đã ký đang hiệu lực hoặc chưa bắt đầu.');
+        }
+        const dates = toDates(row);
+        if (input.effective_from < dates.termStart || input.effective_from > dates.termEnd) {
+          throw new AppError('VALIDATION_FAILED', undefined, { effective_from: ['Ngày hiệu lực phải nằm trong thời hạn hợp đồng.'] });
+        }
+        const before = row.termsSnapshot as unknown as Terms;
+        const after: Terms = {
+          notice_days: input.notice_days ?? before.notice_days,
+          deposit_required_vnd: input.deposit_required_vnd ?? before.deposit_required_vnd,
+          monthly_rent_vnd: input.monthly_rent_vnd ?? before.monthly_rent_vnd,
+          terms_note: input.terms_note ?? before.terms_note,
+        };
+        const termEndAfter = input.term_end ?? dates.termEnd;
+        if (input.term_end !== null) {
+          if (input.term_end < input.effective_from || input.term_end < today) {
+            throw new AppError('VALIDATION_FAILED', undefined, { term_end: ['Ngày kết thúc mới không trước ngày hiệu lực và không trước hôm nay.'] });
+          }
+        }
+
+        // Giá thuê: phiên bản giá mới từ ngày hiệu lực (chỉ khi khác giá đang áp dụng tại ngày đó).
+        let rentPriceId: string | null = null;
+        if (input.monthly_rent_vnd !== null) {
+          const current = await this.rentOn(tx, row.tenancyId, input.effective_from);
+          if (current === null || current !== BigInt(input.monthly_rent_vnd)) {
+            this.assertMonthBoundary(input.effective_from, input.confirm_mid_month_price, 'confirm_mid_month_price');
+            const p = await tx.rentPriceHistory.create({
+              data: {
+                tenancyId: row.tenancyId,
+                effectiveFrom: toDbDate(input.effective_from),
+                monthlyRentVnd: BigInt(input.monthly_rent_vnd),
+                sourceContractId: row.id,
+                reason: `Phụ lục hợp đồng ${row.code}: ${input.reason}`,
+                createdBy: user.id,
+              },
+            });
+            rentPriceId = p.id;
+          }
+        }
+        const revisionNo = (await tx.contractRevision.count({ where: { contractId } })) + 1;
+        const changes = {
+          monthly_rent_vnd: input.monthly_rent_vnd,
+          term_end: input.term_end,
+          deposit_required_vnd: input.deposit_required_vnd,
+          notice_days: input.notice_days,
+          terms_note: input.terms_note ?? null,
+        };
+        const rev = await tx.contractRevision.create({
+          data: {
+            contractId,
+            revisionNo,
+            effectiveFrom: toDbDate(input.effective_from),
+            changes: changes as unknown as Prisma.InputJsonValue,
+            termsBefore: { ...before, term_end: dates.termEnd } as unknown as Prisma.InputJsonValue,
+            termsAfter: { ...after, term_end: termEndAfter } as unknown as Prisma.InputJsonValue,
+            reason: input.reason,
+            createdBy: user.id,
+          },
+        });
+        await tx.contract.update({
+          where: { id: contractId },
+          data: { termsSnapshot: after as unknown as Prisma.InputJsonValue, termEnd: toDbDate(termEndAfter), version: { increment: 1 } },
+        });
+        if (input.notice_days !== null) await tx.tenancy.update({ where: { id: row.tenancyId }, data: { noticeDaysSnapshot: input.notice_days } });
+        await this.audit.record(tx, {
+          workspaceId: user.workspaceId,
+          actorId: user.id,
+          action: 'contract.revise',
+          entityType: 'contract',
+          entityId: contractId,
+          reason: input.reason,
+          before: { ...before, term_end: dates.termEnd },
+          after: { revision_no: revisionNo, effective_from: input.effective_from, ...changes, rent_price_id: rentPriceId },
+        });
+        return rev.id;
+      }),
+    );
+    return (await this.listRevisions(user, contractId)).find((r) => r.id === id)!;
+  }
+
+  async listRevisions(user: AuthUser, contractId: string): Promise<ContractRevisionDto[]> {
+    await this.getRow(this.prisma, user, contractId);
+    const rows = await this.prisma.contractRevision.findMany({ where: { contractId }, orderBy: { revisionNo: 'asc' } });
+    const names = await userNames(this.prisma, rows.map((r) => r.createdBy));
+    return rows.map((r) => {
+      const c = r.changes as Record<string, unknown>;
+      return {
+        id: r.id,
+        revision_no: r.revisionNo,
+        effective_from: day(r.effectiveFrom),
+        changes: {
+          monthly_rent_vnd: (c.monthly_rent_vnd as string | null) ?? null,
+          term_end: (c.term_end as string | null) ?? null,
+          deposit_required_vnd: (c.deposit_required_vnd as string | null) ?? null,
+          notice_days: (c.notice_days as number | null) ?? null,
+          terms_note: (c.terms_note as string | null) ?? null,
+        },
+        term_end_before: (r.termsBefore as { term_end: string }).term_end,
+        term_end_after: (r.termsAfter as { term_end: string }).term_end,
+        reason: r.reason,
+        created_by_name: names.get(r.createdBy) ?? null,
+        created_at: iso(r.createdAt)!,
+      };
+    });
+  }
+
   // ------------------------------------------------------------------ Giá thuê
 
   async listRentPrices(user: AuthUser, tenancyId: string) {
@@ -338,8 +475,8 @@ export class ContractsService {
 
   /** Mức cọc yêu cầu hiện hành: từ hợp đồng SIGNED đã bắt đầu gần nhất, ngược lại giá trị lúc nhận phòng (7.4). */
   async requiredDepositOn(db: Db, tenancy: Pick<Tenancy, 'id' | 'initialDepositRequiredVnd'>, onDate: string): Promise<bigint> {
-    const contracts = await db.contract.findMany({ where: { tenancyId: tenancy.id, lifecycle: 'SIGNED' } });
-    const current = latestStartedSigned(contracts.map((c) => ({ ...toDates(c), terms: c.termsSnapshot as unknown as Terms })), onDate);
+    const contracts = await db.contract.findMany({ where: { tenancyId: tenancy.id, lifecycle: 'SIGNED' }, include: { revisions: { orderBy: { revisionNo: 'asc' } } } });
+    const current = latestStartedSigned(contracts.map((c) => ({ ...toDates(c), terms: termsOn(c, onDate) })), onDate);
     const value = current?.terms.deposit_required_vnd;
     return value !== null && value !== undefined ? BigInt(value) : tenancy.initialDepositRequiredVnd;
   }

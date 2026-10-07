@@ -164,6 +164,8 @@ export const invoiceAdjustResultSchema = z.object({
   credit_invoice: invoiceSummarySchema.nullable(),
 });
 
+// ------------------------------------------------------------------ V1.1 Phase 11: đóng/mở kỳ phát hành
+
 export const statementPeriodSchema = z.object({
   id: z.string(),
   period: z.string(),
@@ -171,4 +173,13 @@ export const statementPeriodSchema = z.object({
   status: z.enum(['OPEN', 'CLOSED']),
   draft_count: z.number(),
   published_count: z.number(),
+  closed_at: z.string().nullable(),
+  closed_by_name: z.string().nullable(),
+  reopened_at: z.string().nullable(),
+  reopen_reason: z.string().nullable(),
+  version: z.number(),
 });
+export type StatementPeriodDto = z.infer<typeof statementPeriodSchema>;
+
+export const periodCloseSchema = z.strictObject({ expected_version: expectedVersionSchema });
+export const periodReopenSchema = z.strictObject({ reason: reasonSchema, expected_version: expectedVersionSchema });

@@ -114,3 +114,73 @@ export const rentPriceCreateSchema = z
       ctx.addIssue({ code: 'custom', path: ['effective_from'], message: 'Giá cho một tháng phải bắt đầu từ ngày 1.' });
     }
   });
+
+// ------------------------------------------------------------------ V1.1 Phase 11: phụ lục hợp đồng
+
+/** POST /contracts/:id/revisions — phụ lục đổi điều khoản của hợp đồng đã ký (ít nhất một điều khoản). */
+export const contractRevisionCreateSchema = z
+  .strictObject({
+    effective_from: businessDateSchema,
+    monthly_rent_vnd: moneyVndSchema.nullish().transform((v) => v ?? null),
+    term_end: businessDateSchema.nullish().transform((v) => v ?? null),
+    deposit_required_vnd: moneyVndSchema.nullish().transform((v) => v ?? null),
+    notice_days: z.number().int().min(0).max(365).nullish().transform((v) => v ?? null),
+    terms_note: optionalText(4000),
+    reason: reasonSchema,
+    /** Bắt buộc true nếu giá mới có hiệu lực giữa tháng (MASTER_PLAN 4.4). */
+    confirm_mid_month_price: z.boolean().default(false),
+    expected_version: expectedVersionSchema,
+  })
+  .superRefine((v, ctx) => {
+    if (v.monthly_rent_vnd === null && v.term_end === null && v.deposit_required_vnd === null && v.notice_days === null && !v.terms_note) {
+      ctx.addIssue({ code: 'custom', path: ['reason'], message: 'Phụ lục phải đổi ít nhất một điều khoản.' });
+    }
+  });
+
+export const contractRevisionSchema = z.object({
+  id: z.string(),
+  revision_no: z.number(),
+  effective_from: z.string(),
+  changes: z.object({
+    monthly_rent_vnd: z.string().nullable(),
+    term_end: z.string().nullable(),
+    deposit_required_vnd: z.string().nullable(),
+    notice_days: z.number().nullable(),
+    terms_note: z.string().nullable(),
+  }),
+  term_end_before: z.string(),
+  term_end_after: z.string(),
+  reason: z.string(),
+  created_by_name: z.string().nullable(),
+  created_at: z.string(),
+});
+export type ContractRevisionDto = z.infer<typeof contractRevisionSchema>;
+
+// ------------------------------------------------------------------ V1.1 Phase 11: cảnh báo hết hạn
+
+/** Mốc cảnh báo hợp đồng sắp hết hạn (ngày trước term_end). */
+export const CONTRACT_ALERT_MILESTONES = [30, 15, 7] as const;
+
+export const contractAlertQuerySchema = pageQuerySchema.extend({
+  include_acknowledged: z.enum(['true', 'false']).optional(),
+  building_id: uuidSchema.optional(),
+});
+
+export const contractAlertSchema = z.object({
+  id: z.string(),
+  contract_id: z.string(),
+  contract_code: z.string(),
+  tenancy_id: z.string(),
+  room_code: z.string(),
+  building_code: z.string(),
+  primary_tenant_name: z.string().nullable(),
+  term_end: z.string(),
+  milestone_days: z.number(),
+  days_to_expiry: z.number(),
+  /** Đã có kỳ hợp đồng ký tiếp (gia hạn) → cảnh báo không còn cần xử lý. */
+  renewed: z.boolean(),
+  created_at: z.string(),
+  acknowledged_at: z.string().nullable(),
+  acknowledged_by_name: z.string().nullable(),
+});
+export type ContractAlertDto = z.infer<typeof contractAlertSchema>;

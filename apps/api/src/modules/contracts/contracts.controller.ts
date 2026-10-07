@@ -2,11 +2,15 @@ import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/com
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   PERMISSIONS,
+  contractAlertQuerySchema,
+  contractAlertSchema,
   contractCancelResultSchema,
   contractCancelSchema,
   contractCreateSchema,
   contractListQuerySchema,
   contractRenewSchema,
+  contractRevisionCreateSchema,
+  contractRevisionSchema,
   contractSchema,
   contractSignSchema,
   pagedSchema,
@@ -19,12 +23,16 @@ import { CurrentUser, RequirePermissions } from '../../common/auth/decorators.js
 import { ApiErrorResponses, ApiZodBody, ApiZodResponse } from '../../common/openapi/zod-openapi.js';
 import { UuidPipe } from '../../common/validation/uuid.pipe.js';
 import { ZodPipe } from '../../common/validation/zod.pipe.js';
+import { ContractAlertsService } from './contract-alerts.service.js';
 import { ContractsService } from './contracts.service.js';
 
 @ApiTags('contracts')
 @Controller()
 export class ContractsController {
-  constructor(private readonly contracts: ContractsService) {}
+  constructor(
+    private readonly contracts: ContractsService,
+    private readonly alerts: ContractAlertsService,
+  ) {}
 
   @Get('contracts')
   @RequirePermissions(PERMISSIONS.CONTRACTS_VIEW)
@@ -93,6 +101,44 @@ export class ContractsController {
   @ApiErrorResponses(400, 401, 403, 404, 409, 422)
   cancel(@CurrentUser() user: AuthUser, @Param('id', UuidPipe) id: string, @Body(new ZodPipe(contractCancelSchema)) body: z.output<typeof contractCancelSchema>) {
     return this.contracts.cancel(user, id, body);
+  }
+
+  @Get('contracts/:id/revisions')
+  @RequirePermissions(PERMISSIONS.CONTRACTS_VIEW)
+  @ApiOperation({ summary: 'Phụ lục của hợp đồng (V1.1)' })
+  @ApiZodResponse(200, z.array(contractRevisionSchema), 'Danh sách phụ lục')
+  @ApiErrorResponses(401, 403, 404)
+  revisions(@CurrentUser() user: AuthUser, @Param('id', UuidPipe) id: string) {
+    return this.contracts.listRevisions(user, id);
+  }
+
+  @Post('contracts/:id/revisions')
+  @RequirePermissions(PERMISSIONS.CONTRACTS_MANAGE)
+  @ApiOperation({ summary: 'Lập phụ lục cho hợp đồng đã ký: đổi giá thuê, ngày kết thúc, mức cọc, số ngày báo trước, ghi chú (V1.1)' })
+  @ApiZodBody(contractRevisionCreateSchema)
+  @ApiZodResponse(201, contractRevisionSchema, 'Đã lập phụ lục')
+  @ApiErrorResponses(400, 401, 403, 404, 409, 422)
+  revise(@CurrentUser() user: AuthUser, @Param('id', UuidPipe) id: string, @Body(new ZodPipe(contractRevisionCreateSchema)) body: z.output<typeof contractRevisionCreateSchema>) {
+    return this.contracts.createRevision(user, id, body);
+  }
+
+  @Get('contract-alerts')
+  @RequirePermissions(PERMISSIONS.CONTRACTS_VIEW)
+  @ApiOperation({ summary: 'Cảnh báo hợp đồng sắp hết hạn theo mốc 30/15/7 ngày (V1.1); mỗi (hợp đồng, mốc) chỉ một cảnh báo' })
+  @ApiZodResponse(200, pagedSchema(contractAlertSchema), 'Danh sách cảnh báo')
+  @ApiErrorResponses(400, 401, 403)
+  listAlerts(@CurrentUser() user: AuthUser, @Query(new ZodPipe(contractAlertQuerySchema)) q: z.output<typeof contractAlertQuerySchema>) {
+    return this.alerts.list(user, q);
+  }
+
+  @Post('contract-alerts/:id/ack')
+  @HttpCode(200)
+  @RequirePermissions(PERMISSIONS.CONTRACTS_VIEW)
+  @ApiOperation({ summary: 'Đánh dấu đã xử lý cảnh báo hết hạn' })
+  @ApiZodResponse(200, contractAlertSchema, 'Đã xác nhận')
+  @ApiErrorResponses(401, 403, 404)
+  ack(@CurrentUser() user: AuthUser, @Param('id', UuidPipe) id: string) {
+    return this.alerts.acknowledge(user, id);
   }
 
   @Get('tenancies/:id/rent-prices')

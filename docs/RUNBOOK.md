@@ -167,6 +167,12 @@ docker compose -p ql-tro-trial --env-file .env.trial --profile full stop
 
 Mỗi lượt build image dùng vài GB build cache; kiểm tra dung lượng ổ dữ liệu Docker trước khi build (`docker system df`).
 
+## Đóng kỳ phát hành (V1.1)
+
+- Sau khi phát hành xong thông báo của một tháng và đối chiếu, vào **Thông báo tiền phòng → Kỳ phát hành → Đóng kỳ** (cần quyền phát hành
+  và phạm vi mọi tòa). Kỳ đã đóng không cho tạo/sửa chứng từ và chỉ số của tháng đó; thu tiền nợ cũ vẫn bình thường.
+- Cần sửa: **Mở lại** (quyền `period.reopen`, nhập lý do — ghi nhật ký), sửa, rồi đóng lại.
+
 ## Nhắc đóng tiền (Zalo/SMS)
 
 - Job chạy mỗi 15 phút trong tiến trình api (`REMINDER_JOB_ENABLED`). Nhật ký ở màn hình “Nhắc đóng tiền”.

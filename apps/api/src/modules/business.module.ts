@@ -4,6 +4,7 @@ import { AuditLogsService } from './audit/audit-logs.service.js';
 import { BillingController } from './billing/billing.controller.js';
 import { BillingMoveInExtension } from './billing/billing-move-in.js';
 import { BillingService, INVOICE_SETTLEMENT } from './billing/billing.service.js';
+import { PeriodsService } from './billing/periods.service.js';
 import { InvoiceBalances } from './payments/balances.js';
 import { CreditsService } from './payments/credits.service.js';
 import { DebtsService } from './payments/debts.service.js';
@@ -12,6 +13,7 @@ import { PaymentsService, REVERSAL_OBSERVERS } from './payments/payments.service
 import { SharingService } from './payments/sharing.service.js';
 import { ChargeCalculator } from './billing/charges.js';
 import { ContractDepositRequirement, ContractMoveInExtension, ContractRentalMode } from './contracts/contract-providers.js';
+import { ContractAlertsService } from './contracts/contract-alerts.service.js';
 import { ContractsController } from './contracts/contracts.controller.js';
 import { ContractsService } from './contracts/contracts.service.js';
 import { BuildingsController } from './buildings/buildings.controller.js';
@@ -80,6 +82,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     MembersService,
     LedgersService,
     ContractsService,
+    ContractAlertsService,
     ContractMoveInExtension,
     SettingsService,
     PricesService,
@@ -87,6 +90,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     SubscriptionsService,
     ChargeCalculator,
     BillingService,
+    PeriodsService,
     BillingMoveInExtension,
     InvoiceBalances,
     { provide: INVOICE_SETTLEMENT, useExisting: InvoiceBalances },

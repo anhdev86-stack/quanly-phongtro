@@ -26,6 +26,7 @@ import { lockRows } from '../../infrastructure/locking/lock-rows.js';
 import { type Db, PrismaService } from '../../infrastructure/prisma/prisma.service.js';
 import { runInTransaction } from '../../infrastructure/prisma/transaction.js';
 import { AuditService } from '../audit/audit.service.js';
+import { assertPeriodOpen, invoiceMonth } from './periods.service.js';
 import { OPEN_TENANCY_STATUSES, RoomsService } from '../rooms/rooms.service.js';
 import { ChargeCalculator, type ComputedLine, type ComputeResult, type Cutoff, monthlyCutoff, sourceHash, toItemData } from './charges.js';
 
@@ -134,7 +135,7 @@ export class BillingService {
       update: {},
       create: { workspaceId: tenancy.workspaceId, monthStart: toDbDate(monthStart) },
     });
-    if (period.status === 'CLOSED') throw new AppError('BUSINESS_RULE_VIOLATION', `Kỳ ${periodOf(monthStart)} đã đóng.`);
+    await assertPeriodOpen(tx, tenancy.workspaceId, monthStart, 'tạo thông báo tháng');
     const result = this.calc.compute(await this.calc.load(tx, tenancyId), monthlyCutoff(monthStart));
     const start = fromDbDate(tenancy.startDate);
     // Thông báo đầu tiên đến hạn vào ngày nhận phòng (7.2 bước 8); các tháng sau theo ngày đến hạn của lần thuê.
@@ -181,6 +182,7 @@ export class BillingService {
       const inv = await this.getRow(tx, user, id);
       if (inv.lifecycle !== 'DRAFT') throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ tính lại được thông báo nháp.');
       if (inv.version !== expectedVersion) throw new AppError('VERSION_CONFLICT');
+      await assertPeriodOpen(tx, inv.workspaceId, invoiceMonth(inv), 'tính lại thông báo');
       const result = this.calc.compute(await this.calc.load(tx, inv.tenancyId), this.cutoffOf(inv));
       const hash = sourceHash(result);
       await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
@@ -217,6 +219,7 @@ export class BillingService {
       const inv = await this.getRow(tx, user, id);
       if (inv.lifecycle !== 'DRAFT') throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ phát hành được thông báo nháp.');
       if (inv.version !== input.expected_version) throw new AppError('VERSION_CONFLICT');
+      await assertPeriodOpen(tx, inv.workspaceId, invoiceMonth(inv), 'phát hành thông báo');
       if (inv.sourceHash !== input.source_hash) throw new AppError('STALE', 'Nháp đã được tính lại sau khi bạn mở. Vui lòng tải lại và kiểm tra.');
       const result = this.calc.compute(await this.calc.load(tx, inv.tenancyId), this.cutoffOf(inv));
       if (sourceHash(result) !== inv.sourceHash) {
@@ -281,6 +284,7 @@ export class BillingService {
       const inv = await this.getRow(tx, user, id);
       if (inv.lifecycle === 'CANCELLED') throw new AppError('BUSINESS_RULE_VIOLATION', 'Thông báo đã hủy.');
       if (inv.version !== input.expected_version) throw new AppError('VERSION_CONFLICT');
+      await assertPeriodOpen(tx, inv.workspaceId, invoiceMonth(inv), 'hủy thông báo');
       if (inv.lifecycle === 'PUBLISHED') {
         const settled = (await this.settlement.settled(tx, [id])).get(id) ?? 0n;
         if (settled > 0n) throw new AppError('BUSINESS_RULE_VIOLATION', 'Thông báo đã có khoản thu hoặc cấn trừ; hãy đảo các khoản đó trước khi hủy.');
@@ -330,6 +334,8 @@ export class BillingService {
     }
     const created = await runInTransaction(this.prisma, async (tx) => {
       await lockRows(tx, 'tenancies', [source.tenancyId]);
+      // Chứng từ điều chỉnh lập trong tháng hiện tại.
+      await assertPeriodOpen(tx, source.workspaceId, firstDayOfMonth(this.clock.today()), 'lập chứng từ điều chỉnh');
       const result = this.calc.compute(await this.calc.load(tx, source.tenancyId), onlyPublished);
       if (!result.lines.length) throw new AppError('BUSINESS_RULE_VIOLATION', 'Không có chênh lệch nào cần điều chỉnh.');
       if (result.errors.length) throw new AppError('BUSINESS_RULE_VIOLATION', `Chưa điều chỉnh được: ${result.errors.map((e) => e.message).join(' ')}`);
@@ -437,23 +443,6 @@ export class BillingService {
       room_address: inv.tenancy.room.building.address,
       building_name: inv.tenancy.room.building.name,
     };
-  }
-
-  async statementPeriods(user: AuthUser) {
-    const periods = await this.prisma.statementPeriod.findMany({ where: { workspaceId: user.workspaceId }, orderBy: { monthStart: 'desc' }, take: 36 });
-    const counts = await this.prisma.invoice.groupBy({
-      by: ['statementPeriodId', 'lifecycle'],
-      where: { workspaceId: user.workspaceId, type: 'MONTHLY', tenancy: { room: this.rooms.roomWhere(user) } },
-      _count: { _all: true },
-    });
-    return periods.map((p) => ({
-      id: p.id,
-      period: periodOf(fromDbDate(p.monthStart)),
-      month_start: fromDbDate(p.monthStart),
-      status: p.status,
-      draft_count: counts.find((c) => c.statementPeriodId === p.id && c.lifecycle === 'DRAFT')?._count._all ?? 0,
-      published_count: counts.find((c) => c.statementPeriodId === p.id && c.lifecycle === 'PUBLISHED')?._count._all ?? 0,
-    }));
   }
 
   /** Tóm tắt kèm trạng thái thanh toán tính toán (5.4): UNPAID/PARTIAL/PAID + cờ quá hạn. */

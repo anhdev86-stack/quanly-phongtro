@@ -1,6 +1,6 @@
 'use client';
 
-import type { BillingResult, InvoiceDetail, InvoiceSummary, Paged } from '@ql-tro/shared';
+import type { BillingResult, InvoiceDetail, InvoiceSummary, Paged, StatementPeriodDto } from '@ql-tro/shared';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { qs, useApiMutation } from '@/lib/query';
@@ -51,3 +51,13 @@ export async function publishDraft(id: string) {
   const inv = await api<InvoiceDetail>(`/invoices/${id}`);
   return api<{ invoice: InvoiceDetail }>(`/invoices/${id}/publish`, { method: 'POST', body: { expected_version: inv.version, source_hash: inv.source_hash } });
 }
+
+export const useStatementPeriods = () =>
+  useQuery({ queryKey: billingKeys.periods, queryFn: ({ signal }) => api<StatementPeriodDto[]>('/statement-periods', { signal }) });
+
+/** Đóng/mở lại tháng phát hành (V1.1). */
+export const usePeriodAction = () =>
+  useApiMutation<{ id: string; action: 'close' | 'reopen'; body: Record<string, unknown> }, StatementPeriodDto>(
+    ({ id, action, body }) => ({ path: `/statement-periods/${id}/${action}`, method: 'POST', body }),
+    invalidate,
+  );

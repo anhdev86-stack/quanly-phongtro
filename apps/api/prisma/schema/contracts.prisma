@@ -26,9 +26,50 @@ model Contract {
   createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  tenancy Tenancy @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  tenancy   Tenancy            @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  revisions ContractRevision[]
+  alerts    ContractAlert[]
 
   @@unique([workspaceId, code])
   @@index([tenancyId])
   @@map("contracts")
+}
+
+/// V1.1 (Phase 11): phụ lục hợp đồng đã ký. Hợp đồng lưu điều khoản hiện hành; phụ lục lưu điều khoản trước/sau và ngày hiệu lực.
+model ContractRevision {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  contractId    String   @map("contract_id") @db.Uuid
+  revisionNo    Int      @map("revision_no")
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  /// Các điều khoản được đổi: monthly_rent_vnd, term_end, deposit_required_vnd, notice_days, terms_note.
+  changes       Json
+  /// Điều khoản và ngày kết thúc trước/sau phụ lục.
+  termsBefore   Json     @map("terms_before")
+  termsAfter    Json     @map("terms_after")
+  reason        String
+  createdBy     String   @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+
+  @@unique([contractId, revisionNo])
+  @@map("contract_revisions")
+}
+
+/// V1.1 (Phase 11): cảnh báo hợp đồng sắp hết hạn theo mốc 30/15/7 ngày. Unique theo (hợp đồng, ngày hết hạn, mốc): không tạo trùng.
+model ContractAlert {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  workspaceId    String    @map("workspace_id") @db.Uuid
+  contractId     String    @map("contract_id") @db.Uuid
+  termEnd        DateTime  @map("term_end") @db.Date
+  milestoneDays  Int       @map("milestone_days")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  acknowledgedAt DateTime? @map("acknowledged_at") @db.Timestamptz(3)
+  acknowledgedBy String?   @map("acknowledged_by") @db.Uuid
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+
+  @@unique([contractId, termEnd, milestoneDays])
+  @@index([workspaceId, acknowledgedAt])
+  @@map("contract_alerts")
 }

@@ -697,6 +697,36 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       await expectRejected((tx) => msg(tx, { status: 'SKIPPED' }), 'reminder_messages_state_chk');
       await expectRejected((tx) => msg(tx, { attemptCount: -1 }), 'reminder_messages_state_chk');
     },
+
+    // ---------------- Phase 11 ----------------
+    statement_periods_closed_chk: async () => {
+      const close = async (tx: Prisma.TransactionClient, closedAt: Date | null) =>
+        tx.statementPeriod.update({ where: { id: await period(tx, '2031-08-01') }, data: { status: 'CLOSED', closedAt } });
+      await expectAccepted((tx) => close(tx, new Date()));
+      await expectRejected((tx) => close(tx, null), 'statement_periods_closed_chk');
+      await expectRejected(
+        async (tx) => tx.statementPeriod.update({ where: { id: await period(tx, '2031-09-01') }, data: { closedAt: new Date() } }),
+        'statement_periods_closed_chk',
+      );
+    },
+    contract_revisions_no_chk: async () => {
+      const rev = async (tx: Prisma.TransactionClient, revisionNo: number) => {
+        const c = await contract(tx, await mkTenancy(tx, await mkRoom(tx)), '2026-10-01', '2027-03-31', { lifecycle: 'SIGNED', signedAt: new Date('2026-10-01') });
+        return tx.contractRevision.create({
+          data: { contractId: c.id, revisionNo, effectiveFrom: new Date('2026-11-01'), changes: {}, termsBefore: {}, termsAfter: {}, reason: 'x', createdBy: userId },
+        });
+      };
+      await expectAccepted((tx) => rev(tx, 1));
+      await expectRejected((tx) => rev(tx, 0), 'contract_revisions_no_chk');
+    },
+    contract_alerts_milestone_chk: async () => {
+      const alert = async (tx: Prisma.TransactionClient, milestoneDays: number) => {
+        const c = await contract(tx, await mkTenancy(tx, await mkRoom(tx)), '2026-10-01', '2027-03-31');
+        return tx.contractAlert.create({ data: { workspaceId: W, contractId: c.id, termEnd: new Date('2027-03-31'), milestoneDays } });
+      };
+      await expectAccepted((tx) => alert(tx, 1));
+      await expectRejected((tx) => alert(tx, 0), 'contract_alerts_milestone_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
 
   const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>

@@ -1,6 +1,8 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
+  periodCloseSchema,
+  periodReopenSchema,
   billingResultSchema,
   billingRunSchema,
   invoiceAdjustResultSchema,
@@ -24,11 +26,15 @@ import { ApiErrorResponses, ApiZodBody, ApiZodResponse } from '../../common/open
 import { UuidPipe } from '../../common/validation/uuid.pipe.js';
 import { ZodPipe } from '../../common/validation/zod.pipe.js';
 import { BillingService } from './billing.service.js';
+import { PeriodsService } from './periods.service.js';
 
 @ApiTags('billing')
 @Controller()
 export class BillingController {
-  constructor(private readonly billing: BillingService) {}
+  constructor(
+    private readonly billing: BillingService,
+    private readonly periodsService: PeriodsService,
+  ) {}
 
   @Post('billing/preview')
   @HttpCode(200)
@@ -58,7 +64,29 @@ export class BillingController {
   @ApiZodResponse(200, z.array(statementPeriodSchema), 'Kỳ')
   @ApiErrorResponses(401, 403)
   periods(@CurrentUser() user: AuthUser) {
-    return this.billing.statementPeriods(user);
+    return this.periodsService.list(user);
+  }
+
+  @Post('statement-periods/:id/close')
+  @HttpCode(200)
+  @RequirePermissions(PERMISSIONS.INVOICES_PUBLISH)
+  @ApiOperation({ summary: 'Đóng tháng phát hành (V1.1): chặn tạo/sửa chứng từ và chỉ số của tháng; cần phạm vi mọi tòa, không còn nháp' })
+  @ApiZodBody(periodCloseSchema)
+  @ApiZodResponse(200, statementPeriodSchema, 'Đã đóng')
+  @ApiErrorResponses(400, 401, 403, 404, 409, 422)
+  close(@CurrentUser() user: AuthUser, @Param('id', UuidPipe) id: string, @Body(new ZodPipe(periodCloseSchema)) body: z.output<typeof periodCloseSchema>) {
+    return this.periodsService.close(user, id, body);
+  }
+
+  @Post('statement-periods/:id/reopen')
+  @HttpCode(200)
+  @RequirePermissions(PERMISSIONS.PERIOD_REOPEN)
+  @ApiOperation({ summary: 'Mở lại tháng đã đóng (cần quyền period.reopen và lý do, có audit — T36)' })
+  @ApiZodBody(periodReopenSchema)
+  @ApiZodResponse(200, statementPeriodSchema, 'Đã mở lại')
+  @ApiErrorResponses(400, 401, 403, 404, 409, 422)
+  reopen(@CurrentUser() user: AuthUser, @Param('id', UuidPipe) id: string, @Body(new ZodPipe(periodReopenSchema)) body: z.output<typeof periodReopenSchema>) {
+    return this.periodsService.reopen(user, id, body);
   }
 
   @Get('invoices')

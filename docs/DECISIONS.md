@@ -357,3 +357,25 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - Thời điểm nhật ký là giờ thật lúc ghi (`now()` của DB), không theo đồng hồ nghiệp vụ.
 - Sửa lỗi giao diện chung tìm thấy khi test mobile: khung cuộn của `Table` cần `relative` (tiêu đề `sr-only` định vị tuyệt đối làm
   trang rộng ra trên điện thoại); thân `Dialog` cần `min-h-0`.
+
+## D-037 — Phụ lục hợp đồng, đóng/mở kỳ, cảnh báo hết hạn (Phase 11)
+
+- **Phụ lục** (`contract_revisions`): chỉ cho hợp đồng SIGNED đang ACTIVE/SCHEDULED, ngày hiệu lực trong thời hạn. Đổi được: giá thuê,
+  ngày kết thúc, mức cọc yêu cầu, số ngày báo trước, ghi chú. Hàng `contracts` giữ **điều khoản hiện hành** (sau phụ lục mới nhất);
+  phụ lục lưu điều khoản trước/sau → hợp đồng gốc khôi phục được từ phụ lục số 1. Có `expected_version`, số phụ lục tăng dần dưới khóa tenancy.
+  - Giá thuê mới → phiên bản giá `source_contract_id` = hợp đồng, từ ngày hiệu lực (giữa tháng cần xác nhận); hủy hợp đồng chưa bắt đầu
+    vô hiệu hóa cả giá của phụ lục. Đối soát kỳ sau tự xử lý chênh lệch như đổi giá thường.
+  - Mức cọc yêu cầu áp **từ ngày hiệu lực**: `requiredDepositOn` dùng điều khoản trước phụ lục nếu phụ lục chưa tới ngày.
+  - Ngày kết thúc mới không trước ngày hiệu lực và không trước hôm nay; chồng kỳ đã ký kế tiếp bị EXCLUDE chặn (409).
+  - Số ngày báo trước cập nhật ngay vào lần thuê.
+- **Đóng kỳ** (`statement_periods.status`): chỉ tháng đã qua, không còn nháp, người có `invoices.publish` **và** phạm vi mọi tòa (kỳ là của cả
+  nhà trọ). Kỳ CLOSED chặn: tạo thông báo tháng (kể cả nhận phòng lùi ngày vào tháng đó), tính lại, phát hành, hủy chứng từ của tháng
+  (tháng phát hành, hoặc tháng của ngày lập với chứng từ không có kỳ), nhập/sửa chỉ số của kỳ; chứng từ điều chỉnh và quyết toán lập trong
+  tháng hiện tại nên bị chặn nếu tháng hiện tại đóng. **Không chặn** thu tiền/đảo phiếu thu vào nợ cũ. Kiểm tra trong transaction với
+  `FOR SHARE` trên dòng kỳ; đóng kỳ khóa `FOR UPDATE` nên không chạy chồng.
+- **Mở lại**: quyền `period.reopen` (mặc định chỉ chủ trọ, cấp riêng được) + phạm vi mọi tòa + lý do; ghi audit `billing.period_reopen`.
+  CHECK `statement_periods_closed_chk`: CLOSED ⇔ có `closed_at`.
+- **Cảnh báo hết hạn** (`contract_alerts`): mốc 30/15/7 ngày, sinh khi đọc danh sách (không cần cron); unique (hợp đồng, ngày hết hạn, mốc)
+  nên đọc lặp/song song không tạo trùng. Mỗi lần chỉ tạo mốc nhỏ nhất ≥ số ngày còn lại; danh sách mở chỉ hiện mốc mới nhất chưa xác nhận.
+  Gia hạn (có kỳ ký sau) hoặc phụ lục đổi ngày kết thúc làm cảnh báo cũ hết hiệu lực. Đây là cảnh báo trong ứng dụng cho người quản lý,
+  không gửi tin cho người thuê.

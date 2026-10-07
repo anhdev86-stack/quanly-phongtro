@@ -100,6 +100,9 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `settlement_items_amount_chk` | settlement_items | CHECK | `20261006155140_phase7_move_out` | Khoản phí trả phòng > 0; dòng số dư ≥ 0 |
 | `reminder_settings_hours_chk` | reminder_settings | CHECK | `20261006164950_phase8b_reminders` | Giờ gửi/giờ yên lặng 0–23 |
 | `reminder_messages_state_chk` | reminder_messages | CHECK | `20261006164950_phase8b_reminders` | SENT ⇔ có thời điểm + kênh; SKIPPED có lý do |
+| `statement_periods_closed_chk` | statement_periods | CHECK | `20261007002334_phase11_contracts_periods` | Kỳ CLOSED ⇔ có thời điểm đóng |
+| `contract_revisions_no_chk` | contract_revisions | CHECK | `20261007002334_phase11_contracts_periods` | Số phụ lục ≥ 1 |
+| `contract_alerts_milestone_chk` | contract_alerts | CHECK | `20261007002334_phase11_contracts_periods` | Mốc cảnh báo > 0 ngày |
 
 ```json manual-constraints
 [
@@ -510,6 +513,24 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "reminder_messages",
     "definition": "CHECK ((((status = 'SENT'::\"ReminderStatus\") = ((sent_at IS NOT NULL) AND (channel_used IS NOT NULL))) AND ((status <> 'SKIPPED'::\"ReminderStatus\") OR (skip_reason IS NOT NULL)) AND (attempt_count >= 0)))"
+  },
+  {
+    "name": "statement_periods_closed_chk",
+    "kind": "check",
+    "table": "statement_periods",
+    "definition": "CHECK (((status = 'CLOSED'::\"StatementPeriodStatus\") = (closed_at IS NOT NULL)))"
+  },
+  {
+    "name": "contract_revisions_no_chk",
+    "kind": "check",
+    "table": "contract_revisions",
+    "definition": "CHECK ((revision_no >= 1))"
+  },
+  {
+    "name": "contract_alerts_milestone_chk",
+    "kind": "check",
+    "table": "contract_alerts",
+    "definition": "CHECK ((milestone_days > 0))"
   }
 ]
 ```

@@ -456,4 +456,30 @@ Kiểm tra (07/10/2026):
 | `pnpm test:e2e specs/permissions.spec.ts specs/reminders.spec.ts` | ✅ 10 |
 | `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
 
-## Phase 11–14 — V1.1 ⬜
+## Phase 11 — Hợp đồng nâng cao và kỳ phát hành ✅
+
+Nhánh `phase/11-contracts-periods`. Quyết định: D-037.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Phụ lục hợp đồng: `POST/GET /contracts/:id/revisions`; giá/kỳ hạn/cọc/báo trước/ghi chú, có lịch sử trước–sau | ✅ | Giá mới có `source_contract_id`; cọc áp từ ngày hiệu lực |
+| Đóng/mở tháng phát hành: `POST /statement-periods/:id/close`, `/reopen` (quyền, lý do, audit) | ✅ | T36 |
+| Chặn thao tác trên kỳ đã đóng: tạo/tính lại/phát hành/hủy chứng từ, nhận phòng lùi ngày, nhập/sửa chỉ số, điều chỉnh/quyết toán trong tháng đóng | ✅ | Thu tiền vào nợ cũ vẫn được |
+| Cảnh báo hết hạn 30/15/7 ngày, không tạo trùng cùng mốc, xác nhận đã xử lý | ✅ | `GET /contract-alerts`, `POST /contract-alerts/:id/ack` |
+| Ràng buộc SQL: `statement_periods_closed_chk`, `contract_revisions_no_chk`, `contract_alerts_milestone_chk` | ✅ | T47 |
+| UI: nút “Phụ lục” và danh sách phụ lục ở trang lần thuê; trang “Kỳ phát hành”; thẻ cảnh báo ở Hợp đồng và Tổng quan | ✅ | |
+
+**Lỗi tìm thấy nhờ test và đã sửa:** sau khi xác nhận cảnh báo mốc 15 ngày, cảnh báo mốc 30 cũ hiện lại — mốc mới nhất nay tính trên mọi
+cảnh báo kể cả đã xác nhận.
+
+Kiểm tra (07/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint`, `pnpm typecheck`, `pnpm build` | ✅ |
+| `pnpm test` | ✅ 100 |
+| `pnpm test:integration` | ✅ **310** (25 file; T47: 143) |
+| `pnpm test:e2e specs/contracts-v11.spec.ts specs/contracts.spec.ts specs/billing.spec.ts specs/reports.spec.ts` | ✅ (contracts.spec sửa selector do thẻ cảnh báo mới) |
+| `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
+
+## Phase 12–14 — V1.1 ⬜
