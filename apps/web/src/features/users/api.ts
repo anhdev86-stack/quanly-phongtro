@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserDto } from '@ql-tro/shared';
+import type { RoleDto, UserDto } from '@ql-tro/shared';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useApiMutation } from '@/lib/query';
@@ -30,5 +30,13 @@ export const useSetUserScopes = () =>
 export const useResetPassword = () =>
   useApiMutation<{ id: string; new_password: string; expected_version: number }, UserDto>(
     ({ id, ...body }) => ({ path: `/users/${id}/reset-password`, method: 'POST', body }),
+    [key],
+  );
+
+export const useRoles = () => useQuery({ queryKey: ['roles'], queryFn: ({ signal }) => api<RoleDto[]>('/roles', { signal }), staleTime: 60_000 });
+
+export const useSetPermissionOverrides = () =>
+  useApiMutation<{ id: string; overrides: { permission: string; granted: boolean }[]; expected_version: number }, UserDto>(
+    ({ id, ...body }) => ({ path: `/users/${id}/permission-overrides`, method: 'PUT', body }),
     [key],
   );

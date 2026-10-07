@@ -431,4 +431,29 @@ Kiểm tra (07/10/2026):
 Chủ dự án đã dời Disk image location sang `D:\DockerData\DockerDesktopWSL`. Đã xóa `apps/web/.next`, `.next-e2e` (bản build, tự tạo lại).
 Không mất dữ liệu dev.
 
-## Phase 10–14 — V1.1 ⬜
+## Phase 10 — Quyền mở rộng và audit UI ✅
+
+Nhánh `phase/10-permissions-audit`. Quyết định: D-036.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Vai trò MANAGER, ACCOUNTANT (preset theo bảng 11.2), đồng bộ bởi seed/`db:bootstrap` | ✅ | Seed dev thêm `manager.a@`, `accountant.b@` |
+| Quyền theo người dùng: bảng `user_permission_overrides`, `PUT /users/:id/permission-overrides`, `PUT /users/:id/roles`, `GET /roles` | ✅ | Chống tự nâng quyền |
+| Nhật ký: `audit_logs.building_id` + backfill, `GET /audit-logs` theo nhóm và tòa | ✅ | |
+| UI: hộp thoại “Quyền” ở Người dùng, trang `/audit` (lọc nhóm/tòa/thao tác/ngày, xem trước–sau) | ✅ | Nav “Nhật ký” theo quyền |
+| Ma trận quyền 11.2 có test; T34 cho vai trò mới (đối tượng tòa khác 404, danh sách, dashboard, CSV) | ✅ | `test/access/roles-v11.int.test.ts` |
+
+**Lỗi tìm thấy khi test mobile và đã sửa:** trang có bảng bị rộng hơn màn hình điện thoại (tiêu đề `sr-only` thoát khung cuộn) —
+sửa chung ở `Table`; thân hộp thoại thiếu `min-h-0`; dòng quyền dài làm tràn ngang hộp thoại.
+
+Kiểm tra (07/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint`, `pnpm typecheck`, `pnpm build` | ✅ |
+| `pnpm test` | ✅ 100 (shared 16, api 78, web 6) |
+| `pnpm test:integration` | ✅ **300** (24 file; test Phase 1 “ACCOUNTANT chưa kích hoạt” đổi thành “đã kích hoạt”) |
+| `pnpm test:e2e specs/permissions.spec.ts specs/reminders.spec.ts` | ✅ 10 |
+| `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
+
+## Phase 11–14 — V1.1 ⬜

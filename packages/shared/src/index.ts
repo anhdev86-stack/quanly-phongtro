@@ -13,3 +13,4 @@ export * from './payments.js';
 export * from './settlements.js';
 export * from './reports.js';
 export * from './reminders.js';
+export * from './audit.js';

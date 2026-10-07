@@ -9,20 +9,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Table, Td, Th, Tr } from '@/components/ui/table';
+import { useMe } from '@/features/auth/api';
 import { useUsers } from '@/features/users/api';
+import { PermissionsDialog } from '@/features/users/permissions-dialog';
 import { UserCreateDialog, UserEditDialog } from '@/features/users/user-dialogs';
 
 export default function UsersPage() {
   const users = useUsers();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<UserDto | null>(null);
+  const [perms, setPerms] = useState<UserDto | null>(null);
+  const me = useMe();
 
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
         back={{ href: '/settings', label: 'Cấu hình' }}
         title="Người dùng & phân quyền"
-        description="Chủ trọ thấy mọi tòa. Nhân viên chỉ thấy và thao tác trong tòa được giao."
+        description="Chủ trọ thấy mọi tòa. Quản lý, kế toán, nhân viên chỉ thấy và thao tác trong tòa được giao; quyền có thể cấp thêm hoặc thu hồi theo từng người."
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus className="size-4" aria-hidden />
@@ -44,6 +48,9 @@ export default function UsersPage() {
                 <Th>Vai trò</Th>
                 <Th className="hidden sm:table-cell">Tòa được giao</Th>
                 <Th>Trạng thái</Th>
+                <Th className="text-right">
+                  <span className="sr-only">Quyền</span>
+                </Th>
               </tr>
             </thead>
             <tbody>
@@ -55,11 +62,21 @@ export default function UsersPage() {
                     </button>
                   </Td>
                   <Td className="text-slate-600">{u.email}</Td>
-                  <Td>{u.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}</Td>
+                  <Td>
+                    {u.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}
+                    {u.permission_overrides.length ? <div className="text-xs text-amber-700">{u.permission_overrides.length} quyền riêng</div> : null}
+                  </Td>
                   <Td className="hidden text-slate-600 sm:table-cell">
                     {u.roles.includes('OWNER') ? 'Mọi tòa' : u.buildings.map((b) => b.code).join(', ') || 'Chưa giao'}
                   </Td>
                   <Td>{u.is_active ? <Badge tone="green">Hoạt động</Badge> : <Badge tone="gray">Đã khóa</Badge>}</Td>
+                  <Td className="text-right" onClick={(e) => e.stopPropagation()}>
+                    {!u.roles.includes('OWNER') && u.id !== me.data?.id ? (
+                      <Button variant="outline" size="sm" onClick={() => setPerms(u)}>
+                        Quyền
+                      </Button>
+                    ) : null}
+                  </Td>
                 </Tr>
               ))}
             </tbody>
@@ -68,6 +85,7 @@ export default function UsersPage() {
       </Card>
       <UserCreateDialog open={creating} onClose={() => setCreating(false)} />
       <UserEditDialog user={editing} onClose={() => setEditing(null)} />
+      <PermissionsDialog user={perms} onClose={() => setPerms(null)} />
     </div>
   );
 }

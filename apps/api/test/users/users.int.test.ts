@@ -35,9 +35,11 @@ describe('Phase 1 — quản lý người dùng', () => {
     expect(login2.status).toBe(200);
   });
 
-  it('email trùng trả 409; vai trò chưa kích hoạt trả 422', async () => {
+  it('email trùng trả 409; MANAGER/ACCOUNTANT đã kích hoạt từ Phase 10', async () => {
     expect((await send('post', '/api/v1/users', { email: 'owner@example.test', display_name: 'x', password: '12345678', role: 'STAFF' })).status).toBe(409);
-    expect((await send('post', '/api/v1/users', { email: 'kt@example.test', display_name: 'x', password: '12345678', role: 'ACCOUNTANT' })).status).toBe(422);
+    const kt = await send('post', '/api/v1/users', { email: 'kt@example.test', display_name: 'x', password: '12345678', role: 'ACCOUNTANT' });
+    expect(kt.status, JSON.stringify(kt.body)).toBe(201);
+    expect(kt.body.roles).toEqual(['ACCOUNTANT']);
   });
 
   it('STAFF không truy cập được quản lý người dùng', async () => {

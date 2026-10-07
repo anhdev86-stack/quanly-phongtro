@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { type MeResponse, PERMISSIONS } from '@ql-tro/shared';
 import { createHash, randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../common/auth/auth-user.js';
+import { effectivePermissions } from '../../common/auth/effective-permissions.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { APP_CONFIG, type AppConfig } from '../../config/env.js';
 import type { Prisma } from '../../generated/prisma/client.js';
@@ -174,12 +175,15 @@ export class AuthService {
       include: {
         roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
         buildingScopes: { select: { buildingId: true } },
+        permissionOverrides: { include: { permission: true } },
       },
     });
     if (!user || !user.isActive || user.workspaceId !== payload.wid) return null;
 
-    const permissions = new Set<string>();
-    for (const ur of user.roles) for (const rp of ur.role.permissions) permissions.add(rp.permission.code);
+    const permissions = effectivePermissions(
+      user.roles.flatMap((ur) => ur.role.permissions.map((rp) => rp.permission.code)),
+      user.permissionOverrides.map((o) => ({ code: o.permission.code, granted: o.granted })),
+    );
 
     return {
       id: user.id,

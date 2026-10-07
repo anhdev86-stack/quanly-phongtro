@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AuditLogsController } from './audit/audit-logs.controller.js';
+import { AuditLogsService } from './audit/audit-logs.service.js';
 import { BillingController } from './billing/billing.controller.js';
 import { BillingMoveInExtension } from './billing/billing-move-in.js';
 import { BillingService, INVOICE_SETTLEMENT } from './billing/billing.service.js';
@@ -26,7 +28,7 @@ import { TenanciesController } from './tenancies/tenancies.controller.js';
 import { MOVE_IN_EXTENSIONS, RENTAL_MODE, TenanciesService } from './tenancies/tenancies.service.js';
 import { TenantsController } from './tenants/tenants.controller.js';
 import { TenantsService } from './tenants/tenants.service.js';
-import { UsersController } from './users/users.controller.js';
+import { RolesController, UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
 import { ReportsController } from './reports/reports.controller.js';
 import { DASHBOARD_TODO, ReportsService } from './reports/reports.service.js';
@@ -54,6 +56,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     RoomsController,
     ReservationsController,
     UsersController,
+    RolesController,
     TenantsController,
     TenanciesController,
     LedgersController,
@@ -65,6 +68,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     SettlementsController,
     ReportsController,
     RemindersController,
+    AuditLogsController,
   ],
   providers: [
     BuildingsService,
@@ -95,6 +99,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     SettlementEventsObserver,
     ReportsService,
     ChannelRegistry,
+    AuditLogsService,
     RemindersService,
     { provide: DASHBOARD_TODO, useExisting: RemindersService },
     { provide: REVERSAL_OBSERVERS, useFactory: (events: SettlementEventsObserver) => [events], inject: [SettlementEventsObserver] },

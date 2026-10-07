@@ -1,6 +1,6 @@
 'use client';
 
-import type { MeResponse } from '@ql-tro/shared';
+import { type MeResponse, ROLE_LABELS } from '@ql-tro/shared';
 import { Building2, LogOut, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -10,7 +10,6 @@ import { useLogout } from '@/features/auth/api';
 import { cn } from '@/lib/utils';
 import { CURRENT_PHASE, NAV_ITEMS } from './nav-items';
 
-const ROLE_LABELS: Record<string, string> = { OWNER: 'Chủ trọ', STAFF: 'Nhân viên' };
 
 export function AppShell({ me, children }: { me: MeResponse; children: ReactNode }) {
   const pathname = usePathname();

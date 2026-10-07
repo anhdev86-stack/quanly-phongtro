@@ -1,7 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { UserDto, userCreateSchema, userResetPasswordSchema, userScopesSchema, userUpdateSchema } from '@ql-tro/shared';
+import {
+  OWNER_ONLY_PERMISSIONS,
+  PERMISSION_LABELS,
+  type permissionOverridesSchema,
+  type RoleDto,
+  type UserDto,
+  type userCreateSchema,
+  type userResetPasswordSchema,
+  type userRoleSchema,
+  type userScopesSchema,
+  type userUpdateSchema,
+} from '@ql-tro/shared';
 import type { z } from 'zod';
 import type { AuthUser } from '../../common/auth/auth-user.js';
+import { effectivePermissions } from '../../common/auth/effective-permissions.js';
 import { PG, pgErrorCode } from '../../common/db/pg-errors.js';
 import { updateVersioned } from '../../common/db/versioned.js';
 import { naturalCompare } from '../../common/dto/mappers.js';
@@ -15,8 +27,9 @@ import { AuditService } from '../audit/audit.service.js';
 import { hashPassword } from '../auth/password.js';
 
 const userInclude = {
-  roles: { include: { role: true } },
+  roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
   buildingScopes: { include: { building: true } },
+  permissionOverrides: { include: { permission: true } },
 } satisfies Prisma.UserInclude;
 
 type UserRow = Prisma.UserGetPayload<{ include: typeof userInclude }>;
@@ -67,9 +80,66 @@ export class UsersService {
     }
   }
 
+  /** Vai trò mặc định và quyền của chúng (đọc từ database, đồng bộ bởi seed/`db:bootstrap`). */
+  async roles(): Promise<RoleDto[]> {
+    const rows = await this.prisma.role.findMany({ include: { permissions: { include: { permission: true } } }, orderBy: { code: 'asc' } });
+    const order = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'STAFF'];
+    return rows
+      .sort((a, b) => order.indexOf(a.code) - order.indexOf(b.code))
+      .map((r) => ({ code: r.code, name: r.name, permissions: r.permissions.map((p) => p.permission.code).sort() }));
+  }
+
+  /** PUT /users/:id/roles — đổi vai trò (một vai trò mỗi người). Không ai tự đổi vai trò của mình. */
+  async setRole(actor: AuthUser, id: string, input: z.output<typeof userRoleSchema>): Promise<UserDto> {
+    if (id === actor.id) throw new AppError('BUSINESS_RULE_VIOLATION', 'Không thể tự đổi vai trò hay quyền của mình.');
+    return this.update(actor, id, { role: input.role, expected_version: input.expected_version });
+  }
+
+  /**
+   * PUT /users/:id/permission-overrides — thay toàn bộ quyền riêng (V1.1). Quy tắc chống tự nâng quyền:
+   * không tự sửa quyền của mình; không áp cho chủ trọ; không cấp riêng quyền chỉ chủ trọ có (OWNER_ONLY_PERMISSIONS).
+   * Có hiệu lực ngay ở request kế tiếp (quyền đọc lại từ database mỗi request).
+   */
+  async setOverrides(actor: AuthUser, id: string, input: z.output<typeof permissionOverridesSchema>): Promise<UserDto> {
+    if (id === actor.id) throw new AppError('BUSINESS_RULE_VIOLATION', 'Không thể tự đổi vai trò hay quyền của mình.');
+    const before = await this.getRow(actor, id);
+    if (hasRole(before, 'OWNER')) throw new AppError('BUSINESS_RULE_VIOLATION', 'Chủ trọ đã có mọi quyền, không cần quyền riêng.');
+    const forbidden = input.overrides.filter((o) => o.granted && OWNER_ONLY_PERMISSIONS.includes(o.permission as never));
+    if (forbidden.length) {
+      throw new AppError('BUSINESS_RULE_VIOLATION', `Không cấp riêng quyền chỉ chủ trọ có: ${forbidden.map((o) => PERMISSION_LABELS[o.permission] ?? o.permission).join(', ')}.`, {
+        overrides: ['Quyền chỉ dành cho chủ trọ.'],
+      });
+    }
+    await runInTransaction(this.prisma, async (tx) => {
+      await lockRows(tx, 'users', [id]);
+      await updateVersioned(tx.user, { id, workspaceId: actor.workspaceId }, input.expected_version, {});
+      const perms = await tx.permission.findMany({ where: { code: { in: input.overrides.map((o) => o.permission) } } });
+      const idOf = new Map(perms.map((p) => [p.code, p.id]));
+      await tx.userPermissionOverride.deleteMany({ where: { userId: id } });
+      if (input.overrides.length) {
+        await tx.userPermissionOverride.createMany({
+          data: input.overrides.map((o) => ({ userId: id, permissionId: idOf.get(o.permission)!, granted: o.granted, createdBy: actor.id })),
+        });
+      }
+      await this.audit.record(tx, {
+        workspaceId: actor.workspaceId,
+        actorId: actor.id,
+        action: 'user.set_permission_overrides',
+        entityType: 'user',
+        entityId: id,
+        before: { overrides: before.permissionOverrides.map((o) => ({ permission: o.permission.code, granted: o.granted })) },
+        after: { overrides: input.overrides },
+      });
+    });
+    return this.get(actor, id);
+  }
+
   async update(actor: AuthUser, id: string, input: z.output<typeof userUpdateSchema>): Promise<UserDto> {
     const before = await this.getRow(actor, id);
     const isSelf = id === actor.id;
+    if (isSelf && input.role !== undefined && !hasRole(before, input.role)) {
+      throw new AppError('BUSINESS_RULE_VIOLATION', 'Không thể tự đổi vai trò hay quyền của mình.');
+    }
     if (isSelf && input.is_active === false) throw new AppError('BUSINESS_RULE_VIOLATION', 'Không thể tự vô hiệu hóa tài khoản của mình.');
     if (isSelf && input.role !== undefined && input.role !== 'OWNER' && hasRole(before, 'OWNER')) {
       throw new AppError('BUSINESS_RULE_VIOLATION', 'Không thể tự bỏ vai trò chủ trọ của mình.');
@@ -85,7 +155,10 @@ export class UsersService {
         const role = await this.findRole(tx, input.role);
         await tx.userRole.deleteMany({ where: { userId: id } });
         await tx.userRole.create({ data: { userId: id, roleId: role.id } });
-        if (input.role === 'OWNER') await tx.userBuildingScope.deleteMany({ where: { userId: id } });
+        if (input.role === 'OWNER') {
+          await tx.userBuildingScope.deleteMany({ where: { userId: id } });
+          await tx.userPermissionOverride.deleteMany({ where: { userId: id } });
+        }
       }
       if (input.is_active === false) await this.revokeSessions(tx, id, 'account_disabled');
       await this.assertHasActiveOwner(tx, actor.workspaceId);
@@ -183,6 +256,15 @@ function toDto(u: UserRow): UserDto {
     display_name: u.displayName,
     is_active: u.isActive,
     roles: u.roles.map((r) => r.role.code).sort(),
+    permission_overrides: u.permissionOverrides
+      .map((o) => ({ permission: o.permission.code, granted: o.granted }))
+      .sort((a, b) => a.permission.localeCompare(b.permission)),
+    effective_permissions: [
+      ...effectivePermissions(
+        u.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.code)),
+        u.permissionOverrides.map((o) => ({ code: o.permission.code, granted: o.granted })),
+      ),
+    ].sort(),
     buildings: u.buildingScopes
       .map((s) => ({ id: s.building.id, code: s.building.code, name: s.building.name }))
       .sort((a, b) => naturalCompare(a.code, b.code)),

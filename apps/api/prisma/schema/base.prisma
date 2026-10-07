@@ -39,9 +39,10 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   workspace       Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
-  roles           UserRole[]
-  buildingScopes  UserBuildingScope[]
-  refreshSessions RefreshSession[]
+  roles               UserRole[]
+  buildingScopes      UserBuildingScope[]
+  refreshSessions     RefreshSession[]
+  permissionOverrides UserPermissionOverride[]
 
   // Cho phép FK kép (id, workspace_id) để bảo đảm liên kết cùng workspace.
   @@unique([id, workspaceId])
@@ -68,7 +69,8 @@ model Permission {
   description String?
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  roles RolePermission[]
+  roles         RolePermission[]
+  userOverrides UserPermissionOverride[]
 
   @@map("permissions")
 }
@@ -82,6 +84,22 @@ model RolePermission {
 
   @@id([roleId, permissionId])
   @@map("role_permissions")
+}
+
+/// V1.1: quyền chi tiết theo người dùng. Quyền hiệu lực = quyền của vai trò ∪ granted − (granted = false).
+model UserPermissionOverride {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  granted      Boolean
+  createdBy    String   @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@map("user_permission_overrides")
 }
 
 model UserRole {
@@ -265,11 +283,14 @@ model AuditLog {
   after       Json?
   reason      String?
   requestId   String?  @map("request_id")
+  /// Tòa của đối tượng lúc ghi (V1.1): người dùng giới hạn theo tòa chỉ xem nhật ký trong tòa được giao. Không FK.
+  buildingId  String?  @map("building_id") @db.Uuid
   occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(3)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   @@index([workspaceId, occurredAt])
+  @@index([workspaceId, buildingId, occurredAt])
   @@index([entityType, entityId])
   @@map("audit_logs")
 }

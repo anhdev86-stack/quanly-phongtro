@@ -1,6 +1,16 @@
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { PERMISSIONS, userCreateSchema, userResetPasswordSchema, userSchema, userScopesSchema, userUpdateSchema } from '@ql-tro/shared';
+import {
+  PERMISSIONS,
+  permissionOverridesSchema,
+  roleSchema,
+  userCreateSchema,
+  userResetPasswordSchema,
+  userRoleSchema,
+  userSchema,
+  userScopesSchema,
+  userUpdateSchema,
+} from '@ql-tro/shared';
 import { z } from 'zod';
 import type { AuthUser } from '../../common/auth/auth-user.js';
 import { CurrentUser, RequirePermissions } from '../../common/auth/decorators.js';
@@ -75,5 +85,44 @@ export class UsersController {
     @Body(new ZodPipe(userResetPasswordSchema)) body: z.output<typeof userResetPasswordSchema>,
   ) {
     return this.users.resetPassword(actor, id, body);
+  }
+
+  @Put(':id/roles')
+  @RequirePermissions(PERMISSIONS.USERS_MANAGE)
+  @ApiOperation({ summary: 'Đổi vai trò (OWNER/MANAGER/ACCOUNTANT/STAFF); không tự đổi vai trò của mình' })
+  @ApiZodBody(userRoleSchema)
+  @ApiZodResponse(200, userSchema, 'Đã cập nhật')
+  @ApiErrorResponses(400, 401, 403, 404, 409, 422)
+  setRole(@CurrentUser() actor: AuthUser, @Param('id', UuidPipe) id: string, @Body(new ZodPipe(userRoleSchema)) body: z.output<typeof userRoleSchema>) {
+    return this.users.setRole(actor, id, body);
+  }
+
+  @Put(':id/permission-overrides')
+  @RequirePermissions(PERMISSIONS.USERS_MANAGE)
+  @ApiOperation({ summary: 'Quyền riêng theo người dùng: cấp thêm/thu hồi so với vai trò (không tự cấp cho mình, không cấp quyền chỉ chủ trọ có)' })
+  @ApiZodBody(permissionOverridesSchema)
+  @ApiZodResponse(200, userSchema, 'Đã cập nhật')
+  @ApiErrorResponses(400, 401, 403, 404, 409, 422)
+  setOverrides(
+    @CurrentUser() actor: AuthUser,
+    @Param('id', UuidPipe) id: string,
+    @Body(new ZodPipe(permissionOverridesSchema)) body: z.output<typeof permissionOverridesSchema>,
+  ) {
+    return this.users.setOverrides(actor, id, body);
+  }
+}
+
+@ApiTags('users')
+@Controller('roles')
+export class RolesController {
+  constructor(private readonly users: UsersService) {}
+
+  @Get()
+  @RequirePermissions(PERMISSIONS.USERS_MANAGE)
+  @ApiOperation({ summary: 'Vai trò và quyền mặc định của từng vai trò' })
+  @ApiZodResponse(200, z.array(roleSchema), 'Danh sách vai trò')
+  @ApiErrorResponses(401, 403)
+  list() {
+    return this.users.roles();
   }
 }
