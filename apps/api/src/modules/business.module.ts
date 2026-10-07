@@ -28,6 +28,7 @@ import { ServicesCatalogController } from './services/services.controller.js';
 import { MembersService } from './tenancies/members.service.js';
 import { TenanciesController } from './tenancies/tenancies.controller.js';
 import { MOVE_IN_EXTENSIONS, RENTAL_MODE, TenanciesService } from './tenancies/tenancies.service.js';
+import { TransfersService } from './tenancies/transfers.service.js';
 import { TenantsController } from './tenants/tenants.controller.js';
 import { TenantsService } from './tenants/tenants.service.js';
 import { RolesController, UsersController } from './users/users.controller.js';
@@ -89,6 +90,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     UsersService,
     TenantsService,
     TenanciesService,
+    TransfersService,
     MembersService,
     LedgersService,
     ContractsService,

@@ -109,6 +109,8 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `files_size_chk` | files | CHECK | `20261007010744_phase13_operations` | 0 < kích thước ≤ 10 MB; sha256 hex |
 | `files_archive_chk` | files | CHECK | `20261007010744_phase13_operations` | Lưu trữ tệp có thời điểm ⇔ có lý do |
 | `maintenance_resolved_chk` | maintenance_requests | CHECK | `20261007010744_phase13_operations` | DONE ⇔ có thời điểm xử lý |
+| `room_transfers_deposit_chk` | room_transfers | CHECK | `20261007022543_phase14_transfers` | Số tiền ≥ 0; có tiền ⇔ có đủ cặp TRANSFER_OUT/IN |
+| `room_transfers_distinct_chk` | room_transfers | CHECK | `20261007022543_phase14_transfers` | Lần thuê cũ khác lần thuê mới |
 
 ```json manual-constraints
 [
@@ -573,6 +575,18 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "maintenance_requests",
     "definition": "CHECK (((status = 'DONE'::\"MaintenanceStatus\") = (resolved_at IS NOT NULL)))"
+  },
+  {
+    "name": "room_transfers_deposit_chk",
+    "kind": "check",
+    "table": "room_transfers",
+    "definition": "CHECK (((deposit_amount_vnd >= 0) AND ((deposit_amount_vnd = 0) = (deposit_transfer_out_id IS NULL)) AND ((deposit_transfer_out_id IS NULL) = (deposit_transfer_in_id IS NULL))))"
+  },
+  {
+    "name": "room_transfers_distinct_chk",
+    "kind": "check",
+    "table": "room_transfers",
+    "definition": "CHECK ((from_tenancy_id <> to_tenancy_id))"
   }
 ]
 ```

@@ -145,7 +145,26 @@ export class TenanciesService {
       })),
       deposit,
       initial_readings: row.readings.map((r) => ({ type: r.meter.type, value: decimal(r.value) ?? '0', read_on: day(r.readOn) })),
+      ...(await this.transferLinks(id)),
     };
+  }
+
+  /** Liên kết chuyển phòng (V1.1): lần thuê bên kia có thể ngoài phạm vi tòa của người xem — chỉ hiện mã, phòng, ngày. */
+  private async transferLinks(id: string): Promise<Pick<TenancyDetail, 'transferred_to' | 'transferred_from'>> {
+    const select = { code: true, id: true, room: { select: { code: true, building: { select: { code: true } } } } } as const;
+    const [to, from] = [
+      await this.prisma.roomTransfer.findUnique({ where: { fromTenancyId: id }, include: { toTenancy: { select } } }),
+      await this.prisma.roomTransfer.findUnique({ where: { toTenancyId: id }, include: { fromTenancy: { select } } }),
+    ];
+    const link = (t: { id: string; code: string; room: { code: string; building: { code: string } } }, r: { transferDate: Date; depositAmountVnd: bigint }) => ({
+      tenancy_id: t.id,
+      tenancy_code: t.code,
+      room_code: t.room.code,
+      building_code: t.room.building.code,
+      transfer_date: day(r.transferDate),
+      deposit_amount_vnd: r.depositAmountVnd.toString(),
+    });
+    return { transferred_to: to ? link(to.toTenancy, to) : null, transferred_from: from ? link(from.fromTenancy, from) : null };
   }
 
   // ------------------------------------------------------------------ Nhận phòng (MASTER_PLAN 7.2)
@@ -164,7 +183,8 @@ export class TenanciesService {
     }
   }
 
-  private async moveInTx(tx: Prisma.TransactionClient, user: AuthUser, input: MoveInInput): Promise<Tenancy> {
+  /** Nhận phòng trong transaction có sẵn (dùng chung cho chuyển phòng — Phase 14). */
+  async moveInTx(tx: Prisma.TransactionClient, user: AuthUser, input: MoveInInput): Promise<Tenancy> {
     // 1. Khóa phòng, kiểm tra điều kiện nhận phòng.
     await lockRows(tx, 'rooms', [input.room_id]);
     const room = await this.rooms.getRow(tx, user, input.room_id);

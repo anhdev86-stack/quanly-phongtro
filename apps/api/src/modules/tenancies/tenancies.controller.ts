@@ -8,6 +8,7 @@ import {
   memberResidenceSchema,
   memberSetPrimarySchema,
   moveInSchema,
+  roomTransferCreateSchema,
   pagedSchema,
   tenancyDetailSchema,
   tenancyListQuerySchema,
@@ -21,9 +22,11 @@ import { ApiErrorResponses, ApiZodBody, ApiZodResponse } from '../../common/open
 import { UuidPipe } from '../../common/validation/uuid.pipe.js';
 import { ZodPipe } from '../../common/validation/zod.pipe.js';
 import { MembersService } from './members.service.js';
+import { TransfersService } from './transfers.service.js';
 import { TenanciesService } from './tenancies.service.js';
 
 const createdRef = z.object({ id: z.string(), code: z.string() });
+const transferResult = z.object({ id: z.string(), code: z.string(), transfer_id: z.string(), deposit_amount_vnd: z.string() });
 
 @ApiTags('tenancies')
 @Controller()
@@ -31,6 +34,7 @@ export class TenanciesController {
   constructor(
     private readonly tenancies: TenanciesService,
     private readonly members: MembersService,
+    private readonly transfers: TransfersService,
   ) {}
 
   @Get('tenancies')
@@ -55,6 +59,26 @@ export class TenanciesController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const r = await this.tenancies.moveIn(user, body, key);
+    res.status(r.status);
+    return r.body;
+  }
+
+  @Post('tenancies/:id/transfer')
+  @RequirePermissions(PERMISSIONS.TENANCIES_MOVE_IN)
+  @ApiOperation({
+    summary: 'Chuyển phòng (V1.1): lần thuê cũ đã quyết toán; tạo lần thuê mới từ ngày sau ngày cuối tính tiền, chuyển cọc bằng cặp TRANSFER_OUT/IN. Cần Idempotency-Key',
+  })
+  @ApiZodBody(roomTransferCreateSchema)
+  @ApiZodResponse(201, transferResult, 'Đã chuyển phòng')
+  @ApiErrorResponses(400, 401, 403, 404, 409, 422)
+  async transfer(
+    @CurrentUser() user: AuthUser,
+    @Param('id', UuidPipe) id: string,
+    @Headers(IDEMPOTENCY_HEADER) key: string | undefined,
+    @Body(new ZodPipe(roomTransferCreateSchema)) body: z.output<typeof roomTransferCreateSchema>,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const r = await this.transfers.transfer(user, id, body, key);
     res.status(r.status);
     return r.body;
   }

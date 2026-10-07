@@ -420,3 +420,21 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   `STORAGE_DIR` hiểu từ `apps/api`) | `container` (volume của service api) | `off`. Dùng `tar` của hệ điều hành (Windows: `System32\tar.exe`
   vì GNU tar của Git Bash hiểu `C:` là máy chủ từ xa). Diễn tập giải nén vào thư mục tạm và đối chiếu **từng dòng bảng `files`** của database
   khôi phục (có tệp + đúng sha256); khôi phục database chính thì chép thêm tệp vào kho (chỉ thêm, không ghi đè).
+
+## D-040 — Chuyển phòng (Phase 14)
+
+- **Hai bước, tái dùng quy trình sẵn có** (MASTER_PLAN 7.7): (1) trả phòng + quyết toán lần thuê cũ như bình thường, ngày cuối tính tiền là
+  ngày trước ngày sang phòng mới — thông báo cuối, áp cọc vào nợ/khấu trừ nếu có, đều theo luồng Phase 7; (2) `POST /tenancies/:id/transfer`
+  trong **một transaction**: nhận phòng mới (dùng chung `TenanciesService.moveInTx`: kiểm tra phòng, sức chứa, giữ phòng, thông báo đầu
+  tiên…), chuyển cọc còn giữ bằng cặp `TRANSFER_OUT` (lần thuê cũ) ↔ `TRANSFER_IN` (lần thuê mới) liên kết hai chiều, cùng số tiền, ghi
+  `room_transfers`, nhật ký hai phía. Lỗi bất kỳ bước nào thì rollback toàn bộ.
+- Điều kiện: lần thuê cũ ENDED, có quyết toán COMPLETED; `start_date` **bằng** ngày sau ngày cuối tính tiền (không hở, không chồng); phòng mới
+  khác phòng cũ; người đại diện và người ở cùng phải là người của lần thuê cũ (người mới thêm sau ở mục Thành viên); mỗi lần thuê chỉ chuyển
+  một lần (unique). Quyền `tenancies.move_in` + phạm vi tòa của lần thuê cũ (ngoài tòa → 404); cần Idempotency-Key.
+- Số cọc chuyển mặc định = toàn bộ cọc đang giữ; được chuyển ít hơn (phần còn lại vẫn là khoản phải hoàn ở phòng cũ), không nhiều hơn.
+- **Credit (tiền dư) không chuyển**: chỉ cấn trừ nợ của lần thuê cũ hoặc hoàn (MASTER_PLAN 7.7).
+- Đảo: đảo một phía cặp `TRANSFER_*` luôn đảo cả cặp (đã có từ Phase 2); bị chặn nếu cọc phía nhận đã được dùng. Sửa thứ tự khóa khi đảo:
+  khóa cả hai lần thuê một lần theo thứ tự id (trước đây khóa lần thuê gốc trước rồi mới khóa cặp → có thể deadlock khi đảo từ hai phía).
+- Ràng buộc: `room_transfers_deposit_chk` (số tiền ≥ 0; có tiền ⇔ có đủ cặp giao dịch), `room_transfers_distinct_chk`; FK tới hai giao dịch cọc.
+  Tính liên kết hai chiều của cặp giao dịch được kiểm tra bằng service + integration test (như cặp giữ chỗ → cọc).
+- **Chính sách lưu trữ và ẩn danh dữ liệu cá nhân: chưa làm** — chờ chủ dự án xác nhận yêu cầu pháp lý và thời hạn (MASTER_PLAN 2.3 mục 1, 11.4).

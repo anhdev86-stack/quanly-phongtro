@@ -19,6 +19,7 @@ import { Attachments } from '@/features/files/attachments';
 import { MembersSection } from '@/features/tenancy/members-section';
 import { TenancyExtraSections, TenancyHeaderActions } from '@/features/tenancy/tenancy-extra-sections';
 import { RentalModeBadge, TenancyStatusBadge } from '@/features/tenancy/tenancy-status';
+import { TransferSection } from '@/features/tenancy/transfer';
 import { formatBusinessDate, formatVnd } from '@/lib/format';
 
 export default function TenancyDetailPage() {
@@ -53,6 +54,8 @@ export default function TenancyDetailPage() {
         description={`${t.building_code} · Phòng ${t.room_code} · Đại diện: ${t.primary_tenant_name ?? '—'}`}
         actions={<TenancyHeaderActions tenancy={t} />}
       />
+
+      <TransferSection tenancy={t} />
 
       <Card>
         <CardContent>

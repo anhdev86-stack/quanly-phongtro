@@ -759,6 +759,37 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       await expectRejected(async (tx) => maintenance(tx, { status: 'DONE' }), 'maintenance_resolved_chk');
       await expectRejected(async (tx) => maintenance(tx, { status: 'OPEN', resolvedAt: new Date() }), 'maintenance_resolved_chk');
     },
+
+    // ---------------- Phase 14 ----------------
+    room_transfers_deposit_chk: async () => {
+      const mk = async (tx: Prisma.TransactionClient, amount: bigint, withPair: boolean, onlyOut = false) => {
+        const from = await mkTenancy(tx, await mkRoom(tx), { status: 'ENDED' });
+        const to = await mkTenancy(tx, await mkRoom(tx));
+        let outId: string | null = null;
+        let inId: string | null = null;
+        if (withPair) {
+          const out = await tx.depositTransaction.create({ data: { workspaceId: W, tenancyId: from, type: 'TRANSFER_OUT', amountVnd: amount || 1n, createdBy: userId } });
+          const inn = await tx.depositTransaction.create({ data: { workspaceId: W, tenancyId: to, type: 'TRANSFER_IN', amountVnd: amount || 1n, linkedDepositTransactionId: out.id, createdBy: userId } });
+          outId = out.id;
+          inId = onlyOut ? null : inn.id;
+        }
+        return tx.roomTransfer.create({
+          data: { workspaceId: W, fromTenancyId: from, toTenancyId: to, transferDate: new Date('2026-11-01'), depositAmountVnd: amount, depositTransferOutId: outId, depositTransferInId: inId, createdBy: userId },
+        });
+      };
+      await expectAccepted((tx) => mk(tx, 0n, false));
+      await expectAccepted((tx) => mk(tx, 500000n, true));
+      await expectRejected((tx) => mk(tx, 500000n, false), 'room_transfers_deposit_chk');
+      await expectRejected((tx) => mk(tx, 0n, true), 'room_transfers_deposit_chk');
+      await expectRejected((tx) => mk(tx, 500000n, true, true), 'room_transfers_deposit_chk');
+      await expectRejected((tx) => mk(tx, -1n, false), 'room_transfers_deposit_chk');
+    },
+    room_transfers_distinct_chk: async () => {
+      await expectRejected(async (tx) => {
+        const t = await mkTenancy(tx, await mkRoom(tx));
+        return tx.roomTransfer.create({ data: { workspaceId: W, fromTenancyId: t, toTenancyId: t, transferDate: new Date('2026-11-01'), createdBy: userId } });
+      }, 'room_transfers_distinct_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
 
   const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>
