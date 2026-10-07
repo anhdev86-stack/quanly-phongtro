@@ -145,7 +145,12 @@ export class LedgersService {
   }
 
   async reverseDepositInTx(tx: Prisma.TransactionClient, user: AuthUser, original: DepositTransaction, reason: string): Promise<void> {
-    await lockRows(tx, 'tenancies', [original.tenancyId]);
+    // Cặp chuyển cọc: khóa cả hai lần thuê một lần, theo thứ tự id (lockRows sắp xếp) — tránh deadlock khi đảo từ hai phía.
+    const pairTenancy =
+      (original.type === 'TRANSFER_OUT' || original.type === 'TRANSFER_IN') && original.linkedDepositTransactionId
+        ? (await tx.depositTransaction.findUnique({ where: { id: original.linkedDepositTransactionId }, select: { tenancyId: true } }))?.tenancyId
+        : undefined;
+    await lockRows(tx, 'tenancies', pairTenancy ? [original.tenancyId, pairTenancy] : [original.tenancyId]);
     await this.assertTenancyInScope(tx, user, original.tenancyId);
     if (original.type === 'REVERSAL') throw new AppError('BUSINESS_RULE_VIOLATION', 'Không đảo một giao dịch đảo.');
     if (original.type === 'APPLIED_TO_INVOICE') {
@@ -188,7 +193,6 @@ export class LedgersService {
     const pair = pairId ? await tx.depositTransaction.findUnique({ where: { id: pairId } }) : null;
     if (!pair) throw new AppError('BUSINESS_RULE_VIOLATION', 'Không tìm thấy giao dịch chuyển cọc liên kết.');
     const tenancyIds = [original.tenancyId, pair.tenancyId];
-    await lockRows(tx, 'tenancies', tenancyIds);
     await this.insertDepositReversal(tx, user, original, reason);
     await this.insertDepositReversal(tx, user, pair, reason);
     for (const id of tenancyIds) await this.assertNonNegativeDeposit(tx, id, 'Không đảo được: cọc ở phòng mới đã được dùng. Hãy đảo các giao dịch đó trước.');

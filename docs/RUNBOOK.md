@@ -170,6 +170,13 @@ docker compose -p ql-tro-trial --env-file .env.trial --profile full stop
 
 Mỗi lượt build image dùng vài GB build cache; kiểm tra dung lượng ổ dữ liệu Docker trước khi build (`docker system df`).
 
+## Chuyển phòng (V1.1)
+
+1. Ở lần thuê cũ: **Báo trả → Trả phòng** như bình thường, ngày cuối tính tiền = ngày trước ngày sang phòng mới; duyệt và hoàn tất quyết toán.
+   Không ghi “Hoàn cọc” nếu cọc sẽ chuyển sang phòng mới.
+2. Trang lần thuê cũ → **Chuyển sang phòng khác**: chọn phòng trống, giá, mức cọc yêu cầu, số cọc chuyển (mặc định toàn bộ), người chuyển theo.
+3. Tiền dư (credit) của phòng cũ không chuyển: hoàn cho khách hoặc để cấn trừ nợ cũ. Chuyển nhầm: đảo giao dịch chuyển cọc (đảo cả cặp).
+
 ## Đóng kỳ phát hành (V1.1)
 
 - Sau khi phát hành xong thông báo của một tháng và đối chiếu, vào **Thông báo tiền phòng → Kỳ phát hành → Đóng kỳ** (cần quyền phát hành
@@ -182,6 +189,20 @@ Mỗi lượt build image dùng vài GB build cache; kiểm tra dung lượng �
 - **Hiện chưa gửi tin thật** (D-034): adapter Zalo ZNS/SMS chưa được kiểm chứng; mọi tin chỉ ghi log. Khi có tài khoản nhà cung cấp:
   đặt `ZALO_ZNS_*` / `SMS_*` trong `.env.production` (không lưu DB, không commit), hoàn thiện adapter, chủ trọ tự gửi thử tới số
   của mình trên môi trường thử rồi mới bật.
+
+## Docker mất cấu hình vị trí ổ dữ liệu (Windows, WSL 2)
+
+Dấu hiệu: `docker volume ls` trống/khác thường, database dev mất bảng; `%APPDATA%\Docker\settings-store.json` không còn khóa
+`CustomWslDistroDir`. Đã gặp 07/10/2026 sau khi máy bị tắt đột ngột (Docker Desktop 4.94.0). **Không** đổi lại vị trí trong
+Settings → Resources → Advanced: thao tác đó chuyển (`robocopy /MOV`) ổ *đang dùng* vào `<thư mục>\disk\docker_data.vhdx` và có thể
+ghi đè ổ cũ.
+
+1. Thoát hẳn Docker Desktop và `wsl --shutdown`; kiểm tra không còn tiến trình Docker.
+2. Chép `docker_data.vhdx` cũ sang ổ khác, so kích thước và SHA-256 (`Get-FileHash`) hai bản.
+3. Sao lưu `settings-store.json`, thêm `"CustomWslDistroDir": "<thư mục chứa disk\docker_data.vhdx>"` (VD `D:\DockerData\DockerDesktopWSL`).
+   Docker 4.94.0 dùng ổ có sẵn tại `<thư mục>\disk\docker_data.vhdx`, không chuyển ổ khi khởi động; tự tạo `<thư mục>\main\ext4.vhdx`
+   (distro hệ thống).
+4. Mở Docker, kiểm tra file `.vhdx` cũ đang được mở, `docker volume ls`, dữ liệu database; tắt/mở lại để chắc cấu hình được giữ.
 
 ## Health check
 
@@ -198,7 +219,7 @@ Mỗi lượt build image dùng vài GB build cache; kiểm tra dung lượng �
 | Đăng nhập báo “Bạn đã thử quá nhiều lần” | Sai 5 lần trong 15 phút. Chờ hết thời gian, hoặc khởi động lại API (bộ đếm lưu trong bộ nhớ, D-009). |
 | `Failed to load native binding` từ `@swc/core` | Dự án không dùng SWC (D-004). Kiểm tra không có công cụ nào bật builder `swc`. |
 | `pnpm` không chạy trong Git Bash | Dùng PowerShell hoặc `pnpm.cmd` (D-005). |
-| Docker Desktop không khởi động, log có `sailor-ingest.sock … cannot be accessed` | Tắt Docker Desktop, đổi tên `%LOCALAPPDATA%\Docker\run` (VD `run.broken`), mở lại. **Sau đó kiểm tra** Settings → Resources → Advanced → Disk image location: nếu đã về mặc định thì Docker đang dùng ổ trống mới; trỏ lại thư mục cũ (VD `D:\DockerData\DockerDesktopWSL`) — trước đó chép dự phòng `docker_data.vhdx` cũ để không bị ghi đè. |
+| Docker Desktop không khởi động, log có `sailor-ingest.sock … cannot be accessed` | Thoát Docker Desktop, đổi tên `%LOCALAPPDATA%\Docker\run` (VD `run.broken`), mở lại. Sau đó kiểm tra Docker còn dùng đúng ổ dữ liệu (mục “Docker mất cấu hình vị trí ổ dữ liệu”). |
 | Docker báo lỗi 500 / build treo, ổ đĩa đầy | Image và build cache nằm trong ổ dữ liệu của Docker Desktop. Kiểm tra `docker system df`, dọn `docker builder prune`, hoặc dời Disk image location sang ổ còn trống. |
 | api trong profile full không lên, log `Cấu hình môi trường không hợp lệ` | Sửa `.env.production` theo dòng báo lỗi (secret, `PUBLIC_BASE_URL` https). Giá trị bí mật không bị in ra. |
 | Đăng nhập được nhưng bị đăng xuất ngay (profile full) | Truy cập qua `http://` thay vì `https://`: cookie `Secure` không được gửi. Dùng đúng địa chỉ https. |

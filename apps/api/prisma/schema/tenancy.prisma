@@ -85,6 +85,8 @@ model Tenancy {
   payments            Payment[]
   creditApplications  CreditApplication[]
   creditRefunds       CreditRefund[]
+  transferredTo       RoomTransfer?        @relation("TransferFrom")
+  transferredFrom     RoomTransfer?        @relation("TransferTo")
   moveOutNotices      MoveOutNotice[]
   settlements         MoveOutSettlement[]
 
@@ -346,6 +348,8 @@ model DepositTransaction {
 
   tenancy     Tenancy             @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   allocations DepositAllocation[]
+  transferOut RoomTransfer?       @relation("TransferOutTx")
+  transferIn  RoomTransfer?       @relation("TransferInTx")
 
   @@index([tenancyId])
   @@map("deposit_transactions")
@@ -379,4 +383,28 @@ model HoldingTransaction {
 
   @@index([reservationId])
   @@map("holding_transactions")
+}
+
+/// V1.1 Phase 14: chuyển phòng (MASTER_PLAN 7.7). Lần thuê cũ đã quyết toán; cọc chuyển bằng cặp TRANSFER_OUT ↔ TRANSFER_IN.
+model RoomTransfer {
+  id                   String   @id @default(uuid(7)) @db.Uuid
+  workspaceId          String   @map("workspace_id") @db.Uuid
+  fromTenancyId        String   @unique @map("from_tenancy_id") @db.Uuid
+  toTenancyId          String   @unique @map("to_tenancy_id") @db.Uuid
+  /// Ngày nhận phòng mới = ngày sau ngày cuối tính tiền của phòng cũ.
+  transferDate         DateTime @map("transfer_date") @db.Date
+  depositAmountVnd     BigInt   @default(0) @map("deposit_amount_vnd")
+  depositTransferOutId String?  @unique @map("deposit_transfer_out_id") @db.Uuid
+  depositTransferInId  String?  @unique @map("deposit_transfer_in_id") @db.Uuid
+  reason               String?
+  createdBy            String   @map("created_by") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  fromTenancy        Tenancy             @relation("TransferFrom", fields: [fromTenancyId], references: [id], onDelete: Restrict)
+  toTenancy          Tenancy             @relation("TransferTo", fields: [toTenancyId], references: [id], onDelete: Restrict)
+  depositTransferOut DepositTransaction? @relation("TransferOutTx", fields: [depositTransferOutId], references: [id], onDelete: Restrict)
+  depositTransferIn  DepositTransaction? @relation("TransferInTx", fields: [depositTransferInId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId])
+  @@map("room_transfers")
 }

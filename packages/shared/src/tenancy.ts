@@ -242,6 +242,15 @@ export const depositSummarySchema = z.object({
   excess_vnd: z.string(),
 });
 
+export const transferLinkSchema = z.object({
+  tenancy_id: z.string(),
+  tenancy_code: z.string(),
+  room_code: z.string(),
+  building_code: z.string(),
+  transfer_date: z.string(),
+  deposit_amount_vnd: z.string(),
+});
+
 export const tenancyDetailSchema = tenancySummarySchema.extend({
   billing_due_day: z.number(),
   notice_days: z.number(),
@@ -253,6 +262,9 @@ export const tenancyDetailSchema = tenancySummarySchema.extend({
   services: z.array(tenancyServiceSchema),
   deposit: depositSummarySchema,
   initial_readings: z.array(z.object({ type: z.string(), value: z.string(), read_on: z.string() })),
+  /** V1.1: chuyển phòng — lần thuê này chuyển sang (transferred_to) hoặc chuyển từ (transferred_from) lần thuê khác. */
+  transferred_to: transferLinkSchema.nullable(),
+  transferred_from: transferLinkSchema.nullable(),
 });
 export type TenancyDetail = z.infer<typeof tenancyDetailSchema>;
 
@@ -363,3 +375,35 @@ export const serviceSchema = z.object({
   version: z.number(),
 });
 export type ServiceDto = z.infer<typeof serviceSchema>;
+
+// ---------- Chuyển phòng (V1.1 Phase 14, MASTER_PLAN 7.7) ----------
+
+/**
+ * POST /tenancies/:id/transfer — lần thuê cũ đã quyết toán xong (trả phòng); tạo lần thuê mới ở phòng mới từ ngày sau ngày cuối tính
+ * tiền của phòng cũ, chuyển cọc đang giữ bằng cặp TRANSFER_OUT/TRANSFER_IN. Credit còn dư không chuyển (MASTER_PLAN 7.7).
+ */
+export const roomTransferCreateSchema = z
+  .strictObject({
+    to_room_id: uuidSchema,
+    /** Phải bằng ngày sau ngày cuối tính tiền của phòng cũ. */
+    start_date: businessDateSchema,
+    primary_tenant_id: uuidSchema,
+    /** Người ở cùng chuyển theo (phải là thành viên của lần thuê cũ). */
+    member_tenant_ids: z.array(uuidSchema).max(20).default([]),
+    monthly_rent_vnd: moneyVndSchema,
+    billing_due_day: z.number().int().min(1).max(31).default(5),
+    deposit_required_vnd: moneyVndSchema,
+    /** Số cọc chuyển sang; bỏ trống = toàn bộ cọc đang giữ của lần thuê cũ. */
+    deposit_transfer_vnd: moneyVndSchema.nullish().transform((v) => v ?? null),
+    services: z
+      .array(z.strictObject({ service_id: uuidSchema, quantity: z.string().regex(/^\d{1,6}(\.\d{1,2})?$/, 'Số lượng không hợp lệ.') }))
+      .max(30)
+      .default([]),
+    meter_readings: z.array(z.strictObject({ type: meterTypeSchema, value: readingValueSchema })).max(2).default([]),
+    reason: optionalText(500),
+  })
+  .superRefine((v, ctx) => {
+    if (v.member_tenant_ids.includes(v.primary_tenant_id) || new Set(v.member_tenant_ids).size !== v.member_tenant_ids.length) {
+      ctx.addIssue({ code: 'custom', path: ['member_tenant_ids'], message: 'Một người bị chọn trùng.' });
+    }
+  });

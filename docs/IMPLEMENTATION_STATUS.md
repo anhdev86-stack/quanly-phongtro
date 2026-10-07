@@ -520,10 +520,7 @@ Nhánh `phase/13-operations`. Quyết định: D-039.
 
 **Lỗi tìm thấy khi test và đã sửa:** tên tệp tiếng Việt bị hỏng mã hóa (multer đọc latin1); `tar` của Git Bash không hiểu đường dẫn Windows.
 
-**Sự cố môi trường 07/10/2026 8:37:** Docker Desktop không khởi động (socket hỏng `%LOCALAPPDATA%\Docker\run\sailor-ingest.sock`, lỗi 1920).
-Đã đổi tên thư mục `run` → `run.broken-20261007` để Docker chạy lại; nhưng cấu hình vị trí ổ dữ liệu bị mất nên Docker đang dùng **ổ tạm trống
-trên C:**. Dữ liệu dev thật vẫn nguyên ở `D:\DockerData\DockerDesktopWSL\disk\docker_data.vhdx`. Chủ dự án cần trỏ lại vị trí ổ (xem RUNBOOK
-“Sự cố thường gặp”). Test integration/E2E chạy trên ổ tạm.
+**Sự cố môi trường 07/10/2026:** máy bị tắt đột ngột lúc 8:10 → Docker Desktop mất khóa `CustomWslDistroDir` và sau đó tạo ổ tạm trống trên C. Đã khôi phục 9:20–9:30: sao lưu `docker_data.vhdx` sang `E:\DockerBackup\docker-data-D-20261007` (cùng kích thước, SHA-256 `A8768D1A…4A0CC3E2`), thử khóa trên bản sao ổ tạm, rồi trỏ lại `D:\DockerData\DockerDesktopWSL`. QL_TRO và cskh_hct đủ dữ liệu, cấu hình giữ sau khi tắt/mở. Test Phase 13 chạy trên ổ tạm (database test dựng lại từ đầu nên kết quả vẫn hợp lệ).
 
 Kiểm tra (07/10/2026):
 
@@ -537,4 +534,30 @@ Kiểm tra (07/10/2026):
 | Build lại image Docker | ⏳ Chưa build (ổ Docker tạm nằm trên C:); thay đổi Dockerfile: tạo `/data/files` thuộc user node |
 | `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
 
-## Phase 14 — V1.1 ⬜
+## Phase 14 — Chuyển phòng ✅ (ẩn danh dữ liệu chờ yêu cầu pháp lý)
+
+Nhánh `phase/14-transfers`. Quyết định: D-040.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| `POST /tenancies/:id/transfer`: nhận phòng mới + chuyển cọc bằng cặp TRANSFER_OUT/IN + `room_transfers`, một transaction | ✅ | T48 |
+| Liên kết hai chiều trên chi tiết lần thuê (`transferred_to` / `transferred_from`) | ✅ | |
+| Đảo cặp chuyển cọc: đảo cả cặp, chặn khi cọc phía nhận đã dùng; sửa thứ tự khóa | ✅ | |
+| Ràng buộc `room_transfers_deposit_chk`, `room_transfers_distinct_chk` | ✅ | T47 |
+| UI: khối “Chuyển sang phòng khác” ở lần thuê đã trả phòng; liên kết phòng cũ/mới | ✅ | |
+| Chính sách lưu trữ và ẩn danh dữ liệu cá nhân | ⛔ Chờ chủ dự án | Cần yêu cầu pháp lý, thời hạn lưu |
+
+**Áp migration vào database dev (07/10/2026 9:25):** xác nhận cổng 55432 thuộc `ql-tro-postgres-1` (tạo 06/10) chạy trên ổ dữ liệu D; sao lưu
+riêng trước: `backups/ql_tro-20261007-022510.dump` (+ `.sha256`, `pg_restore --list` 54 bảng). Rà SQL: chỉ tạo bảng `room_transfers`
+(1 bảng, 5 index, 4 FK, 2 CHECK), không DROP/DELETE/UPDATE/INSERT. Áp bằng `prisma migrate deploy`; dữ liệu dev không đổi (5 user, 48 phòng,
+79 dòng nhật ký). Không reset, không seed lại; không tác động cskh_hct.
+
+Kiểm tra (07/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint`, `pnpm typecheck`, `pnpm build` | ✅ |
+| `pnpm test` | ✅ 102 |
+| `pnpm test:integration` | ✅ **333** (28 file; T47: 159; T48: 3) |
+| `pnpm test:e2e specs/transfer.spec.ts specs/move-out.spec.ts specs/tenancy.spec.ts` | ✅ 7 (1 bỏ qua có chủ đích trên mobile) |
+| `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
