@@ -478,7 +478,8 @@ export class ChargeCalculator {
             chargeKind: 'METER',
             chargeTiming: 'ARREARS',
             direction: 'DEBIT',
-            label: `${TYPE_LABEL[type]} ${dm(a.readOn)}–${dmy(b.readOn)}: ${formatFixed2(a.value)} → ${formatFixed2(b.value)}${replaced ? ' (có thay đồng hồ)' : ''} = ${formatFixed2(usage)} ${METER_UNIT[type]}`,
+            // Chỉ số chốt kỳ M+1 là điện nước tháng tiêu thụ M (MASTER_PLAN 8.5): ghi rõ tháng, kèm khoảng giữa hai lần đọc thực tế.
+            label: `${TYPE_LABEL[type]} ${b.kind === 'PERIODIC' ? `tháng ${my(addMonths(endPeriod, -1))} (${dm(a.readOn)}–${dmy(b.readOn)})` : `${dm(a.readOn)}–${dmy(b.readOn)}`}: ${formatFixed2(a.value)} → ${formatFixed2(b.value)}${replaced ? ' (có thay đồng hồ)' : ''} = ${formatFixed2(usage)} ${METER_UNIT[type]}`,
             quantity: formatFixed2(usage),
             unitPrice: price.unitPrice.toString(),
             amount,

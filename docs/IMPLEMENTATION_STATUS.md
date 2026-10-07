@@ -543,6 +543,15 @@ Kiểm tra: lint, typecheck, build ✅; `pnpm test` 102 ✅; `pnpm test:integrat
 trọn luồng đến thông báo tháng 11 = 3.000.000 + 480.000 + 240.000); E2E utilities, tenancy, reports, billing ✅. Kiểm tra trên dev: phòng A102
 (nhận 07/10) không hiện ở tháng tiêu thụ 09, hiện “Cần thiết lập” ở tháng 10.
 
+**Demo cho chủ dự án (07/10/2026), database riêng `ql_tro_demo`:** `node apps/api/prisma/tools/demo-utilities.mjs reset` (Tòa Demo, A101/A102 nhận
+01/09); server `api-demo` :4200 + `web-demo` http://127.0.0.1:3200 (`.claude/launch.json`; host khác localhost nên cookie không lẫn với dev).
+Chạy trên giao diện: chọn Tòa Demo → chỉ số cũ tự điền → A101 350.000 + 75.000 = 425.000, A102 280.000 + 60.000 = 340.000 → lưu, tải lại vẫn giữ →
+tạo nháp tháng 10: A101 3.425.000, A102 2.840.000. Không phát hành, không thu tiền, không gửi tin (payments/reminder_messages = 0).
+Bổ sung sau demo: thẻ phòng có dòng tổng “điện + nước = tổng” riêng từng phòng; khung giải thích (chọn tòa = lọc, đơn giá theo tòa dùng chung,
+không chia từ công tơ tổng); nhãn dòng điện nước trên thông báo ghi tháng tiêu thụ (“Điện tháng 09/2026 (01/09–07/10/2026): …”); liên kết
+Điện nước ↔ Thông báo giữ tòa và đúng tháng; form đăng nhập `method="post"` (khi JS chưa chạy không đưa mật khẩu lên URL).
+Kiểm tra: lint, typecheck ✅; `pnpm test` 102 ✅; integration billing/settlements/utilities 39 ✅; E2E utilities 4 ✅ (2 bỏ qua có chủ đích), billing, auth ✅.
+
 ## Điều chỉnh sau Phase 14 — chỉ hai vai trò (D-041) ✅
 
 Chủ dự án chốt: chỉ Chủ trọ + Quản lý. API/giao diện chỉ gán hai vai trò; Quản lý thêm quyền ghi nhận thu; Nhân viên/Kế toán là vai trò cũ.

@@ -125,7 +125,7 @@ describe('Điện nước hàng tháng: tháng tiêu thụ, chỉ số nền, ti
     expect(lines.find((l) => l[0] === 'RENT')).toEqual(['RENT', expect.stringContaining('01/11–30/11/2026'), '3000000']);
     const meterLines = lines.filter((l) => l[0] === 'METER');
     expect(meterLines.map((l) => l[2]).sort()).toEqual(['240000', '480000']);
-    expect(meterLines.every((l) => /10\/2026/.test(String(l[1])))).toBe(true); // ghi rõ là tiêu thụ tháng 10
+    expect(meterLines.every((l) => String(l[1]).includes('tháng 10/2026'))).toBe(true); // ghi rõ là tiêu thụ tháng 10
     expect(nov.total_vnd).toBe('3720000');
   });
 

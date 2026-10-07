@@ -33,3 +33,4 @@ Thumbs.db
 .claude/*
 !.claude/launch.json
 .next-e2e/
+.next-demo/

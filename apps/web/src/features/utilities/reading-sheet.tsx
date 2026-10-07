@@ -91,13 +91,40 @@ export function RoomReadingCard({
         )}
       </div>
       {metered.length ? (
-        <footer className="flex justify-end border-t border-slate-100 px-3 py-2">
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-3 py-2">
+          <RoomTotal row={row} metered={metered} states={states} />
           <Button size="sm" onClick={() => onSaveRoom(row)} disabled={!savable || saving} aria-label={`Lưu chỉ số phòng ${row.room_code}`}>
             {row.status === 'DONE' && !savable ? 'Đã lưu' : 'Lưu phòng'}
           </Button>
         </footer>
       ) : null}
     </section>
+  );
+}
+
+/** Tiền điện nước tạm tính của riêng phòng này: từng đồng hồ của phòng × đơn giá của tòa, cộng lại (không chia từ công tơ tổng). */
+function RoomTotal({ row, metered, states }: { row: Row; metered: SheetMeter[]; states: ReturnType<typeof entryState>[] }) {
+  const parts = metered.map((m, i) => {
+    const s = states[i]!;
+    const amount = s.dirty ? (s.est?.amount ?? null) : m.provisional_vnd === null ? null : BigInt(m.provisional_vnd);
+    return { label: METER_TYPE_LABELS[m.type].toLowerCase(), amount };
+  });
+  const known = parts.filter((p): p is { label: string; amount: bigint } => p.amount !== null);
+  if (!known.length) return <span className="text-sm text-slate-400">Nhập số mới để xem tiền điện nước của phòng</span>;
+  const total = known.reduce((sum, p) => sum + p.amount, 0n);
+  return (
+    <p className="text-sm" data-testid={`room-total-${row.room_code}`}>
+      <span className="text-slate-500">Phòng {row.room_code}: </span>
+      {known.map((p, i) => (
+        <span key={p.label}>
+          {i ? ' + ' : ''}
+          {p.label} {formatVnd(p.amount.toString())}
+        </span>
+      ))}
+      {' = '}
+      <strong className="tabular">{formatVnd(total.toString())}</strong>
+      {known.length < parts.length ? <span className="text-slate-500"> (còn thiếu {parts.filter((p) => p.amount === null).map((p) => p.label).join(', ')})</span> : null}
+    </p>
   );
 }
 

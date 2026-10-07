@@ -41,7 +41,8 @@ export default function LoginPage() {
 
         <Card>
           <CardContent className="py-6">
-            <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+            {/* method="post": nếu JS chưa chạy, trình duyệt không đưa mật khẩu lên URL. */}
+            <form method="post" onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
               {apiError ? (
                 <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                   {apiError.message}

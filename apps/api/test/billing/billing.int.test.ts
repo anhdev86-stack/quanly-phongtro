@@ -120,7 +120,7 @@ describe('Phase 5 — billing engine', () => {
     expect(amounts(nov.items)).toEqual([
       ['ADVANCE', 'DEBIT', '3000000', 'Tiền phòng 01/11–30/11/2026'],
       ['ADVANCE', 'DEBIT', '100000', 'Internet 01/11–30/11/2026 (1 phòng/tháng)'],
-      ['ARREARS', 'DEBIT', '420000', 'Điện 20/10–31/10/2026: 1000 → 1120 = 120 kWh'],
+      ['ARREARS', 'DEBIT', '420000', 'Điện tháng 10/2026 (20/10–31/10/2026): 1000 → 1120 = 120 kWh'],
     ]);
     expect(nov.due_date).toBe('2026-11-05');
     // T61: tiền tạm tính trên màn hình nhập = tiền chính thức
@@ -389,7 +389,7 @@ describe('Phase 5 — billing engine', () => {
     await reading(roomId, '2026-12', '2026-11-30', '25');
     const dec = await invoice((await generate('2026-12', tenancyId)).invoice_id!);
     const meter = dec.items.filter((l) => l.charge_kind === 'METER');
-    expect(meter.map((l) => [l.label, l.quantity, l.amount_vnd])).toEqual([['Điện 31/10–30/11/2026: 1100 → 25 (có thay đồng hồ) = 65 kWh', '65', '227500']]);
+    expect(meter.map((l) => [l.label, l.quantity, l.amount_vnd])).toEqual([['Điện tháng 11/2026 (31/10–30/11/2026): 1100 → 25 (có thay đồng hồ) = 65 kWh', '65', '227500']]);
   });
 
   it('T15: giá điện đổi giữa hai lần đọc (bỏ sót kỳ) → chặn tính, không chia usage theo ngày', async () => {

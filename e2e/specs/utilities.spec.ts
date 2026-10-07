@@ -37,7 +37,9 @@ test.describe('Điện nước: thiết lập đồng hồ, chốt chỉ số th
     await expect(card.getByTestId(`rd-${code}-ELECTRICITY-previous`)).toHaveText('1520');
     await card.getByLabel(`Chỉ số mới điện phòng ${code}`).fill('1600');
     await expect(card.getByText('80 kWh')).toBeVisible();
-    await expect(card.getByText(price)).toBeVisible();
+    await expect(card.getByText(price, { exact: true }).first()).toBeVisible(); // ô thành tiền điện
+    // Tiền điện nước tính riêng cho phòng này (nước chưa nhập)
+    await expect(card.getByTestId(`room-total-${code}`)).toContainText(`điện ${price} = ${price} (còn thiếu nước)`);
     await card.getByRole('button', { name: `Lưu chỉ số phòng ${code}` }).click();
     await expect(page.getByText(`Đã lưu chỉ số phòng ${code}.`)).toBeVisible();
     await expect(card.getByText('Nhập dở')).toBeVisible();

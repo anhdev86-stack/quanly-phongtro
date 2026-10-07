@@ -13,6 +13,20 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@ql-tro/web", "dev"],
       "port": 3000
+    },
+    {
+      "name": "api-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/api/prisma/tools/demo-utilities.mjs", "api"],
+      "port": 4200,
+      "url": "http://localhost:4200"
+    },
+    {
+      "name": "web-demo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/api/prisma/tools/demo-utilities.mjs", "web"],
+      "port": 3200,
+      "url": "http://127.0.0.1:3200"
     }
   ]
 }

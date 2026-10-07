@@ -38,7 +38,7 @@ function InvoicesContent() {
   const buildings = useBuildings();
   const [filters, setFilters] = useState({
     period: search.get('period') ?? todayLocal().slice(0, 7),
-    building_id: '',
+    building_id: search.get('building_id') ?? '',
     lifecycle: '',
     payment_status: '',
     q: '',
@@ -119,6 +119,12 @@ function InvoicesContent() {
       </Card>
     </>
   );
+}
+
+/** Tháng tiêu thụ có điện nước vào thông báo tháng `period` (tháng trước đó). */
+function previousMonth(period: string): string {
+  const d = new Date(Date.UTC(Number(period.slice(0, 4)), Number(period.slice(5, 7)) - 2, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 /** Xem trước (không ghi gì) → tạo nháp (idempotent) → phát hành các nháp không có lỗi. Kết quả theo từng phòng (8.7). */
@@ -233,9 +239,9 @@ function BillingRunPanel({ period, buildingId }: { period: string; buildingId: s
         )
       ) : (
         <CardContent className="text-sm text-slate-500">
-          Xem trước không ghi gì. Tạo nháp chạy lại nhiều lần vẫn chỉ có một thông báo mỗi phòng mỗi tháng. Nhớ nhập chỉ số điện nước kỳ này trước khi tạo (
-          <Link href={`/readings?period=${period}${buildingId ? `&building_id=${buildingId}` : ''}`} className="text-brand-800 hover:underline">
-            Nhập chỉ số
+          Xem trước không ghi gì. Tạo nháp chạy lại nhiều lần vẫn chỉ có một thông báo mỗi phòng mỗi tháng. Thông báo tháng này tính điện nước tháng {previousMonth(period).slice(5)}/{previousMonth(period).slice(0, 4)} — chốt chỉ số trước khi tạo (
+          <Link href={`/readings?month=${previousMonth(period)}${buildingId ? `&building_id=${buildingId}` : ''}`} className="text-brand-800 hover:underline">
+            Chốt chỉ số điện nước
           </Link>
           ).
         </CardContent>

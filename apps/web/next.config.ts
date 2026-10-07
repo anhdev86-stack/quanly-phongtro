@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
   // Docker (Phase 9): NEXT_OUTPUT=standalone tạo server.js tự chứa; truy vết file từ gốc monorepo để kèm @ql-tro/shared.
   ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' as const, outputFileTracingRoot: path.join(process.cwd(), '../..') } : {}),
+  // Bản demo chạy ở http://127.0.0.1:3200 để cookie đăng nhập không lẫn với dev ở localhost:3000 (chỉ ảnh hưởng `next dev`).
+  allowedDevOrigins: ['127.0.0.1'],
   poweredByHeader: false,
   reactStrictMode: true,
   async rewrites() {

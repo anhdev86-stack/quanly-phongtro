@@ -70,10 +70,20 @@ function ReadingsContent() {
       </FilterBar>
 
       {data ? (
-        <p className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900" data-testid="billing-target">
-          Điện nước <strong>tháng {monthLabel(data.consumption_month)}</strong> → vào thông báo <strong>tháng {monthLabel(data.period)}</strong>, cùng tiền phòng tháng{' '}
-          {monthLabel(data.period)} (tiền phòng thu trước, điện nước thu sau).
-        </p>
+        <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          <p data-testid="billing-target">
+            Điện nước <strong>tháng {monthLabel(data.consumption_month)}</strong> → vào thông báo <strong>tháng {monthLabel(data.period)}</strong>, cùng tiền phòng tháng{' '}
+            {monthLabel(data.period)} (tiền phòng thu trước, điện nước thu sau).
+          </p>
+          <ul className="mt-1 list-disc pl-5 text-sky-800" data-testid="sheet-explain">
+            <li>Chọn tòa chỉ để lọc danh sách: chỉ hiện các phòng của tòa {data.building_code}.</li>
+            <li>
+              Đơn giá đặt theo tòa, dùng chung cho mọi phòng trong tòa: điện {data.unit_prices.ELECTRICITY ? `${formatVnd(data.unit_prices.ELECTRICITY.split('.')[0]!)}/kWh` : 'chưa có giá'}, nước{' '}
+              {data.unit_prices.WATER ? `${formatVnd(data.unit_prices.WATER.split('.')[0]!)}/m³` : 'chưa có giá'}.
+            </li>
+            <li>Mỗi phòng có đồng hồ riêng: tiền = (số mới − số cũ) × đơn giá, tính riêng từng phòng. Không dùng công tơ tổng để chia tiền.</li>
+          </ul>
+        </div>
       ) : null}
 
       {missingPrice.length && data ? (
@@ -184,7 +194,7 @@ function SheetBody({ sheet, readOn, onlyPending }: { sheet: ReadingSheet; readOn
               {r.needs_setup ? <span className="text-red-700"> · cần thiết lập {r.needs_setup}</span> : null}
             </span>
             <span>
-              Tạm tính <strong className="tabular" data-testid="sheet-total">{formatVnd(sheet.totals.provisional_vnd)}</strong>
+              Tạm tính các chỉ số đã lưu <strong className="tabular" data-testid="sheet-total">{formatVnd(sheet.totals.provisional_vnd)}</strong>
             </span>
           </div>
           <div className="h-2 rounded bg-slate-100" aria-hidden>
@@ -192,7 +202,7 @@ function SheetBody({ sheet, readOn, onlyPending }: { sheet: ReadingSheet; readOn
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             {r.done === r.total ? (
-              <Link href={`/invoices?period=${sheet.period}`} className={buttonVariants({ size: 'sm', variant: 'outline' })}>
+              <Link href={`/invoices?period=${sheet.period}&building_id=${sheet.building_id}`} className={buttonVariants({ size: 'sm', variant: 'outline' })}>
                 Lập thông báo tháng {monthLabel(sheet.period)}
               </Link>
             ) : null}
