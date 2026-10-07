@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { expectedVersionSchema, optionalPhone, optionalText, pageQuerySchema, reasonSchema } from './common.js';
 import { businessDateSchema, moneyVndSchema, uuidSchema } from './primitives.js';
 import { readingValueSchema } from './tenancy.js';
+import { unitPriceSchema } from './utilities.js';
 
 const codeSchema = z
   .string()
@@ -13,6 +14,38 @@ const codeSchema = z
 
 // ---------- Tòa ----------
 
+const optionalUnitPrice = unitPriceSchema.nullish().transform((v) => v ?? null);
+const periodStartCheck = (v: { effective_from?: string | null }, ctx: z.RefinementCtx) => {
+  if (v.effective_from && !v.effective_from.endsWith('-01')) ctx.addIssue({ code: 'custom', path: ['effective_from'], message: 'Giá điện nước áp dụng từ đầu một kỳ (ngày 1).' });
+};
+
+/**
+ * Giá điện (đ/kWh) và nước (đ/m³) nhập ngay khi tạo tòa — không bắt buộc (D-043). Tạo phiên bản giá như “Đặt giá”;
+ * `effective_from` mặc định là kỳ hiện tại.
+ */
+export const buildingMeterPricesCreateSchema = z
+  .strictObject({
+    ELECTRICITY: optionalUnitPrice,
+    WATER: optionalUnitPrice,
+    effective_from: businessDateSchema.nullish().transform((v) => v ?? null),
+  })
+  .superRefine(periodStartCheck);
+
+/** Đổi giá điện nước trong “Sửa tòa”: chỉ gửi loại có giá mới; vẫn là phiên bản giá mới, có kỳ áp dụng và lý do (D-043). */
+export const buildingMeterPricesChangeSchema = z
+  .strictObject({
+    ELECTRICITY: optionalUnitPrice,
+    WATER: optionalUnitPrice,
+    effective_from: businessDateSchema,
+    reason: reasonSchema,
+    /** Bắt buộc true nếu kỳ áp dụng đã có chỉ số chốt (tiền tạm tính của kỳ đó sẽ đổi). */
+    confirm_existing_readings: z.boolean().default(false),
+  })
+  .superRefine((v, ctx) => {
+    periodStartCheck(v, ctx);
+    if (v.ELECTRICITY === null && v.WATER === null) ctx.addIssue({ code: 'custom', path: ['ELECTRICITY'], message: 'Nhập giá điện hoặc giá nước mới.' });
+  });
+
 export const buildingCreateSchema = z.strictObject({
   code: codeSchema,
   name: z.string().trim().min(1, 'Vui lòng nhập tên tòa.').max(120),
@@ -21,9 +54,13 @@ export const buildingCreateSchema = z.strictObject({
   contact_name: optionalText(120),
   contact_phone: optionalPhone,
   note: optionalText(1000),
+  meter_prices: buildingMeterPricesCreateSchema.nullish().transform((v) => v ?? null),
 });
 
-export const buildingUpdateSchema = buildingCreateSchema.partial().extend({ expected_version: expectedVersionSchema });
+export const buildingUpdateSchema = buildingCreateSchema
+  .omit({ meter_prices: true })
+  .partial()
+  .extend({ expected_version: expectedVersionSchema, meter_prices: buildingMeterPricesChangeSchema.nullish().transform((v) => v ?? null) });
 export const versionOnlySchema = z.strictObject({ expected_version: expectedVersionSchema });
 
 export const buildingSchema = z.object({

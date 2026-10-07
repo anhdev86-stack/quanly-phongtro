@@ -46,6 +46,33 @@ test.describe('Phase 1 — tòa, phòng, giữ phòng', () => {
     await expect(page.getByText('Đã lưu trữ phòng.')).toBeVisible();
   });
 
+  test('OWNER nhập giá điện nước ngay khi tạo tòa và đổi giá trong “Sửa tòa” (D-043)', async ({ page }) => {
+    const code = uniqueCode('T');
+    await loginAs(page, 'owner');
+    await page.goto('/buildings');
+    await page.getByRole('button', { name: 'Thêm tòa' }).click();
+    const d = dialog(page);
+    await d.getByLabel('Mã tòa').fill(code);
+    await d.getByLabel('Tên tòa').fill(`Tòa ${code}`);
+    await d.getByLabel('Giá điện (đ/kWh)').fill('3600'); // nước để trống: không bắt buộc
+    await d.getByRole('button', { name: 'Lưu' }).click();
+    await expect(page.getByText(/Đã tạo tòa và giá điện nước từ kỳ/)).toBeVisible();
+
+    await page.getByRole('button', { name: `Sửa tòa ${code}` }).click();
+    const e = dialog(page);
+    await expect(e.getByLabel('Giá điện (đ/kWh)')).toHaveValue('3.600');
+    await e.getByLabel('Giá nước (đ/m³)').fill('16000');
+    await e.getByRole('button', { name: 'Lưu' }).click();
+    await expect(e.getByText('Vui lòng nhập lý do')).toBeVisible(); // đổi giá phải có lý do
+    await e.getByLabel('Lý do đổi giá').fill('Thêm giá nước (E2E)');
+    await e.getByRole('button', { name: 'Lưu' }).click();
+    await expect(page.getByText(/Đã lưu thông tin tòa và giá điện nước/)).toBeVisible();
+
+    await page.getByRole('link', { name: code, exact: true }).click();
+    await expect(page.getByTestId('meter-price-ELECTRICITY')).toContainText('3.600 ₫/kWh');
+    await expect(page.getByTestId('meter-price-WATER')).toContainText('16.000 ₫/m³');
+  });
+
   test('quản lý tòa B, C chỉ thấy phòng của tòa B, C', async ({ page }) => {
     await loginAs(page, 'managerBC');
     await page.goto('/rooms');

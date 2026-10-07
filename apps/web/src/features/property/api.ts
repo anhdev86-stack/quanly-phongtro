@@ -36,13 +36,28 @@ export interface BuildingInput {
   note: string | null;
 }
 
+/** Giá điện nước gửi kèm form tòa (D-043). Tạo: không bắt buộc; sửa: chỉ gửi khi đổi, kèm kỳ áp dụng và lý do. */
+export interface BuildingMeterPricesInput {
+  ELECTRICITY: string | null;
+  WATER: string | null;
+  effective_from: string | null;
+  reason?: string;
+  confirm_existing_readings?: boolean;
+}
+
+// Giá điện nước và bảng chỉ số đọc giá theo tòa: làm mới cùng tòa.
+const BUILDING_PRICE_KEYS = [['meter-prices'], ['reading-sheet']] as const;
+
 export const useCreateBuilding = () =>
-  useApiMutation<BuildingInput, Building>((body) => ({ path: '/buildings', method: 'POST', body }), [propertyKeys.buildings]);
+  useApiMutation<BuildingInput & { meter_prices?: BuildingMeterPricesInput | null }, Building>((body) => ({ path: '/buildings', method: 'POST', body }), [
+    propertyKeys.buildings,
+    ...BUILDING_PRICE_KEYS,
+  ]);
 
 export const useUpdateBuilding = (id: string) =>
-  useApiMutation<Partial<BuildingInput> & { expected_version: number }, Building>(
+  useApiMutation<Partial<BuildingInput> & { expected_version: number; meter_prices?: BuildingMeterPricesInput | null }, Building>(
     (body) => ({ path: `/buildings/${id}`, method: 'PATCH', body }),
-    [propertyKeys.buildings],
+    [propertyKeys.buildings, ...BUILDING_PRICE_KEYS],
   );
 
 export const useArchiveBuilding = () =>

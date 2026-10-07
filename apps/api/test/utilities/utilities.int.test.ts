@@ -187,11 +187,15 @@ describe('Phase 4 — điện nước, đồng hồ, dịch vụ (T12–T14, T60
     const elec = change.body.items.find((i: { meter_type: string }) => i.meter_type === 'ELECTRICITY');
     expect(elec.current).toMatchObject({ unit_price: '3500' });
     expect(elec.upcoming).toEqual([expect.objectContaining({ effective_from: '2026-12-01', unit_price: '4000', reason: 'EVN tăng giá', created_by_name: 'Chủ trọ Demo' })]);
-    expect((await setPrice(A, { effective_from: '2026-12-01', unit_price: '4100' })).status).toBe(409);
+    // Cùng kỳ, chưa dùng trên thông báo đã phát hành: ghi đè mức vừa đặt (D-043), không thêm phiên bản trùng ngày
+    const fix = await setPrice(A, { effective_from: '2026-12-01', unit_price: '4100', reason: 'Sửa nhầm giá' });
+    expect(fix.status, JSON.stringify(fix.body)).toBe(201);
+    const fixed = fix.body.items.find((i: { meter_type: string }) => i.meter_type === 'ELECTRICITY');
+    expect(fixed.upcoming).toEqual([expect.objectContaining({ effective_from: '2026-12-01', unit_price: '4100', reason: 'Sửa nhầm giá' })]);
 
     expect(meterOf(await sheet(A, '2026-11'), a.roomId).provisional_vnd).toBe('350000');
     expect(meterOf(await sheet(B, '2026-11'), b.roomId).provisional_vnd).toBe('380000');
-    expect((await sheet(A, '2026-12')).unit_prices).toEqual({ ELECTRICITY: '4000', WATER: null });
+    expect((await sheet(A, '2026-12')).unit_prices).toEqual({ ELECTRICITY: '4100', WATER: null });
     const audit = await t.prisma.auditLog.findFirstOrThrow({ where: { action: 'meter_price.change', reason: 'EVN tăng giá' } });
     expect(audit.before).toMatchObject({ unit_price: '3500' });
   });

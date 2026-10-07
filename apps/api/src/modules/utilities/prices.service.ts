@@ -190,42 +190,65 @@ export class PricesService {
       runInTransaction(this.prisma, async (tx) => {
         await lockRows(tx, 'buildings', [buildingId]);
         await this.access.getBuildingInScope(tx, user, buildingId);
-        const service = (await this.meterServices(tx, user.workspaceId)).find((s) => s.meterType === input.meter_type);
-        if (!service) throw new AppError('NOT_FOUND', 'Chưa có dịch vụ điện/nước theo đồng hồ.');
-        const latest = await this.latestReadPeriod(tx, buildingId);
-        if (latest && input.effective_from <= latest && !input.confirm_existing_readings) {
-          throw new AppError('BUSINESS_RULE_VIOLATION', `Kỳ ${input.effective_from.slice(5, 7)}/${input.effective_from.slice(0, 4)} đã có chỉ số chốt; tiền tạm tính của kỳ đó sẽ đổi theo giá mới. Hãy xác nhận để tiếp tục.`, {
-            confirm_existing_readings: ['Cần xác nhận áp dụng cho kỳ đã có chỉ số.'],
-          });
-        }
-        const before = await tx.servicePriceHistory.findFirst({
-          where: { serviceId: service.id, buildingId, effectiveFrom: { lte: toDbDate(input.effective_from) } },
-          orderBy: { effectiveFrom: 'desc' },
-        });
-        const p = await tx.servicePriceHistory.create({
-          data: {
-            workspaceId: user.workspaceId,
-            serviceId: service.id,
-            buildingId,
-            effectiveFrom: toDbDate(input.effective_from),
-            unitPrice: input.unit_price,
-            reason: input.reason,
-            createdBy: user.id,
-          },
-        });
-        await this.audit.record(tx, {
-          workspaceId: user.workspaceId,
-          actorId: user.id,
-          action: 'meter_price.change',
-          entityType: 'building',
-          entityId: buildingId,
-          reason: input.reason,
-          before: before ? { unit_price: before.unitPrice.toString(), effective_from: day(before.effectiveFrom) } : null,
-          after: { ...input, id: p.id },
-        });
+        await this.applyMeterPriceInTx(tx, user, buildingId, input);
       }),
     );
     return this.meterPrices(user, buildingId);
+  }
+
+  /**
+   * Ghi một mức giá điện/nước của tòa trong transaction của người gọi (đã khóa tòa, đã kiểm phạm vi). Dùng chung cho
+   * “Thay đổi giá”, tạo tòa và sửa tòa (D-043). `fieldPrefix` để lỗi gắn đúng ô của form gọi tới (VD `meter_prices.`).
+   * Đã có mức giá cùng ngày hiệu lực mà chưa dùng trên thông báo đã phát hành (VD vừa nhập lúc tạo tòa rồi sửa lại): ghi đè
+   * mức đó, có audit; đã dùng thì báo trùng như trước.
+   */
+  async applyMeterPriceInTx(tx: Prisma.TransactionClient, user: AuthUser, buildingId: string, input: z.output<typeof meterPriceCreateSchema>, fieldPrefix = ''): Promise<void> {
+    const service = (await this.meterServices(tx, user.workspaceId)).find((s) => s.meterType === input.meter_type);
+    if (!service) throw new AppError('NOT_FOUND', 'Chưa có dịch vụ điện/nước theo đồng hồ.');
+    const latest = await this.latestReadPeriod(tx, buildingId);
+    if (latest && input.effective_from <= latest && !input.confirm_existing_readings) {
+      throw new AppError('BUSINESS_RULE_VIOLATION', `Kỳ ${input.effective_from.slice(5, 7)}/${input.effective_from.slice(0, 4)} đã có chỉ số chốt; tiền tạm tính của kỳ đó sẽ đổi theo giá mới. Hãy xác nhận để tiếp tục.`, {
+        [`${fieldPrefix}confirm_existing_readings`]: ['Cần xác nhận áp dụng cho kỳ đã có chỉ số.'],
+      });
+    }
+    const audit = (before: { unitPrice: Prisma.Decimal; effectiveFrom: Date } | null, id: string, replaced: boolean) =>
+      this.audit.record(tx, {
+        workspaceId: user.workspaceId,
+        actorId: user.id,
+        action: 'meter_price.change',
+        entityType: 'building',
+        entityId: buildingId,
+        reason: input.reason,
+        before: before ? { unit_price: before.unitPrice.toString(), effective_from: day(before.effectiveFrom) } : null,
+        after: { ...input, id, ...(replaced ? { replaced_same_day: true } : {}) },
+      });
+
+    const sameDay = await tx.servicePriceHistory.findFirst({ where: { serviceId: service.id, buildingId, effectiveFrom: toDbDate(input.effective_from) } });
+    if (sameDay) {
+      const used = await tx.invoiceItem.count({ where: { invoice: { lifecycle: 'PUBLISHED' }, calculationSnapshot: { path: ['price_id'], equals: sameDay.id } } });
+      if (used) {
+        throw new AppError('CONFLICT', 'Mức giá từ kỳ này đã dùng trên thông báo đã phát hành; chọn kỳ áp dụng sau đó.', { [`${fieldPrefix}effective_from`]: ['Trùng kỳ đã tính tiền.'] });
+      }
+      await tx.servicePriceHistory.update({ where: { id: sameDay.id }, data: { unitPrice: input.unit_price, reason: input.reason, createdBy: user.id } });
+      await audit(sameDay, sameDay.id, true);
+      return;
+    }
+    const before = await tx.servicePriceHistory.findFirst({
+      where: { serviceId: service.id, buildingId, effectiveFrom: { lte: toDbDate(input.effective_from) } },
+      orderBy: { effectiveFrom: 'desc' },
+    });
+    const p = await tx.servicePriceHistory.create({
+      data: {
+        workspaceId: user.workspaceId,
+        serviceId: service.id,
+        buildingId,
+        effectiveFrom: toDbDate(input.effective_from),
+        unitPrice: input.unit_price,
+        reason: input.reason,
+        createdBy: user.id,
+      },
+    });
+    await audit(before, p.id, false);
   }
 
   // ------------------------------------------------------------------ Tra giá (dùng cho tạm tính và billing)

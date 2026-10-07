@@ -555,6 +555,14 @@ Lối vào giá điện nước (chủ dự án không tìm thấy trong hộp �
 dòng hướng dẫn + liên kết, trang tòa có neo `#gia-dien-nuoc` tự cuộn tới mục giá; màn hình chốt chỉ số liên kết thẳng tới mục này.
 Kiểm tra: lint, typecheck ✅; E2E property + utilities 8 ✅ (2 bỏ qua có chủ đích).
 
+## Điều chỉnh: giá điện nước trong form tạo/sửa tòa (D-043) ✅
+
+Tạo tòa có ô giá điện/nước (không bắt buộc); “Sửa tòa” hiện giá hiện tại, đổi giá thì chọn kỳ áp dụng + lý do (phiên bản giá mới, cùng transaction);
+cùng kỳ chưa dùng trên thông báo đã phát hành thì ghi đè. MASTER_PLAN v2.7 (8.5).
+Kiểm tra: lint, typecheck ✅; `pnpm test` 102 ✅; integration property/utilities/openapi/access/billing 67 ✅ (thêm
+`test/property/building-meter-prices.int.test.ts` 2; T60 cập nhật: cùng kỳ chưa dùng → ghi đè); E2E property 6 ✅ (thêm test D-043, desktop + mobile),
+utilities ✅. Thử trên demo: Sửa tòa DEMO đổi điện 3.800 từ kỳ 11/2026, tạo tòa THU kèm giá điện 4.000 (sau đó dựng lại demo).
+
 ## Điều chỉnh sau Phase 14 — chỉ hai vai trò (D-041) ✅
 
 Chủ dự án chốt: chỉ Chủ trọ + Quản lý. API/giao diện chỉ gán hai vai trò; Quản lý thêm quyền ghi nhận thu; Nhân viên/Kế toán là vai trò cũ.

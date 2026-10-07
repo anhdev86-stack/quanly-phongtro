@@ -19,6 +19,13 @@ import { useCreateMeterPrice, useMeterPrices } from './api';
 
 /** "2026-12-01" → "kỳ 12/2026". */
 export const periodLabel = (monthStart: string) => `kỳ ${monthStart.slice(5, 7)}/${monthStart.slice(0, 4)}`;
+/** Lựa chọn kỳ áp dụng giá: kỳ M là thông báo tháng M, tính điện nước tháng M−1 (MASTER_PLAN 8.5). */
+export function periodOptionLabel(monthStart: string): string {
+  const y = Number(monthStart.slice(0, 4));
+  const m = Number(monthStart.slice(5, 7));
+  const prev = m === 1 ? `12/${y - 1}` : `${String(m - 1).padStart(2, '0')}/${y}`;
+  return `${periodLabel(monthStart)} — điện nước tháng ${prev}`;
+}
 const unitPrice = (v: string, unit: string) => `${formatVnd(v.split('.')[0]!)}/${unit}`;
 
 /** Neo của mục giá trên trang tòa: liên kết từ danh sách tòa, hộp “Sửa tòa”, màn hình chốt chỉ số. */
@@ -149,7 +156,7 @@ function MeterPriceDialog({ item, nextPeriod, buildingId, onClose }: { item: Met
   );
 }
 
-function periodOptions(nextPeriod: string, hasPrice: boolean): string[] {
+export function periodOptions(nextPeriod: string, hasPrice: boolean): string[] {
   const [y, m] = nextPeriod.split('-').map(Number) as [number, number];
   const out: string[] = [];
   // Lần đặt giá đầu tiên có thể chọn các kỳ trước; thay đổi giá thì từ kỳ đọc tiếp theo trở đi.
@@ -199,7 +206,7 @@ function MeterPriceForm({ item, nextPeriod, buildingId, onClose }: { item: Meter
           <Select id="mp-from" value={v.effective_from} onChange={(e) => setV({ ...v, effective_from: e.target.value, confirm_existing_readings: false })}>
             {periodOptions(nextPeriod, hasPrice).map((p) => (
               <option key={p} value={p}>
-                {periodLabel(p)}
+                {periodOptionLabel(p)}
                 {p === nextPeriod ? ' (kỳ tiếp theo)' : ''}
               </option>
             ))}

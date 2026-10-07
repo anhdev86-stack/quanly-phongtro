@@ -467,3 +467,14 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - Quyền: gắn đồng hồ + chỉ số nền (`POST /rooms/:id/meters`) đổi từ `services.manage` sang `rooms.manage` (chủ trọ + quản lý trong tòa được giao)
   vì là một phần thiết lập phòng; thay đồng hồ, sửa chỉ số ban đầu vẫn là `services.manage` (chủ trọ).
 - Giao diện: lưu theo phòng hoặc lưu tất cả (một batch/transaction, lỗi gắn về đúng ô); trình nhận phòng điền sẵn chỉ số gần nhất của đồng hồ.
+
+## D-043 — Giá điện nước nhập trong form tạo/sửa tòa (chủ dự án yêu cầu 07/10/2026)
+
+- `POST /buildings` nhận `meter_prices` (điện/nước, không bắt buộc; `effective_from` mặc định kỳ hiện tại, lý do “Giá ban đầu khi tạo tòa”).
+- `PATCH /buildings/:id` nhận `meter_prices` (chỉ loại có giá mới + `effective_from` + `reason` + `confirm_existing_readings`). Cùng transaction
+  với sửa tòa; dùng chung `PricesService.applyMeterPriceInTx` với nút “Thay đổi giá”, lỗi gắn `meter_prices.*`.
+- Cần thêm quyền `meter_prices.manage` (mặc định chỉ Chủ trọ) khi có giá; không có thì 403.
+- Mức giá cùng (dịch vụ, tòa, ngày hiệu lực) đã tồn tại: nếu **chưa** có dòng thông báo PUBLISHED nào dùng (`calculation_snapshot.price_id`) thì
+  ghi đè giá + lý do, audit `replaced_same_day`; đã dùng thì 409 như trước. Lý do: nhập giá lúc tạo tòa rồi sửa ngay cùng kỳ không bị báo trùng.
+  Không đổi số tiền đã phát hành; nháp dùng giá đó phải “Tính lại”.
+- Giao diện: chọn kỳ áp dụng ghi rõ “kỳ M — điện nước tháng M−1”.

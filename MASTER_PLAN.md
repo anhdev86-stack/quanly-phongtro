@@ -1,12 +1,18 @@
 # MASTER PLAN — PHẦN MỀM QUẢN LÝ NHÀ TRỌ
 
-**Phiên bản:** 2.6 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
+**Phiên bản:** 2.7 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
 **Ngày:** 07/10/2026  
 **Ngôn ngữ UI:** Tiếng Việt  
 **Tiền tệ:** VND  
 **Múi giờ nghiệp vụ:** Asia/Ho_Chi_Minh
 
 > Đọc toàn bộ tài liệu trước khi triển khai. Đây là nguồn yêu cầu nghiệp vụ chính thức. Những mặc định kỹ thuật được ghi rõ bên dưới dùng để triển khai mà không phải tự đoán. Nếu có yêu cầu mới của chủ dự án, cập nhật tài liệu và ghi lại quyết định trước khi thay đổi nghiệp vụ.
+
+### Thay đổi so với v2.6 (yêu cầu của chủ dự án, 07/10/2026)
+
+| # | Mục | Thay đổi |
+|---|---|---|
+| 1 | 8.5, 12 | **Giá điện nước nằm trong form tòa.** Tạo tòa có ô giá điện (đ/kWh) và nước (đ/m³), không bắt buộc, mặc định áp dụng từ kỳ hiện tại. “Sửa tòa” hiện giá hiện tại; nhập giá khác thì chọn kỳ áp dụng và lý do — vẫn tạo phiên bản giá mới, kỳ đã tính giữ giá cũ. Mục “Giá điện nước” ở trang tòa giữ lịch sử giá. Mức giá cùng kỳ áp dụng chưa dùng trên thông báo đã phát hành thì được ghi đè (sửa nhầm). Quyết định: D-043. |
 
 ### Thay đổi so với v2.5 (yêu cầu của chủ dự án, 07/10/2026)
 
@@ -839,8 +845,8 @@ Có thể cấu hình dịch vụ tính đủ tháng; phải có nhãn, cần x�
 
 **Luồng thao tác (v2.6):**
 
-1. **Đặt giá một lần cho mỗi tòa:** trong trang tòa có mục “Giá điện nước”, nhập đơn giá điện (đ/kWh) và nước (đ/m³). Giá được lưu và dùng cho mọi kỳ sau, không phải nhập lại.
-2. **Nút “Thay đổi giá”:** nhập giá mới và lý do. Hệ thống tạo phiên bản giá mới, áp dụng từ kỳ đọc số tiếp theo; không sửa giá của các kỳ đã tính. Màn hình hiển thị lịch sử giá (ai đổi, khi nào, từ kỳ nào).
+1. **Đặt giá một lần cho mỗi tòa:** nhập đơn giá điện (đ/kWh) và nước (đ/m³) ngay khi **tạo tòa** (không bắt buộc, mặc định từ kỳ hiện tại) hoặc trong **“Sửa tòa”**; trang tòa có mục “Giá điện nước” với lịch sử giá. Giá được lưu và dùng cho mọi kỳ sau, không phải nhập lại.
+2. **Đổi giá (trong “Sửa tòa” hoặc nút “Thay đổi giá”):** nhập giá mới, kỳ áp dụng (mặc định kỳ đọc số tiếp theo; kỳ M = thông báo tháng M = điện nước tháng M−1) và lý do. Hệ thống tạo phiên bản giá mới; không sửa giá của các kỳ đã tính. Mức giá cùng kỳ áp dụng mà chưa dùng trên thông báo đã phát hành thì được ghi đè (sửa nhầm), có audit. Màn hình hiển thị lịch sử giá (ai đổi, khi nào, từ kỳ nào).
 3. **Thiết lập phòng — chỉ số ban đầu nhập một lần:** mỗi phòng có đồng hồ điện và nước riêng. Khi thêm phòng nhập chỉ số đang hiện trên
    đồng hồ (`initial_reading`, ngày lắp = hôm nay); **số seri không bắt buộc**. Phòng chưa có đồng hồ thì gắn sau ở trang phòng, hoặc lúc
    nhận phòng (chỉ số INITIAL). Khi nhận phòng, ô chỉ số **được điền sẵn** chỉ số gần nhất của đồng hồ, chỉ sửa nếu số thực tế khác.

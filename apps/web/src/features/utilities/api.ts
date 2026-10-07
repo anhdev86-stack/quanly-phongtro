@@ -17,8 +17,12 @@ export const utilityKeys = {
 
 // ---------- Giá điện nước theo tòa ----------
 
-export const useMeterPrices = (buildingId: string) =>
-  useQuery({ queryKey: utilityKeys.meterPrices(buildingId), queryFn: ({ signal }) => api<MeterPrices>(`/buildings/${buildingId}/meter-prices`, { signal }) });
+export const useMeterPrices = (buildingId: string, enabled = true) =>
+  useQuery({
+    queryKey: utilityKeys.meterPrices(buildingId),
+    queryFn: ({ signal }) => api<MeterPrices>(`/buildings/${buildingId}/meter-prices`, { signal }),
+    enabled: enabled && !!buildingId,
+  });
 
 export const useCreateMeterPrice = (buildingId: string) =>
   useApiMutation<Record<string, unknown>, MeterPrices>((body) => ({ path: `/buildings/${buildingId}/meter-prices`, method: 'POST', body }), [
