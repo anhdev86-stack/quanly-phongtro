@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/toast';
 import { useCan } from '@/features/auth/permissions';
 import { useArchiveBuilding, useBuildings } from '@/features/property/api';
 import { BuildingFormDialog } from '@/features/property/building-form';
+import { PropertyTabs } from '@/features/property/property-tabs';
 import { ApiError } from '@/lib/api-client';
 
 export default function BuildingsPage() {
@@ -37,6 +38,7 @@ export default function BuildingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <PropertyTabs active="buildings" />
       <PageHeader
         title="Tòa/khu"
         description="Danh sách tòa trong phạm vi của bạn."

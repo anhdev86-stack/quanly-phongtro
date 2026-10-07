@@ -1,8 +1,7 @@
 'use client';
 
 import { PERMISSIONS, ROOM_DISPLAY_STATUSES, ROOM_STATUS_LABELS } from '@ql-tro/shared';
-import { Building2, LayoutGrid, List, Plus } from 'lucide-react';
-import Link from 'next/link';
+import { LayoutGrid, List, Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import { FilterBar, PageHeader, Pagination } from '@/components/common/page';
@@ -13,6 +12,7 @@ import { Field, Select, TextInput } from '@/components/ui/form';
 import { useCan } from '@/features/auth/permissions';
 import { useBuildings, useRooms } from '@/features/property/api';
 import { RoomGrid, RoomTable } from '@/features/property/room-list';
+import { PropertyTabs } from '@/features/property/property-tabs';
 import { RoomFormDialog } from '@/features/property/room-form';
 
 function RoomsContent() {
@@ -21,21 +21,18 @@ function RoomsContent() {
   const buildings = useBuildings();
   const [view, setView] = useState<'grid' | 'table'>('grid');
   const [creating, setCreating] = useState(false);
-  const [filters, setFilters] = useState({ building_id: '', status: search.get('status') ?? '', floor: '', q: '', page: 1, page_size: 60 });
+  const [filters, setFilters] = useState({ building_id: search.get('building_id') ?? '', status: search.get('status') ?? '', floor: '', q: '', page: 1, page_size: 60 });
   const rooms = useRooms(filters);
   const set = (patch: Partial<typeof filters>) => setFilters((f) => ({ ...f, ...patch, page: patch.page ?? 1 }));
 
   return (
     <div className="mx-auto max-w-7xl">
+      <PropertyTabs active="rooms" />
       <PageHeader
         title="Phòng"
         description="Trạng thái phòng được tính từ khách đang thuê, bảo trì và lịch giữ phòng."
         actions={
           <>
-            <Link href="/buildings" className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium hover:bg-slate-100">
-              <Building2 className="size-4" aria-hidden />
-              Tòa/khu
-            </Link>
             {can(PERMISSIONS.ROOMS_MANAGE) ? (
               <Button onClick={() => setCreating(true)}>
                 <Plus className="size-4" aria-hidden />

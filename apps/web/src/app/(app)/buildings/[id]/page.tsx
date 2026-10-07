@@ -1,13 +1,14 @@
 'use client';
 
 import { PERMISSIONS } from '@ql-tro/shared';
-import { Pencil, Plus } from 'lucide-react';
+import { DoorOpen, Pencil, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { DescriptionList, PageHeader } from '@/components/common/page';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCan } from '@/features/auth/permissions';
 import { useBuilding, useRooms } from '@/features/property/api';
@@ -39,12 +40,18 @@ export default function BuildingDetailPage() {
           </span>
         }
         actions={
-          can(PERMISSIONS.BUILDINGS_MANAGE) ? (
-            <Button variant="outline" onClick={() => setEditing(true)}>
-              <Pencil className="size-4" aria-hidden />
-              Sửa
-            </Button>
-          ) : null
+          <>
+            <Link href={`/rooms?building_id=${b.id}`} className={buttonVariants({ variant: 'outline' })}>
+              <DoorOpen className="size-4" aria-hidden />
+              Xem phòng của tòa
+            </Link>
+            {can(PERMISSIONS.BUILDINGS_MANAGE) ? (
+              <Button variant="outline" onClick={() => setEditing(true)}>
+                <Pencil className="size-4" aria-hidden />
+                Sửa
+              </Button>
+            ) : null}
+          </>
         }
       />
       <Card>
