@@ -28,11 +28,12 @@ export const useCreateMeterPrice = (buildingId: string) =>
 
 // ---------- Nhập chỉ số ----------
 
-export const useReadingSheet = (buildingId: string, period: string) =>
+/** Bảng chỉ số theo tháng tiêu thụ (YYYY-MM); chỉ số này vào thông báo của tháng sau. */
+export const useReadingSheet = (buildingId: string, consumptionMonth: string) =>
   useQuery({
-    queryKey: [...utilityKeys.sheet, buildingId, period],
-    queryFn: ({ signal }) => api<ReadingSheet>(`/meter-readings/sheet${qs({ building_id: buildingId, period })}`, { signal }),
-    enabled: !!buildingId && !!period,
+    queryKey: [...utilityKeys.sheet, buildingId, consumptionMonth],
+    queryFn: ({ signal }) => api<ReadingSheet>(`/meter-readings/sheet${qs({ building_id: buildingId, consumption_month: consumptionMonth })}`, { signal }),
+    enabled: !!buildingId && !!consumptionMonth,
     placeholderData: (prev) => prev,
   });
 

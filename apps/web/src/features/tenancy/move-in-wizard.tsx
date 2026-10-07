@@ -13,6 +13,7 @@ import { ApiError } from '@/lib/api-client';
 import { formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useIdempotencyKey } from '@/lib/use-idempotency-key';
+import { useRoomMeters } from '@/features/utilities/api';
 import { useHoldingLedger, useMoveIn, useServices } from './api';
 import { scopedErrors } from './tenant-fields';
 import { newPerson, PersonPicker, type PersonChoice, personLabel, personToRef } from './person-picker';
@@ -46,7 +47,14 @@ export function MoveInWizard({ room, reservationId }: { room: Room; reservationI
   const [members, setMembers] = useState<PersonChoice[]>([]);
   const [contract, setContract] = useState<ContractDraft>(() => emptyContract(basics.start_date));
   const [chosen, setChosen] = useState<Record<string, string>>({});
-  const [readings, setReadings] = useState({ ELECTRICITY: '', WATER: '' });
+  // Chỉ số lúc nhận phòng: điền sẵn chỉ số gần nhất của đồng hồ phòng (đã nhập khi thiết lập phòng); null = chưa sửa tay.
+  const roomMeters = useRoomMeters(room.id);
+  const [readingsEdited, setReadings] = useState<{ ELECTRICITY: string | null; WATER: string | null }>({ ELECTRICITY: null, WATER: null });
+  const suggested = (t: 'ELECTRICITY' | 'WATER') => {
+    const m = roomMeters.data?.meters.find((x) => x.type === t && !x.retired_on);
+    return m ? (m.last_reading?.value ?? m.initial_reading).replace('.', ',') : '';
+  };
+  const readings = { ELECTRICITY: readingsEdited.ELECTRICITY ?? suggested('ELECTRICITY'), WATER: readingsEdited.WATER ?? suggested('WATER') };
   const [deposit, setDeposit] = useState({ amount_vnd: '', method: 'CASH', paid_at: todayLocal(), reference: '' });
 
   const optionalServices = (services.data ?? []).filter((s) => s.type !== 'METER' && !s.archived_at);
@@ -197,11 +205,12 @@ export function MoveInWizard({ room, reservationId }: { room: Room; reservationI
               </section>
               <section className="grid grid-cols-1 gap-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
                 <p className="text-sm text-slate-600 sm:col-span-2">
-                  Chỉ số đồng hồ lúc nhận phòng. Phòng chưa có đồng hồ thì hệ thống tạo đồng hồ với chỉ số này (chỉ nhập một lần); các tháng sau tự lấy làm chỉ số trước.
+                  Chỉ số đồng hồ lúc nhận phòng — đã điền sẵn chỉ số gần nhất của đồng hồ phòng, chỉ sửa nếu số trên đồng hồ khác. Phòng chưa có đồng hồ thì
+                  hệ thống tạo đồng hồ với chỉ số này (nhập một lần); các tháng sau tự lấy làm chỉ số cũ.
                 </p>
                 {(['ELECTRICITY', 'WATER'] as const).map((t) => (
                   <Field key={t} id={`mi-${t}`} label={`Chỉ số ${METER_TYPE_LABELS[t].toLowerCase()}`} error={fieldErrors.meter_readings?.[0]}>
-                    <TextInput id={`mi-${t}`} inputMode="decimal" value={readings[t]} onChange={(e) => setReadings({ ...readings, [t]: e.target.value.replace(/[^\d.,]/g, '') })} />
+                    <TextInput id={`mi-${t}`} inputMode="decimal" value={readings[t]} onChange={(e) => setReadings({ ...readingsEdited, [t]: e.target.value.replace(/[^\d.,]/g, '') })} />
                   </Field>
                 ))}
               </section>

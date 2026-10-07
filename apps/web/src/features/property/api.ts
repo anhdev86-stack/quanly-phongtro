@@ -83,13 +83,15 @@ export interface RoomInput {
   max_occupants: number;
   amenities: string[];
   note: string | null;
+  /** Chỉ khi thêm phòng: chỉ số ban đầu của đồng hồ điện/nước (nhập một lần). */
+  initial_readings?: { ELECTRICITY: string | null; WATER: string | null };
 }
 
 export const useCreateRoom = () =>
   useApiMutation<RoomInput, Room>((body) => ({ path: '/rooms', method: 'POST', body }), [propertyKeys.rooms, propertyKeys.buildings]);
 
 export const useUpdateRoom = (id: string) =>
-  useApiMutation<Partial<Omit<RoomInput, 'building_id'>> & { expected_version: number }, Room>(
+  useApiMutation<Partial<Omit<RoomInput, 'building_id' | 'initial_readings'>> & { expected_version: number }, Room>(
     (body) => ({ path: `/rooms/${id}`, method: 'PATCH', body }),
     [propertyKeys.rooms],
   );

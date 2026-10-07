@@ -90,7 +90,19 @@ export class ReportsService {
     const needing = open.filter((t) => fromDbDate(t.startDate) < monthStart);
     const meters = await this.prisma.meter.findMany({ where: { roomId: { in: needing.map((t) => t.roomId) }, retiredOn: null } });
     const readings = periodRow ? await this.prisma.meterReading.findMany({ where: { meterId: { in: meters.map((m) => m.id) }, statementPeriodId: periodRow.id, kind: 'PERIODIC' } }) : [];
-    push('MISSING_READINGS', meters.length - readings.length, `Đồng hồ chưa có chỉ số kỳ ${period.slice(5)}/${period.slice(0, 4)}`, `/readings?period=${period}${q.building_id ? `&building_id=${q.building_id}` : ''}`);
+    // Đếm theo phòng: phòng chưa có đồng hồ (cần thiết lập chỉ số nền) hoặc còn đồng hồ chưa chốt. Kỳ M = điện nước tháng tiêu thụ M−1.
+    const read = new Set(readings.map((r) => r.meterId));
+    const roomsPending = needing.filter((t) => {
+      const own = meters.filter((m) => m.roomId === t.roomId);
+      return own.length === 0 || own.some((m) => !read.has(m.id));
+    }).length;
+    const consumption = addMonths(monthStart, -1).slice(0, 7);
+    push(
+      'MISSING_READINGS',
+      roomsPending,
+      `Phòng chưa chốt chỉ số điện nước tháng ${consumption.slice(5)}/${consumption.slice(0, 4)}`,
+      `/readings?month=${consumption}${q.building_id ? `&building_id=${q.building_id}` : ''}`,
+    );
 
     const tenancyScope = { workspaceId: user.workspaceId, tenancy: { room: scope } };
     const drafts = await this.prisma.invoice.count({ where: { ...tenancyScope, lifecycle: 'DRAFT' } });

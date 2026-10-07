@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { expectedVersionSchema, optionalPhone, optionalText, pageQuerySchema, reasonSchema } from './common.js';
 import { businessDateSchema, moneyVndSchema, uuidSchema } from './primitives.js';
+import { readingValueSchema } from './tenancy.js';
 
 const codeSchema = z
   .string()
@@ -69,10 +70,18 @@ export const roomCreateSchema = z.strictObject({
   max_occupants: z.number().int().min(1, 'Sức chứa tối thiểu 1 người.').max(50),
   amenities: z.array(z.string().trim().min(1).max(50)).max(30).default([]),
   note: optionalText(1000),
+  /**
+   * Chỉ số ban đầu khi thiết lập phòng (nhập một lần): có giá trị thì tạo đồng hồ điện/nước của phòng với chỉ số này, ngày lắp là hôm nay.
+   * Số seri không bắt buộc. Các tháng sau tự lấy làm chỉ số trước.
+   */
+  initial_readings: z
+    .strictObject({ ELECTRICITY: readingValueSchema.nullish(), WATER: readingValueSchema.nullish() })
+    .nullish()
+    .transform((v) => v ?? null),
 });
 
 export const roomUpdateSchema = roomCreateSchema
-  .omit({ building_id: true })
+  .omit({ building_id: true, initial_readings: true })
   .partial()
   .extend({ expected_version: expectedVersionSchema });
 

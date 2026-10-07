@@ -21,6 +21,9 @@ const schema = z.object({
   max_occupants: z.string().regex(/^\d{1,2}$/, 'Nhập số người tối đa.'),
   amenities: z.string().max(500),
   note: z.string().max(1000),
+  // Chỉ số ban đầu (chỉ khi thêm phòng): bỏ trống thì thiết lập sau ở trang phòng hoặc lúc chốt chỉ số.
+  elec: z.string().regex(/^(\d{1,10}([.,]\d{1,2})?)?$/, 'Chỉ số không hợp lệ.'),
+  water: z.string().regex(/^(\d{1,10}([.,]\d{1,2})?)?$/, 'Chỉ số không hợp lệ.'),
 });
 type FormValues = z.infer<typeof schema>;
 const FIELDS = ['building_id', 'code', 'floor', 'area_m2', 'default_rent_vnd', 'max_occupants', 'amenities', 'note'] as const;
@@ -52,6 +55,8 @@ export function RoomFormDialog({
       max_occupants: room ? String(room.max_occupants) : '2',
       amenities: room?.amenities.join(', ') ?? '',
       note: room?.note ?? '',
+      elec: '',
+      water: '',
     },
   });
   const { errors } = form.formState;
@@ -73,7 +78,10 @@ export function RoomFormDialog({
     };
     try {
       if (room) await update.mutateAsync({ ...body, expected_version: room.version });
-      else await create.mutateAsync({ ...body, building_id: v.building_id });
+      else {
+        const initial = { ELECTRICITY: blankToNull(v.elec.replace(',', '.')), WATER: blankToNull(v.water.replace(',', '.')) };
+        await create.mutateAsync({ ...body, building_id: v.building_id, ...(initial.ELECTRICITY || initial.WATER ? { initial_readings: initial } : {}) });
+      }
       toast.success(room ? 'Đã lưu thông tin phòng.' : `Đã thêm phòng ${body.code.toUpperCase()}.`);
       form.reset();
       onClose();
@@ -137,6 +145,20 @@ export function RoomFormDialog({
         <Field id="r-amenities" label="Tiện nghi" error={errors.amenities?.message} hint="Cách nhau bằng dấu phẩy, ví dụ: Máy lạnh, Nóng lạnh, Gác lửng" className="sm:col-span-2">
           <TextInput {...aria('amenities')} {...form.register('amenities')} />
         </Field>
+        {!room ? (
+          <fieldset className="grid grid-cols-1 gap-4 rounded-md border border-slate-200 p-3 sm:col-span-2 sm:grid-cols-2">
+            <legend className="px-1 text-sm font-medium text-slate-700">Đồng hồ điện nước (nhập một lần)</legend>
+            <p className="text-xs text-slate-500 sm:col-span-2">
+              Ghi số đang hiện trên đồng hồ riêng của phòng. Các tháng sau hệ thống tự lấy làm chỉ số cũ. Không cần số seri; bỏ trống nếu chưa có.
+            </p>
+            <Field id="r-elec" label="Chỉ số điện ban đầu (kWh)" error={errors.elec?.message}>
+              <TextInput id="r-elec" inputMode="decimal" {...form.register('elec')} />
+            </Field>
+            <Field id="r-water" label="Chỉ số nước ban đầu (m³)" error={errors.water?.message}>
+              <TextInput id="r-water" inputMode="decimal" {...form.register('water')} />
+            </Field>
+          </fieldset>
+        ) : null}
         <Field id="r-note" label="Ghi chú" error={errors.note?.message} className="sm:col-span-2">
           <Textarea {...aria('note')} {...form.register('note')} />
         </Field>

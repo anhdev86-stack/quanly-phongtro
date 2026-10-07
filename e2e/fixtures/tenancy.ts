@@ -15,7 +15,10 @@ export function localDate(days = 0): string {
 }
 
 /** Đi hết wizard nhận phòng từ bước 1; `contractEnd` có giá trị thì tạo hợp đồng đã ký tới ngày đó; `startDate` đổi ngày nhận phòng. */
-export async function finishWizard(page: Page, opts: { tenant: string; deposit: string; contractEnd?: string; startDate?: string }) {
+export async function finishWizard(
+  page: Page,
+  opts: { tenant: string; deposit: string; contractEnd?: string; startDate?: string; /** Đồng hồ đã thiết lập: kiểm tra chỉ số điền sẵn, không gõ đè. */ prefilled?: { elec: string; water: string } },
+) {
   if (opts.startDate) await page.locator('#mi-start').fill(opts.startDate);
   await page.getByRole('button', { name: 'Tiếp' }).click(); // → Người thuê
   await page.locator('#mi-p-full_name').fill(opts.tenant);
@@ -27,8 +30,13 @@ export async function finishWizard(page: Page, opts: { tenant: string; deposit: 
   }
   await page.getByRole('button', { name: 'Tiếp' }).click(); // → Dịch vụ & chỉ số
   await page.getByLabel('Internet').check();
-  await page.getByLabel('Chỉ số điện').fill('1520');
-  await page.getByLabel('Chỉ số nước').fill('85');
+  if (opts.prefilled) {
+    await expect(page.getByLabel('Chỉ số điện')).toHaveValue(opts.prefilled.elec);
+    await expect(page.getByLabel('Chỉ số nước')).toHaveValue(opts.prefilled.water);
+  } else {
+    await page.getByLabel('Chỉ số điện').fill('1520');
+    await page.getByLabel('Chỉ số nước').fill('85');
+  }
   await page.getByRole('button', { name: 'Tiếp' }).click(); // → Cọc
   if (opts.deposit) await page.getByLabel('Tiền cọc thực nhận hôm nay').fill(opts.deposit);
   await page.getByRole('button', { name: 'Tiếp' }).click(); // → Xem lại

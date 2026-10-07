@@ -232,7 +232,13 @@ export const meterInitialCorrectSchema = z.strictObject({ initial_reading: readi
 
 // ---------- Nhập chỉ số ----------
 
-export const readingSheetQuerySchema = z.object({ building_id: uuidSchema, period: periodSchema });
+/**
+ * Bảng chỉ số tháng: chọn **tháng tiêu thụ** (VD 2026-10). Chỉ số chốt cuối tháng tiêu thụ thuộc thông báo của **tháng sau** (2026-11),
+ * cùng tiền phòng tháng sau (điện nước thu sau — MASTER_PLAN 8.5). `period` (tháng phát hành) vẫn nhận để tương thích.
+ */
+export const readingSheetQuerySchema = z
+  .object({ building_id: uuidSchema, consumption_month: periodSchema.optional(), period: periodSchema.optional() })
+  .refine((v) => !!v.consumption_month || !!v.period, { message: 'Chọn tháng tiêu thụ.', path: ['consumption_month'] });
 
 export const sheetMeterSchema = z.object({
   type: meterTypeSchema,
@@ -249,14 +255,19 @@ export const sheetMeterSchema = z.object({
   warning: z.enum(['ZERO_WHILE_OCCUPIED', 'HIGH', 'LOW']).nullable(),
   /** Dịch vụ thay đồng hồ đang bật (VD nước theo người): đồng hồ vẫn ghi nhưng có thể không tính tiền. */
   substituted_by: z.string().nullable(),
+  /** Phòng chưa có đồng hồ loại này và không dùng dịch vụ thay thế: cần thiết lập chỉ số nền trước khi chốt. */
+  needs_setup: z.boolean(),
 });
 export type SheetMeter = z.infer<typeof sheetMeterSchema>;
 
 export const readingSheetSchema = z.object({
   building_id: z.string(),
   building_code: z.string(),
+  /** Tháng phát hành của thông báo nhận số điện nước này (= tháng tiêu thụ + 1). */
   period: z.string(),
   month_start: z.string(),
+  /** Tháng tiêu thụ (YYYY-MM). */
+  consumption_month: z.string(),
   rounding_unit: z.number(),
   unit_prices: z.object({ ELECTRICITY: z.string().nullable(), WATER: z.string().nullable() }),
   rows: z.array(
@@ -268,10 +279,19 @@ export const readingSheetSchema = z.object({
       tenancy_code: z.string(),
       primary_tenant_name: z.string().nullable(),
       occupants: z.number(),
+      /** DONE: đủ chỉ số; PARTIAL: thiếu một đồng hồ; TODO: chưa nhập; NEEDS_SETUP: thiếu đồng hồ/chỉ số nền. */
+      status: z.enum(['DONE', 'PARTIAL', 'TODO', 'NEEDS_SETUP']),
+      /** Ngày gợi ý cho chỉ số nền khi thiết lập ngay (đầu tháng tiêu thụ, hoặc ngày nhận phòng nếu muộn hơn). */
+      setup_date: z.string(),
       meters: z.array(sheetMeterSchema),
     }),
   ),
-  totals: z.object({ provisional_vnd: z.string(), entered: z.number(), expected: z.number() }),
+  totals: z.object({
+    provisional_vnd: z.string(),
+    entered: z.number(),
+    expected: z.number(),
+    rooms: z.object({ total: z.number(), done: z.number(), partial: z.number(), todo: z.number(), needs_setup: z.number() }),
+  }),
 });
 export type ReadingSheet = z.infer<typeof readingSheetSchema>;
 

@@ -453,3 +453,17 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   “(vai trò cũ)”. Integration test vẫn dùng chúng làm tập quyền hẹp để kiểm tra backend chặn đúng.
 - Seed dev/E2E chỉ tạo `owner@`, `manager.a@` (tòa A), `manager.bc@` (tòa B, C). Database dev 07/10/2026: đồng bộ quyền bằng `db:bootstrap`
   (không seed lại) và chuyển `staff.a@`, `staff.bc@`, `accountant.b@` sang Quản lý qua API (có nhật ký).
+
+## D-042 — Luồng điện nước theo cách dùng thực tế (chủ dự án yêu cầu 07/10/2026)
+
+- Không đổi mô hình dữ liệu hay cách tính tiền: chỉ số chốt của **tháng tiêu thụ M** vẫn lưu vào kỳ phát hành M+1 và vào thông báo tháng M+1
+  cùng tiền phòng tháng M+1 (MASTER_PLAN 8.5, 8.6). Thay đổi nằm ở thao tác và cách hiển thị.
+- `GET /meter-readings/sheet?consumption_month=YYYY-MM` (vẫn nhận `period` = tháng phát hành để tương thích); trả `consumption_month`,
+  `period`, trạng thái từng phòng (DONE/PARTIAL/TODO/NEEDS_SETUP), `needs_setup` từng đồng hồ, ngày gợi ý cho chỉ số nền và tiến độ theo phòng.
+- Bảng chỉ liệt kê lần thuê bắt đầu **trước** ngày 1 tháng phát hành (đã ở trong tháng tiêu thụ) — trước đây liệt kê mọi lần thuê đang mở,
+  kể cả khách nhận phòng sau tháng đó. Cùng quy tắc với “Việc cần xử lý”, nay đếm theo phòng (gồm phòng chưa có đồng hồ) và dẫn tới đúng tháng tiêu thụ.
+- “Cần thiết lập” chỉ khi phòng thiếu đồng hồ loại đó **và** không dùng dịch vụ thay thế (nước theo người…).
+- `POST /rooms` nhận `initial_readings` (điện/nước, không bắt buộc): tạo đồng hồ trong cùng transaction, ngày lắp hôm nay, không số seri.
+- Quyền: gắn đồng hồ + chỉ số nền (`POST /rooms/:id/meters`) đổi từ `services.manage` sang `rooms.manage` (chủ trọ + quản lý trong tòa được giao)
+  vì là một phần thiết lập phòng; thay đồng hồ, sửa chỉ số ban đầu vẫn là `services.manage` (chủ trọ).
+- Giao diện: lưu theo phòng hoặc lưu tất cả (một batch/transaction, lỗi gắn về đúng ô); trình nhận phòng điền sẵn chỉ số gần nhất của đồng hồ.

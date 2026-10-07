@@ -6,7 +6,7 @@ import { PG, pgErrorCode } from '../../common/db/pg-errors.js';
 import { updateVersioned } from '../../common/db/versioned.js';
 import { day, decimal, iso, money, naturalCompare, paged } from '../../common/dto/mappers.js';
 import { AppError } from '../../common/errors/app-error.js';
-import { fromDbDate } from '../../domain/dates/date-only.js';
+import { fromDbDate, toDbDate } from '../../domain/dates/date-only.js';
 import { roomDisplayStatus } from '../../domain/rooms/room-status.js';
 import type { Building, Prisma, Room as RoomRow } from '../../generated/prisma/client.js';
 import { CLOCK, type Clock } from '../../infrastructure/clock/clock.js';
@@ -92,6 +92,15 @@ export class RoomsService {
             note: input.note,
           },
         });
+        // Chỉ số ban đầu nhập một lần khi thiết lập phòng: tạo đồng hồ điện/nước (không bắt buộc số seri), ngày lắp hôm nay.
+        for (const type of ['ELECTRICITY', 'WATER'] as const) {
+          const value = input.initial_readings?.[type];
+          if (value !== null && value !== undefined && value !== '') {
+            await tx.meter.create({
+              data: { workspaceId: user.workspaceId, roomId: room.id, type, installedOn: toDbDate(this.clock.today()), initialReading: value, createdBy: user.id },
+            });
+          }
+        }
         await this.audit.record(tx, {
           workspaceId: user.workspaceId,
           actorId: user.id,

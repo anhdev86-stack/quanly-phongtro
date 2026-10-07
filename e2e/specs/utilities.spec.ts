@@ -1,9 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { dialog, loginAs } from '../fixtures/session';
+import { dialog, loginAs, uniqueCode } from '../fixtures/session';
 import { finishWizard, localDate, openRoom } from '../fixtures/tenancy';
 
-test.describe('Phase 4 — điện nước theo tòa, nhập chỉ số', () => {
-  test('nhập chỉ số mới: chỉ số trước tự điền, tạm tính ngay khi gõ, chặn số nhỏ hơn, dùng được ở 360px', async ({ page }, info) => {
+const monthLabel = (m: string) => `${m.slice(5, 7)}/${m.slice(0, 4)}`;
+/** Tháng phát hành nhận điện nước tháng hiện tại = tháng sau (theo giờ máy chạy test). */
+function nextMonth(): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+test.describe('Điện nước: thiết lập đồng hồ, chốt chỉ số theo tháng tiêu thụ', () => {
+  test('chốt chỉ số theo tháng tiêu thụ: chỉ số cũ tự điền, tạm tính khi gõ, lưu từng phòng, chặn số nhỏ hơn, dùng được ở 360px', async ({ page }, info) => {
     const desktop = info.project.name === 'desktop';
     const building = desktop ? 'A' : 'B';
     const code = `${building}104`;
@@ -19,26 +28,65 @@ test.describe('Phase 4 — điện nước theo tòa, nhập chỉ số', () => 
     const select = page.getByLabel('Tòa', { exact: true });
     const value = await select.locator('option', { hasText: `${building} —` }).getAttribute('value');
     await select.selectOption(value!);
-    await page.getByLabel('Kỳ (tháng phát hành)').fill(localDate(0).slice(0, 7));
+    // Khách ở từ hôm qua: chốt tháng tiêu thụ hiện tại → vào thông báo tháng sau
+    await page.getByLabel('Tháng tiêu thụ').fill(localDate(0).slice(0, 7));
+    await expect(page.getByTestId('billing-target')).toContainText(`vào thông báo tháng ${monthLabel(nextMonth())}`);
 
     const card = page.getByTestId(`reading-room-${code}`);
+    await expect(card.getByText('Chưa nhập')).toBeVisible();
     await expect(card.getByTestId(`rd-${code}-ELECTRICITY-previous`)).toHaveText('1520');
     await card.getByLabel(`Chỉ số mới điện phòng ${code}`).fill('1600');
     await expect(card.getByText('80 kWh')).toBeVisible();
     await expect(card.getByText(price)).toBeVisible();
-    await card.getByRole('button', { name: `Lưu chỉ số điện phòng ${code}` }).click();
-    await expect(page.getByText(`Đã lưu chỉ số điện phòng ${code}.`)).toBeVisible();
-    await expect(card.getByLabel('Đã nhập')).toBeVisible();
+    await card.getByRole('button', { name: `Lưu chỉ số phòng ${code}` }).click();
+    await expect(page.getByText(`Đã lưu chỉ số phòng ${code}.`)).toBeVisible();
+    await expect(card.getByText('Nhập dở')).toBeVisible();
 
-    // Nước nhỏ hơn chỉ số trước: báo ngay, không cho lưu
+    // Nước nhỏ hơn chỉ số cũ: báo ngay, không cho lưu
     await card.getByLabel(`Chỉ số mới nước phòng ${code}`).fill('80');
-    await expect(card.getByText(/Nhỏ hơn chỉ số trước/)).toBeVisible();
-    await expect(card.getByRole('button', { name: `Lưu chỉ số nước phòng ${code}` })).toBeDisabled();
+    await expect(card.getByText(/Nhỏ hơn chỉ số cũ/)).toBeVisible();
+    await expect(card.getByRole('button', { name: `Lưu chỉ số phòng ${code}` })).toBeDisabled();
+    await expect(page.getByTestId('sheet-progress')).toContainText(/Đã chốt \d+\/\d+ phòng/);
 
     if (!desktop) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(0);
     }
+  });
+
+  test('thiết lập phòng có chỉ số ban đầu → nhận phòng điền sẵn chỉ số → chốt cả danh sách → link lập thông báo tháng sau', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Luồng nhập liệu dài: kiểm trên desktop.');
+    const code = uniqueCode('DN');
+    await loginAs(page, 'owner');
+    await page.goto('/rooms');
+    await page.getByRole('button', { name: 'Thêm phòng' }).click();
+    const d = dialog(page);
+    await d.getByLabel('Tòa').selectOption({ label: 'C — Tòa C — Ngõ Bình Yên' });
+    await d.getByLabel('Mã phòng').fill(code);
+    await d.getByLabel('Giá thuê mặc định / tháng').fill('2500000');
+    await d.getByLabel('Chỉ số điện ban đầu (kWh)').fill('2000');
+    await d.getByLabel('Chỉ số nước ban đầu (m³)').fill('300');
+    await d.getByRole('button', { name: 'Lưu' }).click();
+    await expect(page.getByText(`Đã thêm phòng ${code}.`)).toBeVisible();
+
+    await openRoom(page, code);
+    await page.getByRole('link', { name: 'Nhận phòng' }).click();
+    await finishWizard(page, { tenant: `Khách ${code}`, deposit: '', startDate: localDate(-1), prefilled: { elec: '2000', water: '300' } });
+
+    await page.goto('/readings');
+    const select = page.getByLabel('Tòa', { exact: true });
+    await select.selectOption((await select.locator('option', { hasText: 'C —' }).getAttribute('value'))!);
+    await page.getByLabel('Tháng tiêu thụ').fill(localDate(0).slice(0, 7));
+    const card = page.getByTestId(`reading-room-${code}`);
+    await expect(card.getByTestId(`rd-${code}-ELECTRICITY-previous`)).toHaveText('2000');
+    await expect(card.getByTestId(`rd-${code}-WATER-previous`)).toHaveText('300');
+    await card.getByLabel(`Chỉ số mới điện phòng ${code}`).fill('2045');
+    await card.getByLabel(`Chỉ số mới nước phòng ${code}`).fill('304');
+    await page.getByRole('button', { name: /^Lưu tất cả/ }).click();
+    await expect(page.getByText('Đã lưu chỉ số cả danh sách.')).toBeVisible();
+    await expect(card.getByText('Đã đủ')).toBeVisible();
+    await expect(card.getByText('45 kWh')).toBeVisible();
+    await expect(card.getByText('4 m³')).toBeVisible();
   });
 
   test('“Thay đổi giá” điện của tòa: giá mới áp dụng từ kỳ đọc tiếp theo, có lịch sử người đổi', async ({ page }, info) => {

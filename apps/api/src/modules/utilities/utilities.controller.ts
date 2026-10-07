@@ -74,7 +74,8 @@ export class UtilitiesController {
   }
 
   @Post('rooms/:id/meters')
-  @RequirePermissions(PERMISSIONS.SERVICES_MANAGE)
+  // Khai báo đồng hồ + chỉ số nền là một phần thiết lập phòng (chủ trọ, quản lý trong tòa được giao). Thay đồng hồ, sửa chỉ số ban đầu: chủ trọ.
+  @RequirePermissions(PERMISSIONS.ROOMS_MANAGE)
   @ApiOperation({ summary: 'Gắn đồng hồ, nhập chỉ số ban đầu một lần' })
   @ApiZodBody(meterCreateSchema)
   @ApiZodResponse(201, roomMetersSchema, 'Đã gắn')

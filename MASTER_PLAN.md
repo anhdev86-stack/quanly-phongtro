@@ -1,12 +1,18 @@
 # MASTER PLAN — PHẦN MỀM QUẢN LÝ NHÀ TRỌ
 
-**Phiên bản:** 2.5 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
+**Phiên bản:** 2.6 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
 **Ngày:** 07/10/2026  
 **Ngôn ngữ UI:** Tiếng Việt  
 **Tiền tệ:** VND  
 **Múi giờ nghiệp vụ:** Asia/Ho_Chi_Minh
 
 > Đọc toàn bộ tài liệu trước khi triển khai. Đây là nguồn yêu cầu nghiệp vụ chính thức. Những mặc định kỹ thuật được ghi rõ bên dưới dùng để triển khai mà không phải tự đoán. Nếu có yêu cầu mới của chủ dự án, cập nhật tài liệu và ghi lại quyết định trước khi thay đổi nghiệp vụ.
+
+### Thay đổi so với v2.5 (yêu cầu của chủ dự án, 07/10/2026)
+
+| # | Mục | Thay đổi |
+|---|---|---|
+| 1 | 2.2, 8.5, 11.2, 12 | **Điện nước theo cách dùng thực tế.** Mỗi phòng có đồng hồ điện/nước riêng; chỉ số ban đầu nhập **một lần khi thiết lập phòng** (số seri không bắt buộc), nhận phòng điền sẵn. Màn hình hàng tháng chọn **tòa + tháng tiêu thụ** (tách khỏi tháng phát hành), danh sách phòng với chỉ số cũ / số mới / tiêu thụ / đơn giá / thành tiền, lưu từng phòng hoặc cả danh sách, tiến độ theo phòng; phòng thiếu chỉ số nền được hướng dẫn thiết lập ngay. Nghiệp vụ tính tiền không đổi: điện nước tháng M vào thông báo tháng M+1 cùng tiền phòng tháng M+1. Quyết định: D-042. |
 
 ### Thay đổi so với v2.4 (yêu cầu của chủ dự án, 07/10/2026)
 
@@ -153,7 +159,7 @@ QR chỉ là hình thức ghi nhận thanh toán thủ công. Tạo QR không ph
 | Ngày phát hành thông báo tháng | Ngày 1 của tháng phát hành |
 | Ngày đến hạn | Ngày 5 của tháng phát hành; ngày không tồn tại trong tháng thì dùng ngày cuối tháng |
 | Thông báo đầu tiên khi nhận phòng | Tiền phòng từ ngày nhận đến hết tháng (chia theo ngày) + dịch vụ thu trước; đến hạn ngày nhận phòng |
-| Chỉ số chốt điện nước | Một đợt chốt cho mỗi tháng phát hành, thường nhập từ ngày cuối tháng trước đến ngày 3 |
+| Chỉ số chốt điện nước | Một đợt chốt cho mỗi **tháng tiêu thụ** M, đọc từ ngày cuối tháng M đến ngày 3 tháng M+1; vào thông báo tháng M+1 (cùng tiền phòng tháng M+1) |
 | Chia ngày | Theo số ngày thực tế của tháng (`ACTUAL_DAYS`) |
 | Làm tròn | HALF_UP đến 1 VND, áp dụng cho từng dòng |
 | Quản lý ghi thu tiền | Được ghi thu trong tòa được giao; không được đảo, hoàn hoặc duyệt (trừ khi chủ trọ cấp riêng) |
@@ -831,21 +837,38 @@ Có thể cấu hình dịch vụ tính đủ tháng; phải có nhãn, cần x�
 
 ### 8.5 Điện nước theo đồng hồ
 
-**Luồng thao tác của chủ trọ (yêu cầu v2.4):**
+**Luồng thao tác (v2.6):**
 
 1. **Đặt giá một lần cho mỗi tòa:** trong trang tòa có mục “Giá điện nước”, nhập đơn giá điện (đ/kWh) và nước (đ/m³). Giá được lưu và dùng cho mọi kỳ sau, không phải nhập lại.
 2. **Nút “Thay đổi giá”:** nhập giá mới và lý do. Hệ thống tạo phiên bản giá mới, áp dụng từ kỳ đọc số tiếp theo; không sửa giá của các kỳ đã tính. Màn hình hiển thị lịch sử giá (ai đổi, khi nào, từ kỳ nào).
-3. **Chỉ số đầu nhập một lần:** khi gắn đồng hồ cho phòng (`initial_reading`) hoặc khi nhận phòng (chỉ số INITIAL). Từ đó **chỉ số trước luôn được hệ thống tự lấy** từ lần đọc gần nhất, người dùng không nhập lại.
-4. **Sửa chỉ số đầu/chỉ số trước:** có nút “Sửa chỉ số”, bắt buộc nhập lý do. Chỉ số chưa dùng trên thông báo đã phát hành thì sửa trực tiếp, có ghi audit. Chỉ số đã dùng trên thông báo đã phát hành thì tạo `meter_event CORRECTION` và đối soát (theo quyết định B-4).
-5. **Mỗi tháng chỉ nhập chỉ số mới** cho điện và nước của từng phòng. Màn hình tự hiện chỉ số trước, số tiêu thụ, đơn giá của tòa và **tiền tạm tính** ngay khi gõ. Tiền tạm tính chỉ để xem; tiền chính thức do billing engine tính khi tạo thông báo.
-6. Khi tạo thông báo tháng, tiền điện nước được tính tự động: `(chỉ số mới − chỉ số trước) × đơn giá của tòa`, làm tròn theo chính sách (mục 4.3).
+3. **Thiết lập phòng — chỉ số ban đầu nhập một lần:** mỗi phòng có đồng hồ điện và nước riêng. Khi thêm phòng nhập chỉ số đang hiện trên
+   đồng hồ (`initial_reading`, ngày lắp = hôm nay); **số seri không bắt buộc**. Phòng chưa có đồng hồ thì gắn sau ở trang phòng, hoặc lúc
+   nhận phòng (chỉ số INITIAL). Khi nhận phòng, ô chỉ số **được điền sẵn** chỉ số gần nhất của đồng hồ, chỉ sửa nếu số thực tế khác.
+   Từ đó **chỉ số cũ luôn được hệ thống tự lấy** từ lần chốt gần nhất. Khai báo đồng hồ + chỉ số nền thuộc quyền sửa phòng (chủ trọ, quản lý
+   trong tòa được giao); thay đồng hồ và sửa chỉ số ban đầu của đồng hồ: chủ trọ.
+4. **Sửa chỉ số đầu/chỉ số cũ:** có nút “Sửa chỉ số”, bắt buộc nhập lý do. Chỉ số chưa dùng trên thông báo đã phát hành thì sửa trực tiếp, có ghi audit. Chỉ số đã dùng trên thông báo đã phát hành thì tạo `meter_event CORRECTION` và đối soát (theo quyết định B-4).
+5. **Màn hình chốt chỉ số hàng tháng:**
+   - Chọn **tòa** và **tháng tiêu thụ** M (mặc định: từ ngày 25 là tháng hiện tại, trước đó là tháng trước). Màn hình ghi rõ
+     “điện nước tháng M → vào thông báo tháng M+1, cùng tiền phòng tháng M+1”. Tháng tiêu thụ tách khỏi tháng phát hành.
+   - Danh sách các phòng **có khách ở trong tháng M** (lần thuê bắt đầu trước ngày 1 tháng M+1). Mỗi phòng: chỉ số cũ (tự lấy), ô nhập
+     số mới, tiêu thụ, đơn giá của tòa, thành tiền tạm tính ngay khi gõ. Tiền tạm tính chỉ để xem; tiền chính thức do billing engine tính
+     khi tạo thông báo.
+   - Lưu **từng phòng** (cả điện và nước của phòng một lần) hoặc **lưu tất cả** các ô đã nhập; mỗi lần lưu là một transaction, lỗi gắn về đúng ô.
+   - **Tiến độ theo phòng:** đã chốt / chưa nhập / nhập dở / cần thiết lập, có thanh tiến độ và lọc “chỉ hiện phòng chưa xong”. Không hiển
+     thị “đã xong” khi chưa có đồng hồ nào để chốt.
+   - **Phòng thiếu chỉ số nền** (chưa có đồng hồ loại đó và không dùng dịch vụ thay thế như nước theo người): đánh dấu “Cần thiết lập”, hiện
+     ô nhập chỉ số nền và ngày bắt đầu tính (mặc định đầu tháng tiêu thụ, hoặc ngày nhận phòng nếu muộn hơn) để thiết lập ngay tại màn hình.
+   - Đủ chỉ số thì có lối tắt “Lập thông báo tháng M+1”. “Việc cần xử lý” ở Tổng quan đếm số phòng chưa chốt của tháng tiêu thụ.
+6. Khi tạo thông báo tháng M+1, tiền điện nước tháng M được tính tự động: `(chỉ số mới − chỉ số cũ) × đơn giá của tòa`, làm tròn theo
+   chính sách (mục 4.3); dòng điện nước ghi rõ khoảng tiêu thụ. Ví dụ: chốt ngày 31/10 → thông báo tháng 11 gồm tiền phòng 01/11–30/11 và
+   điện nước tháng 10.
 
 **Quy tắc:**
 
 - Usage = chỉ số hiện tại − chỉ số trước của cùng đồng hồ. Bằng 0 hợp lệ; âm bị từ chối.
 - Đơn giá lấy theo **tòa của phòng**, phiên bản có hiệu lực cho kỳ đọc đó. Tòa chưa đặt giá thì chặn phát hành và báo rõ tòa nào thiếu giá.
 - Số tiêu thụ cao hoặc thấp bất thường (ví dụ gấp 3 lần trung bình 3 kỳ trước, hoặc bằng 0 khi phòng có người ở) chỉ hiện cảnh báo để kiểm tra lại, không chặn lưu.
-- Chỉ số chốt nhập theo đợt cho tháng phát hành (`statement_period_id`); lưu ngày đọc thực tế.
+- Chỉ số chốt của tháng tiêu thụ M lưu vào kỳ phát hành M+1 (`statement_period_id`) — đó là “chỉ số chốt của tháng M+1” ở bảng mốc tính mục 8.6; lưu ngày đọc thực tế.
 - Chỉ số nhận phòng và trả phòng tách tiêu thụ giữa khách cũ và khách mới.
 - Thiếu chỉ số bắt buộc: vẫn tạo được nháp nhưng có lỗi chặn phát hành rõ ràng. Không phát hành bằng cách mặc định usage = 0.
 - Thay đồng hồ: ngưng đồng hồ cũ, chốt chỉ số, tạo đồng hồ mới. Không nhập số âm để “sửa”.
@@ -1168,7 +1191,7 @@ cho người đó (V1.1).
 | Nhận phòng, ghi cọc, chuyển phòng | Có | Có |
 | Hợp đồng | Tạo, ký, gia hạn, phụ lục, hủy kỳ đã ký chưa bắt đầu | Tạo, ký, gia hạn, phụ lục; không hủy kỳ đã ký |
 | Dịch vụ, giá điện nước theo tòa | Đặt và thay đổi giá | Xem |
-| Chỉ số điện nước | Có | Nhập, sửa có lý do |
+| Chỉ số điện nước | Có | Thiết lập đồng hồ + chỉ số nền, chốt hàng tháng, sửa có lý do; không thay đồng hồ |
 | Thông báo tiền phòng | Tạo nháp, phát hành, điều chỉnh, hủy | Tạo nháp, xem, xem QR, tạo link gửi khách; không phát hành |
 | Thu tiền | Có | **Ghi nhận phiếu thu** |
 | Đảo, hoàn tiền, khấu trừ, giữ lại tiền giữ chỗ | Có | Không |
@@ -1215,7 +1238,7 @@ Sidebar: Tổng quan, Tòa/khu & Phòng, Giữ phòng, Người thuê, Lần thu
 - Wizard nhận phòng có bước xem lại trước khi gửi.
 - Tenant Detail: thành viên, tạm trú, lịch sử các lần thuê.
 - Danh sách/chi tiết hợp đồng và form gia hạn. Badge EXPIRED không dùng màu đỏ như lỗi thanh toán.
-- **Nhập chỉ số hàng loạt ưu tiên điện thoại:** đi lần lượt từng phòng; chỉ số trước tự điền sẵn (không cho gõ đè, muốn sửa thì bấm “Sửa chỉ số”); chỉ nhập chỉ số mới bằng bàn phím số; hiện ngay số tiêu thụ, đơn giá của tòa và tiền tạm tính; cảnh báo bất thường; lưu từng dòng; chạy tốt ở chiều rộng 360px. Desktop dùng dạng bảng. Cuối màn hình có tổng tạm tính của đợt.
+- **Chốt chỉ số hàng tháng ưu tiên điện thoại** (mục 8.5 bước 5): chọn tòa + tháng tiêu thụ, ghi rõ thông báo tháng nào nhận; đi lần lượt từng phòng; chỉ số cũ tự điền sẵn (không cho gõ đè, muốn sửa thì bấm “Sửa chỉ số”); chỉ nhập số mới bằng bàn phím số; hiện ngay tiêu thụ, đơn giá của tòa và thành tiền tạm tính; cảnh báo bất thường; lưu từng phòng hoặc lưu tất cả; tiến độ theo phòng; phòng thiếu chỉ số nền có ô thiết lập ngay; chạy tốt ở chiều rộng 360px. Desktop dùng dạng bảng. Cuối màn hình có tiến độ và tổng tạm tính của đợt.
 - **Giá điện nước theo tòa:** trong trang tòa, hiện giá đang áp dụng, nút “Thay đổi giá” (giá mới, lý do, áp dụng từ kỳ đọc tiếp theo) và lịch sử giá.
 - **Thanh toán qua QR:** cấu hình tài khoản nhận tiền; QR và thông tin chuyển khoản trên chi tiết thông báo và trang in; nút “Sao chép link gửi khách”; nút “Ghi nhận thu” đặt cạnh QR.
 - **Nhắc đóng tiền:** cấu hình (bật/tắt, mốc, giờ gửi, thứ tự kênh); bật/tắt nhận tin và ghi nhận đồng ý trên trang người thuê; nhật ký tin theo trạng thái, kèm nút gửi lại.
@@ -1590,7 +1613,7 @@ main khi tôi chưa đồng ý.
 - [ ] Phạm vi theo tòa và audit enforce ở backend.
 - [ ] Trang in thông báo/phiếu thu/biên bản lưu được PDF.
 - [ ] Mã VietQR đúng chuẩn trên thông báo, trang in và link gửi khách; ghi nhận thu vẫn làm tay.
-- [ ] Giá điện nước đặt theo tòa, có “Thay đổi giá”; mỗi tháng chỉ nhập chỉ số mới và tiền được tính tự động.
+- [ ] Giá điện nước đặt theo tòa, có “Thay đổi giá”; chỉ số ban đầu nhập một lần khi thiết lập phòng; mỗi tháng chọn tháng tiêu thụ, chỉ nhập chỉ số mới; điện nước tháng M vào thông báo tháng M+1 và tiền được tính tự động.
 - [ ] Nhắc đóng tiền theo mốc, không gửi trùng, có nhật ký (gửi thật khi đã chốt nhà cung cấp).
 - [ ] Báo cáo doanh thu theo tháng đối chiếu khớp: Phát sinh = Đã thu + Còn nợ.
 - [ ] Test matrix MVP, E2E và cài sạch đạt; hạn chế còn lại được ghi rõ.

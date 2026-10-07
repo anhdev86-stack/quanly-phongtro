@@ -46,7 +46,9 @@ export function MetersSection({ roomId }: { roomId: string }) {
   const can = useCan();
   const meters = useRoomMeters(roomId);
   const [mode, setMode] = useState<Mode | null>(null);
+  // Thay đồng hồ, sửa chỉ số ban đầu: chủ trọ. Gắn đồng hồ + chỉ số nền là thiết lập phòng: cả quản lý.
   const manage = can(PERMISSIONS.SERVICES_MANAGE);
+  const canAttach = can(PERMISSIONS.ROOMS_MANAGE);
   const record = can(PERMISSIONS.METER_READINGS_RECORD);
 
   return (
@@ -93,7 +95,7 @@ export function MetersSection({ roomId }: { roomId: string }) {
                   ) : (
                     <div className="mt-1 flex items-center justify-between gap-2 text-slate-500">
                       Chưa gắn đồng hồ.
-                      {manage ? (
+                      {canAttach ? (
                         <Button size="sm" variant="outline" onClick={() => setMode({ kind: 'attach', type })}>
                           <Plus className="size-4" aria-hidden />
                           Gắn đồng hồ
@@ -255,7 +257,7 @@ function MeterForm({ mode, roomId, onClose }: { mode: Mode; roomId: string; onCl
           </Field>
         ) : null}
         {mode.kind === 'attach' || mode.kind === 'replace' ? (
-          <Field id="mt-serial" label={mode.kind === 'replace' ? 'Số seri đồng hồ mới' : 'Số seri'}>
+          <Field id="mt-serial" label={mode.kind === 'replace' ? 'Số seri đồng hồ mới (không bắt buộc)' : 'Số seri (không bắt buộc)'}>
             <TextInput id="mt-serial" value={v.serial} onChange={(e) => setV({ ...v, serial: e.target.value })} />
           </Field>
         ) : null}

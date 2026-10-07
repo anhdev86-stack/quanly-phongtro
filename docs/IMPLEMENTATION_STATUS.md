@@ -534,6 +534,15 @@ Kiểm tra (07/10/2026):
 | Build lại image Docker | ⏳ Chưa build (ổ Docker tạm nằm trên C:); thay đổi Dockerfile: tạo `/data/files` thuộc user node |
 | `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
 
+## Điều chỉnh: luồng điện nước theo thực tế (D-042) ✅
+
+Thiết lập phòng có chỉ số ban đầu (một lần, không cần số seri) → nhận phòng điền sẵn → màn hình “Chốt chỉ số điện nước” theo tòa + tháng tiêu thụ
+(ghi rõ vào thông báo tháng sau), lưu từng phòng/lưu tất cả, tiến độ theo phòng, phòng thiếu chỉ số nền thiết lập ngay → thông báo tháng sau gồm
+tiền phòng tháng sau + điện nước tháng tiêu thụ. MASTER_PLAN v2.6 (8.5, 2.2, 11.2, 12).
+Kiểm tra: lint, typecheck, build ✅; `pnpm test` 102 ✅; `pnpm test:integration` **336** ✅ (thêm `test/utilities/monthly-readings.int.test.ts`:
+trọn luồng đến thông báo tháng 11 = 3.000.000 + 480.000 + 240.000); E2E utilities, tenancy, reports, billing ✅. Kiểm tra trên dev: phòng A102
+(nhận 07/10) không hiện ở tháng tiêu thụ 09, hiện “Cần thiết lập” ở tháng 10.
+
 ## Điều chỉnh sau Phase 14 — chỉ hai vai trò (D-041) ✅
 
 Chủ dự án chốt: chỉ Chủ trọ + Quản lý. API/giao diện chỉ gán hai vai trò; Quản lý thêm quyền ghi nhận thu; Nhân viên/Kế toán là vai trò cũ.

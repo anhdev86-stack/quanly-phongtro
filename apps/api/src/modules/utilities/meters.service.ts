@@ -17,7 +17,7 @@ import { PG, pgErrorCode, violatedConstraint } from '../../common/db/pg-errors.j
 import { updateVersioned } from '../../common/db/versioned.js';
 import { day, dayOrNull, iso, naturalCompare } from '../../common/dto/mappers.js';
 import { AppError } from '../../common/errors/app-error.js';
-import { type DateOnly, fromDbDate, toDbDate } from '../../domain/dates/date-only.js';
+import { addMonths, type DateOnly, fromDbDate, maxDate, minDate, toDbDate } from '../../domain/dates/date-only.js';
 import { formatFixed2, parseFixed2 } from '../../domain/utilities/fixed2.js';
 import { meterCharge, usageWarning } from '../../domain/utilities/meter-charge.js';
 import { closedIntervalUsages, type MeterPoint, pendingInterval, usageFor } from '../../domain/utilities/meter-usage.js';
@@ -243,11 +243,15 @@ export class MetersService {
    */
   async sheet(user: AuthUser, q: z.output<typeof readingSheetQuerySchema>): Promise<ReadingSheet> {
     const building = await this.access.getBuildingInScope(this.prisma, user, q.building_id);
-    const monthStart = `${q.period}-01`;
+    // Tháng tiêu thụ M → chỉ số chốt thuộc kỳ phát hành M+1 (điện nước thu sau, MASTER_PLAN 8.5).
+    const statementPeriod = q.consumption_month ? addMonths(`${q.consumption_month}-01`, 1).slice(0, 7) : q.period!;
+    const monthStart = `${statementPeriod}-01`;
+    const consumptionStart = addMonths(monthStart, -1);
     const today = this.clock.today();
     const period = await this.prisma.statementPeriod.findUnique({ where: { workspaceId_monthStart: { workspaceId: user.workspaceId, monthStart: toDbDate(monthStart) } } });
     const tenancies = await this.prisma.tenancy.findMany({
-      where: { workspaceId: user.workspaceId, status: { in: [...OPEN_TENANCY_STATUSES] }, room: { buildingId: building.id } },
+      // Chỉ lần thuê đã ở trong tháng tiêu thụ (bắt đầu trước tháng phát hành); khách nhận phòng sau đó chưa có điện nước tháng này.
+      where: { workspaceId: user.workspaceId, status: { in: [...OPEN_TENANCY_STATUSES] }, room: { buildingId: building.id }, startDate: { lt: toDbDate(monthStart) } },
       include: {
         room: true,
         members: { include: { tenant: { select: { fullName: true } } } },
@@ -276,7 +280,9 @@ export class MetersService {
           const current = readings.find((r) => ofType.some((m) => m.id === r.meterId) && r.kind === 'PERIODIC' && period && r.statementPeriodId === period.id);
           const active = current ? ofType.find((m) => m.id === current.meterId) : ofType.find((m) => !m.retiredOn);
           const base = { type, substituted_by: substitute?.service.name ?? null, unit_price: unitPrices[type] };
-          if (!active) return { ...base, meter_id: null, previous: null, carried_usage: '0', current: null, usage: null, provisional_vnd: null, warning: null };
+          if (!active) {
+            return { ...base, meter_id: null, previous: null, carried_usage: '0', current: null, usage: null, provisional_vnd: null, warning: null, needs_setup: !substitute };
+          }
           expected++;
           const points = tenancyPoints(ofType, readings, t);
           const before = current ? day(current.readOn) : undefined;
@@ -313,8 +319,18 @@ export class MetersService {
             usage: usage === null ? null : formatFixed2(usage),
             provisional_vnd: provisional?.toString() ?? null,
             warning,
+            needs_setup: false,
           };
         });
+        const metered = sheetMeters.filter((m) => m.meter_id);
+        const done = metered.filter((m) => m.current).length;
+        const status: ReadingSheet['rows'][number]['status'] = sheetMeters.some((m) => m.needs_setup)
+          ? 'NEEDS_SETUP'
+          : metered.length === 0 || done === metered.length
+            ? 'DONE'
+            : done > 0
+              ? 'PARTIAL'
+              : 'TODO';
         return {
           room_id: t.roomId,
           room_code: t.room.code,
@@ -323,19 +339,28 @@ export class MetersService {
           tenancy_code: t.code,
           primary_tenant_name: primary?.tenant.fullName ?? null,
           occupants,
+          status,
+          setup_date: minDate(maxDate(consumptionStart, day(t.startDate)), today),
           meters: sheetMeters,
         };
       });
+    const countRooms = (st: ReadingSheet['rows'][number]['status']) => rows.filter((r) => r.status === st).length;
 
     return {
       building_id: building.id,
       building_code: building.code,
-      period: q.period,
+      period: statementPeriod,
       month_start: monthStart,
+      consumption_month: consumptionStart.slice(0, 7),
       rounding_unit: policy.rounding_unit,
       unit_prices: unitPrices,
       rows,
-      totals: { provisional_vnd: total.toString(), entered, expected },
+      totals: {
+        provisional_vnd: total.toString(),
+        entered,
+        expected,
+        rooms: { total: rows.length, done: countRooms('DONE'), partial: countRooms('PARTIAL'), todo: countRooms('TODO'), needs_setup: countRooms('NEEDS_SETUP') },
+      },
     };
   }
 
