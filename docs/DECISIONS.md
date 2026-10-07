@@ -379,3 +379,22 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   nên đọc lặp/song song không tạo trùng. Mỗi lần chỉ tạo mốc nhỏ nhất ≥ số ngày còn lại; danh sách mở chỉ hiện mốc mới nhất chưa xác nhận.
   Gia hạn (có kỳ ký sau) hoặc phụ lục đổi ngày kết thúc làm cảnh báo cũ hết hiệu lực. Đây là cảnh báo trong ứng dụng cho người quản lý,
   không gửi tin cho người thuê.
+
+## D-038 — Chi phí và báo cáo tài chính mở rộng (Phase 12)
+
+- **Chi phí** (`expenses`): ghi khi đã thực chi, số PC-YYMM-nnnn, Idempotency-Key, audit. Không sửa/xóa: đảo (`REVERSED`) cần
+  `finance.reverse` + lý do. Quyền mới `expenses.view` (MANAGER, ACCOUNTANT), `expenses.record` (ACCOUNTANT); OWNER có tất cả.
+  Chi theo tòa/phòng nằm trong phạm vi tòa; **chi chung** (không tòa) chỉ người có phạm vi mọi tòa ghi và thấy. Phòng phải thuộc tòa đã chọn.
+  Kỳ phát hành đóng không chặn chi phí (kỳ là của chứng từ thu). CHECK: số tiền > 0; REVERSED ⇔ có thời điểm + lý do; có phòng thì có tòa.
+- **Ba cơ sở số liệu, không trộn (T38):**
+  - *Doanh thu* (dồn tích): Σ dòng DEBIT − Σ dòng CREDIT của chứng từ PUBLISHED theo tháng của chứng từ (D-033); nhóm theo khoản thu
+    (tiền phòng, điện, nước theo loại đồng hồ trong unit_key, từng dịch vụ theo service id trong source_key, hư hỏng, khác), tòa, phòng.
+    Tổng mỗi tháng khớp “Doanh thu thuần” của báo cáo theo tháng (có test).
+  - *Dòng tiền* (theo ngày thực nhận/chi): vào = phiếu thu POSTED + nhận cọc/bổ sung cọc + nhận giữ chỗ; ra = hoàn cọc + hoàn tiền dư +
+    hoàn giữ chỗ + chi phí. Giao dịch sổ cọc/giữ chỗ đã bị đảo (và giao dịch đảo) không tính. Ghi rõ không phải lợi nhuận.
+  - *Thu nhập vận hành* = doanh thu thuần + thu nhập khác (tiền giữ chỗ bị giữ lại, theo ngày ghi FORFEIT) − chi phí (theo ngày chi).
+    Cọc, tiền giữ chỗ nhận vào và hoàn cọc không phải doanh thu hay chi phí.
+- **Lấp đầy** theo ngày-phòng: mẫu số = số ngày của phòng chưa lưu trữ (tới ngày lưu trữ), tháng hiện tại tính tới hôm nay; phòng bảo
+  trì vẫn trong mẫu số (ghi chú trên báo cáo). Tử số = ngày nằm trong [ngày nhận phòng, charge_end_exclusive).
+- Phạm vi: các báo cáo mới cần `reports.view`, luôn ghép phạm vi tòa bằng `AND`; lọc tòa ngoài phạm vi cho kết quả rỗng.
+- **Báo cáo kê khai thuế: chưa làm** — chờ chủ dự án xác nhận mẫu (MASTER_PLAN 2.3 mục 2); không dựng mẫu giả.

@@ -32,7 +32,10 @@ import { TenantsController } from './tenants/tenants.controller.js';
 import { TenantsService } from './tenants/tenants.service.js';
 import { RolesController, UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
+import { ExpensesController } from './expenses/expenses.controller.js';
+import { ExpensesService } from './expenses/expenses.service.js';
 import { ReportsController } from './reports/reports.controller.js';
+import { ReportsFinanceService } from './reports/reports-finance.service.js';
 import { DASHBOARD_TODO, ReportsService } from './reports/reports.service.js';
 import { ChannelRegistry } from './reminders/channels.js';
 import { RemindersController } from './reminders/reminders.controller.js';
@@ -71,6 +74,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     ReportsController,
     RemindersController,
     AuditLogsController,
+    ExpensesController,
   ],
   providers: [
     BuildingsService,
@@ -102,6 +106,8 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     SettlementsService,
     SettlementEventsObserver,
     ReportsService,
+    ReportsFinanceService,
+    ExpensesService,
     ChannelRegistry,
     AuditLogsService,
     RemindersService,

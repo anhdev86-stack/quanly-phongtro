@@ -125,4 +125,68 @@ export const collectionsReportSchema = z.object({
 });
 export type CollectionsReport = z.infer<typeof collectionsReportSchema>;
 
-export const REPORT_TYPES = ['revenue-monthly', 'debts', 'deposits', 'collections'] as const;
+export const REPORT_TYPES = ['revenue-monthly', 'debts', 'deposits', 'collections', 'revenue-breakdown', 'cash-flow', 'occupancy', 'operating'] as const;
+
+// ------------------------------------------------------------------ V1.1 Phase 12: báo cáo tài chính mở rộng
+
+const monthRange = {
+  from: periodSchema.optional(),
+  to: periodSchema.optional(),
+  building_id: uuidSchema.optional(),
+};
+
+/** Doanh thu thuần theo tòa / phòng / khoản thu (tiền phòng, điện, nước, từng dịch vụ…). */
+export const revenueBreakdownQuerySchema = z.object({ ...monthRange, group_by: z.enum(['building', 'room', 'charge']).default('charge') });
+export const revenueBreakdownSchema = z.object({
+  group_by: z.enum(['building', 'room', 'charge']),
+  months: z.array(z.string()),
+  rows: z.array(z.object({ key: z.string(), label: z.string(), by_month: z.array(z.string()), total_vnd: z.string() })),
+  totals: z.object({ by_month: z.array(z.string()), total_vnd: z.string() }),
+});
+export type RevenueBreakdown = z.infer<typeof revenueBreakdownSchema>;
+
+export const financeRangeQuerySchema = z.object(monthRange);
+
+/** Dòng tiền theo ngày nhận/chi thực tế — không phải lợi nhuận. Cọc, tiền giữ chỗ, hoàn tiền tách dòng riêng. */
+export const cashFlowRowSchema = z.object({
+  period: z.string(),
+  rent_collections_vnd: z.string(),
+  deposits_in_vnd: z.string(),
+  holding_in_vnd: z.string(),
+  cash_in_vnd: z.string(),
+  deposit_refunds_vnd: z.string(),
+  credit_refunds_vnd: z.string(),
+  holding_refunds_vnd: z.string(),
+  expenses_vnd: z.string(),
+  cash_out_vnd: z.string(),
+  net_cash_vnd: z.string(),
+});
+export const cashFlowSchema = z.object({ rows: z.array(cashFlowRowSchema), totals: cashFlowRowSchema.omit({ period: true }) });
+export type CashFlowReport = z.infer<typeof cashFlowSchema>;
+
+/** Lấp đầy theo ngày-phòng: số ngày có lần thuê / số ngày-phòng của phòng chưa lưu trữ. */
+export const occupancyRowSchema = z.object({
+  period: z.string(),
+  room_days: z.number(),
+  occupied_days: z.number(),
+  /** % một chữ số thập phân, dạng chuỗi. */
+  rate_pct: z.string(),
+});
+export const occupancySchema = z.object({ rows: z.array(occupancyRowSchema), note: z.string() });
+export type OccupancyReport = z.infer<typeof occupancySchema>;
+
+/** Thu nhập vận hành = doanh thu thuần + thu nhập khác (tiền giữ chỗ bị giữ lại) − chi phí. Cơ sở dồn tích, không phải dòng tiền. */
+export const operatingRowSchema = z.object({
+  period: z.string(),
+  net_revenue_vnd: z.string(),
+  other_income_vnd: z.string(),
+  expenses_vnd: z.string(),
+  operating_income_vnd: z.string(),
+});
+export const operatingSchema = z.object({
+  rows: z.array(operatingRowSchema),
+  totals: operatingRowSchema.omit({ period: true }),
+  expenses_by_category: z.array(z.object({ category: z.string(), label: z.string(), amount_vnd: z.string() })),
+  note: z.string(),
+});
+export type OperatingReport = z.infer<typeof operatingSchema>;

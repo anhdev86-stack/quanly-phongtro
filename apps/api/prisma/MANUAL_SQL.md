@@ -103,6 +103,9 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
 | `statement_periods_closed_chk` | statement_periods | CHECK | `20261007002334_phase11_contracts_periods` | Kỳ CLOSED ⇔ có thời điểm đóng |
 | `contract_revisions_no_chk` | contract_revisions | CHECK | `20261007002334_phase11_contracts_periods` | Số phụ lục ≥ 1 |
 | `contract_alerts_milestone_chk` | contract_alerts | CHECK | `20261007002334_phase11_contracts_periods` | Mốc cảnh báo > 0 ngày |
+| `expenses_amount_chk` | expenses | CHECK | `20261007004652_phase12_expenses` | Số tiền chi > 0 |
+| `expenses_state_chk` | expenses | CHECK | `20261007004652_phase12_expenses` | REVERSED ⇔ có thời điểm và lý do đảo |
+| `expenses_room_building_chk` | expenses | CHECK | `20261007004652_phase12_expenses` | Chi cho phòng thì có tòa |
 
 ```json manual-constraints
 [
@@ -531,6 +534,24 @@ Test `test/schema/manual-constraints.int.test.ts` (T47) đọc khối `json manu
     "kind": "check",
     "table": "contract_alerts",
     "definition": "CHECK ((milestone_days > 0))"
+  },
+  {
+    "name": "expenses_amount_chk",
+    "kind": "check",
+    "table": "expenses",
+    "definition": "CHECK ((amount_vnd > 0))"
+  },
+  {
+    "name": "expenses_state_chk",
+    "kind": "check",
+    "table": "expenses",
+    "definition": "CHECK (((status = 'REVERSED'::\"PostingStatus\") = ((reversed_at IS NOT NULL) AND (reverse_reason IS NOT NULL))))"
+  },
+  {
+    "name": "expenses_room_building_chk",
+    "kind": "check",
+    "table": "expenses",
+    "definition": "CHECK (((room_id IS NULL) OR (building_id IS NOT NULL)))"
   }
 ]
 ```

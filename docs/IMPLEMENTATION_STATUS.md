@@ -482,4 +482,27 @@ Kiểm tra (07/10/2026):
 | `pnpm test:e2e specs/contracts-v11.spec.ts specs/contracts.spec.ts specs/billing.spec.ts specs/reports.spec.ts` | ✅ (contracts.spec sửa selector do thẻ cảnh báo mới) |
 | `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
 
-## Phase 12–14 — V1.1 ⬜
+## Phase 12 — Tài chính mở rộng ✅ (báo cáo thuế chờ mẫu)
+
+Nhánh `phase/12-finance`. Quyết định: D-038.
+
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Chi phí: `GET/POST /expenses`, `POST /expenses/:id/reverse`; quyền `expenses.view`/`expenses.record`; CHECK thủ công | ✅ | Đảo cần `finance.reverse` + lý do |
+| Doanh thu theo khoản thu / tòa / phòng (`/reports/revenue-breakdown`) | ✅ | Tổng khớp doanh thu thuần theo tháng |
+| Dòng tiền (`/reports/cash-flow`), lấp đầy theo ngày-phòng (`/reports/occupancy`), chi phí & thu nhập vận hành (`/reports/operating`) | ✅ | Xuất CSV cả 4 |
+| T38 đầy đủ: doanh thu, thực thu, cọc, hoàn tiền, chi phí không trộn; tiền giữ chỗ bị giữ lại là thu nhập khác | ✅ | `test/reports/finance.int.test.ts` |
+| UI: trang Chi phí (ghi, đảo, lọc), 4 tab báo cáo mới | ✅ | |
+| Báo cáo phục vụ kê khai thuế | ⛔ Chờ chủ dự án | Cần mẫu báo cáo (MASTER_PLAN 2.3 mục 2) |
+
+Kiểm tra (07/10/2026):
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint`, `pnpm typecheck`, `pnpm build` | ✅ |
+| `pnpm test` | ✅ 100 |
+| `pnpm test:integration` | ✅ **318** (26 file; T47: 149) |
+| `pnpm test:e2e specs/finance.spec.ts specs/reports.spec.ts` | ✅ (mỗi spec 1 bỏ qua có chủ đích trên mobile) |
+| `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
+
+## Phase 13–14 — V1.1 ⬜

@@ -47,6 +47,9 @@ export const PERMISSIONS = {
   PERIOD_REOPEN: 'period.reopen',
 
   REPORTS_VIEW: 'reports.view',
+  /** V1.1 Phase 12: chi phí vận hành. Đảo chi phí cần finance.reverse. */
+  EXPENSES_VIEW: 'expenses.view',
+  EXPENSES_RECORD: 'expenses.record',
   REMINDERS_VIEW: 'reminders.view',
   REMINDERS_MANAGE: 'reminders.manage',
   USERS_MANAGE: 'users.manage',
@@ -122,6 +125,7 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
       PERMISSIONS.SETTLEMENTS_VIEW,
       PERMISSIONS.SETTLEMENT_MANAGE,
       PERMISSIONS.REMINDERS_VIEW,
+      PERMISSIONS.EXPENSES_VIEW,
       PERMISSIONS.AUDIT_VIEW_OPERATIONS,
     ],
   },
@@ -145,6 +149,8 @@ export const ROLE_PRESETS: Record<RoleCode, { name: string; permissions: Permiss
       PERMISSIONS.REPORTS_VIEW,
       PERMISSIONS.REMINDERS_VIEW,
       PERMISSIONS.REMINDERS_MANAGE,
+      PERMISSIONS.EXPENSES_VIEW,
+      PERMISSIONS.EXPENSES_RECORD,
       PERMISSIONS.AUDIT_VIEW_FINANCE,
     ],
   },
@@ -201,6 +207,8 @@ export const PERMISSION_GROUPS: { label: string; permissions: [PermissionCode, s
       [PERMISSIONS.CREDIT_REFUND, 'Hoàn tiền dư'],
       [PERMISSIONS.DEPOSIT_RECORD, 'Ghi nhận cọc'],
       [PERMISSIONS.DEPOSIT_REFUND, 'Hoàn cọc'],
+      [PERMISSIONS.EXPENSES_VIEW, 'Xem chi phí'],
+      [PERMISSIONS.EXPENSES_RECORD, 'Ghi chi phí'],
     ],
   },
   {
@@ -231,7 +239,7 @@ export const PERMISSION_LABELS: Record<string, string> = Object.fromEntries(PERM
 
 export type AuditCategory = 'OPERATIONS' | 'FINANCE' | 'SYSTEM';
 
-export const AUDIT_FINANCE_PREFIXES = ['invoice', 'payment', 'credit', 'deposit', 'holding', 'holding_conversion', 'settlement', 'share_link', 'billing', 'reminder'];
+export const AUDIT_FINANCE_PREFIXES = ['invoice', 'payment', 'credit', 'deposit', 'holding', 'holding_conversion', 'settlement', 'share_link', 'billing', 'reminder', 'expense'];
 export const AUDIT_OPERATIONS_PREFIXES = ['building', 'room', 'reservation', 'tenant', 'tenancy', 'contract', 'meter', 'meter_reading', 'meter_price', 'service', 'tenancy_service', 'rent', 'notice', 'member'];
 
 /**

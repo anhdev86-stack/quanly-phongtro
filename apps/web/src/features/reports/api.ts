@@ -1,6 +1,6 @@
 'use client';
 
-import type { CollectionsReport, Dashboard, RevenueReport } from '@ql-tro/shared';
+import type { CashFlowReport, CollectionsReport, Dashboard, OccupancyReport, OperatingReport, RevenueBreakdown, RevenueReport } from '@ql-tro/shared';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { qs } from '@/lib/query';
@@ -46,3 +46,14 @@ export const useCollections = (filters: { from?: string; to?: string; building_i
 
 /** Link tải CSV (GET cùng origin, cookie phiên tự gửi; cùng bộ lọc và phạm vi với màn hình). */
 export const exportUrl = (type: string, filters: Record<string, string | undefined>) => `/api/v1/reports/${type}/export${qs(filters)}`;
+
+// ------------------------------------------------------------------ V1.1 Phase 12
+
+type Range = { from?: string; to?: string; building_id?: string };
+const useReport = <T,>(name: string, filters: Record<string, string | undefined>) =>
+  useQuery({ queryKey: ['reports', name, filters], queryFn: ({ signal }) => api<T>(`/reports/${name}${qs({ ...filters })}`, { signal }), placeholderData: (prev) => prev });
+
+export const useRevenueBreakdown = (filters: Range & { group_by: 'building' | 'room' | 'charge' }) => useReport<RevenueBreakdown>('revenue-breakdown', filters);
+export const useCashFlow = (filters: Range) => useReport<CashFlowReport>('cash-flow', filters);
+export const useOccupancy = (filters: Range) => useReport<OccupancyReport>('occupancy', filters);
+export const useOperating = (filters: Range) => useReport<OperatingReport>('operating', filters);
