@@ -727,6 +727,21 @@ describe('T47 — ràng buộc SQL thủ công', () => {
       await expectAccepted((tx) => alert(tx, 1));
       await expectRejected((tx) => alert(tx, 0), 'contract_alerts_milestone_chk');
     },
+
+    // ---------------- Phase 12 ----------------
+    expenses_amount_chk: async () => {
+      await expectAccepted((tx) => expense(tx, { amountVnd: 1n }));
+      await expectRejected((tx) => expense(tx, { amountVnd: 0n }), 'expenses_amount_chk');
+    },
+    expenses_state_chk: async () => {
+      await expectAccepted((tx) => expense(tx, { status: 'REVERSED', reversedAt: new Date(), reverseReason: 'Nhập nhầm' }));
+      await expectRejected((tx) => expense(tx, { status: 'REVERSED', reversedAt: new Date() }), 'expenses_state_chk');
+      await expectRejected((tx) => expense(tx, { reverseReason: 'x', reversedAt: new Date() }), 'expenses_state_chk');
+    },
+    expenses_room_building_chk: async () => {
+      await expectAccepted(async (tx) => expense(tx, { buildingId: SEED_IDS.buildings.A, roomId: await mkRoom(tx) }));
+      await expectRejected(async (tx) => expense(tx, { roomId: await mkRoom(tx) }), 'expenses_room_building_chk');
+    },
   } satisfies Record<string, () => Promise<void>>);
 
   const price = (tx: Prisma.TransactionClient, serviceId: string, buildingId: string | null, from: string, unitPrice = '1000') =>
@@ -797,6 +812,12 @@ describe('T47 — ràng buộc SQL thủ công', () => {
         createdBy: userId,
         ...extra,
       } as never,
+    });
+
+  let eseq = 0;
+  const expense = (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
+    tx.expense.create({
+      data: { workspaceId: W, number: `PC-T47-${++eseq}`, category: 'REPAIR', amountVnd: 100000n, spentOn: new Date('2026-10-01'), method: 'CASH', createdBy: userId, ...extra } as never,
     });
 
   let cseq = 0;

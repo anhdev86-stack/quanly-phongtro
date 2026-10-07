@@ -13,11 +13,16 @@ import { Table, Td, Th, Tr } from '@/components/ui/table';
 import { useDebts } from '@/features/payments/api';
 import { useBuildings } from '@/features/property/api';
 import { exportUrl, useCollections, useDepositsReport, useRevenue } from '@/features/reports/api';
+import { BreakdownTab, CashFlowTab, OccupancyTab, OperatingTab } from '@/features/reports/finance-tabs';
 import { formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
 
-type Tab = 'revenue' | 'debts' | 'deposits' | 'collections';
+type Tab = 'revenue' | 'debts' | 'deposits' | 'collections' | 'breakdown' | 'cashflow' | 'occupancy' | 'operating';
 const TABS: [Tab, string][] = [
   ['revenue', 'Doanh thu theo tháng'],
+  ['breakdown', 'Doanh thu theo khoản/tòa/phòng'],
+  ['operating', 'Chi phí & thu nhập vận hành'],
+  ['cashflow', 'Dòng tiền'],
+  ['occupancy', 'Lấp đầy'],
   ['debts', 'Công nợ'],
   ['deposits', 'Cọc'],
   ['collections', 'Thu tiền'],
@@ -46,7 +51,7 @@ export default function ReportsPage() {
   const b = buildingId || undefined;
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title="Báo cáo" description="Số liệu theo phạm vi tòa của bạn. Cọc và tiền giữ chỗ không tính vào doanh thu." />
+      <PageHeader title="Báo cáo" description="Số liệu theo phạm vi tòa của bạn. Cọc và tiền giữ chỗ không tính vào doanh thu. Báo cáo kê khai thuế: chờ chủ trọ xác nhận mẫu." />
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-wrap gap-1" role="tablist">
           {TABS.map(([k, l]) => (
@@ -66,7 +71,23 @@ export default function ReportsPage() {
           </Select>
         </Field>
       </div>
-      {tab === 'revenue' ? <RevenueTab buildingId={b} /> : tab === 'debts' ? <DebtsTab buildingId={b} /> : tab === 'deposits' ? <DepositsTab buildingId={b} /> : <CollectionsTab buildingId={b} />}
+      {tab === 'revenue' ? (
+        <RevenueTab buildingId={b} />
+      ) : tab === 'breakdown' ? (
+        <BreakdownTab buildingId={b} />
+      ) : tab === 'operating' ? (
+        <OperatingTab buildingId={b} />
+      ) : tab === 'cashflow' ? (
+        <CashFlowTab buildingId={b} />
+      ) : tab === 'occupancy' ? (
+        <OccupancyTab buildingId={b} />
+      ) : tab === 'debts' ? (
+        <DebtsTab buildingId={b} />
+      ) : tab === 'deposits' ? (
+        <DepositsTab buildingId={b} />
+      ) : (
+        <CollectionsTab buildingId={b} />
+      )}
     </div>
   );
 }

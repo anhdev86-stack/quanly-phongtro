@@ -1,6 +1,12 @@
 import { BadRequestException, Controller, Get, Param, Query, Res } from '@nestjs/common';
 import { ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import {
+  cashFlowSchema,
+  financeRangeQuerySchema,
+  occupancySchema,
+  operatingSchema,
+  revenueBreakdownQuerySchema,
+  revenueBreakdownSchema,
   collectionsQuerySchema,
   collectionsReportSchema,
   dashboardQuerySchema,
@@ -23,6 +29,7 @@ import { ApiErrorResponses, ApiZodResponse } from '../../common/openapi/zod-open
 import { ZodPipe } from '../../common/validation/zod.pipe.js';
 import { DebtsService } from '../payments/debts.service.js';
 import { toCsv } from './csv.js';
+import { ReportsFinanceService } from './reports-finance.service.js';
 import { ReportsService } from './reports.service.js';
 
 const exportQuerySchema = z.object({
@@ -31,6 +38,7 @@ const exportQuerySchema = z.object({
   building_id: z.string().optional(),
   include_ended: z.enum(['true', 'false']).optional(),
   overdue_only: z.enum(['true', 'false']).optional(),
+  group_by: z.enum(['building', 'room', 'charge']).optional(),
 });
 
 @ApiTags('reports')
@@ -39,7 +47,44 @@ export class ReportsController {
   constructor(
     private readonly reports: ReportsService,
     private readonly debts: DebtsService,
+    private readonly finance: ReportsFinanceService,
   ) {}
+
+  @Get('reports/revenue-breakdown')
+  @RequirePermissions(PERMISSIONS.REPORTS_VIEW)
+  @ApiOperation({ summary: 'Doanh thu thuần theo tòa / phòng / khoản thu (tiền phòng, điện, nước, từng dịch vụ) — V1.1' })
+  @ApiZodResponse(200, revenueBreakdownSchema, 'Báo cáo')
+  @ApiErrorResponses(400, 401, 403)
+  revenueBreakdown(@CurrentUser() user: AuthUser, @Query(new ZodPipe(revenueBreakdownQuerySchema)) q: z.output<typeof revenueBreakdownQuerySchema>) {
+    return this.finance.revenueBreakdown(user, q);
+  }
+
+  @Get('reports/cash-flow')
+  @RequirePermissions(PERMISSIONS.REPORTS_VIEW)
+  @ApiOperation({ summary: 'Dòng tiền theo ngày nhận/chi thực tế: thu tiền phòng, cọc, giữ chỗ; hoàn cọc, hoàn tiền dư, chi phí (không phải lợi nhuận) — V1.1' })
+  @ApiZodResponse(200, cashFlowSchema, 'Báo cáo')
+  @ApiErrorResponses(400, 401, 403)
+  cashFlow(@CurrentUser() user: AuthUser, @Query(new ZodPipe(financeRangeQuerySchema)) q: z.output<typeof financeRangeQuerySchema>) {
+    return this.finance.cashFlow(user, q);
+  }
+
+  @Get('reports/occupancy')
+  @RequirePermissions(PERMISSIONS.REPORTS_VIEW)
+  @ApiOperation({ summary: 'Lấp đầy theo ngày-phòng từng tháng — V1.1' })
+  @ApiZodResponse(200, occupancySchema, 'Báo cáo')
+  @ApiErrorResponses(400, 401, 403)
+  occupancy(@CurrentUser() user: AuthUser, @Query(new ZodPipe(financeRangeQuerySchema)) q: z.output<typeof financeRangeQuerySchema>) {
+    return this.finance.occupancy(user, q);
+  }
+
+  @Get('reports/operating')
+  @RequirePermissions(PERMISSIONS.REPORTS_VIEW)
+  @ApiOperation({ summary: 'Chi phí và thu nhập vận hành = doanh thu thuần + tiền giữ chỗ bị giữ lại − chi phí — V1.1' })
+  @ApiZodResponse(200, operatingSchema, 'Báo cáo')
+  @ApiErrorResponses(400, 401, 403)
+  operating(@CurrentUser() user: AuthUser, @Query(new ZodPipe(financeRangeQuerySchema)) q: z.output<typeof financeRangeQuerySchema>) {
+    return this.finance.operating(user, q);
+  }
 
   @Get('dashboard')
   @RequirePermissions()
@@ -89,7 +134,7 @@ export class ReportsController {
   @Get('reports/:type/export')
   @RequirePermissions(PERMISSIONS.REPORTS_VIEW)
   @ApiProduces('text/csv')
-  @ApiOperation({ summary: 'Xuất CSV (UTF-8) cùng bộ lọc và phạm vi tòa với màn hình: revenue-monthly | debts | deposits | collections' })
+  @ApiOperation({ summary: 'Xuất CSV (UTF-8) cùng bộ lọc và phạm vi tòa với màn hình: revenue-monthly | debts | deposits | collections | revenue-breakdown | cash-flow | occupancy | operating' })
   @ApiZodResponse(200, z.string(), 'CSV')
   @ApiErrorResponses(400, 401, 403)
   async export(@CurrentUser() user: AuthUser, @Param('type') type: string, @Query(new ZodPipe(exportQuerySchema)) q: z.output<typeof exportQuerySchema>, @Res({ passthrough: true }) res: Response) {
@@ -118,6 +163,30 @@ export class ReportsController {
         x.cash_in_period_vnd,
       ];
       return toCsv(head, [...r.rows.map((x) => line(`${x.period.slice(5)}/${x.period.slice(0, 4)}`, x)), line('Tổng', r.totals)]);
+    }
+    const mm = (p: string) => `${p.slice(5)}/${p.slice(0, 4)}`;
+    if (type === 'revenue-breakdown') {
+      const r = await this.finance.revenueBreakdown(user, revenueBreakdownQuerySchema.parse(q));
+      return toCsv(['Nhóm', ...r.months.map(mm), 'Tổng'], [...r.rows.map((x) => [x.label, ...x.by_month, x.total_vnd]), ['Tổng', ...r.totals.by_month, r.totals.total_vnd]]);
+    }
+    if (type === 'cash-flow') {
+      const r = await this.finance.cashFlow(user, financeRangeQuerySchema.parse(q));
+      const cols = ['rent_collections_vnd', 'deposits_in_vnd', 'holding_in_vnd', 'cash_in_vnd', 'deposit_refunds_vnd', 'credit_refunds_vnd', 'holding_refunds_vnd', 'expenses_vnd', 'cash_out_vnd', 'net_cash_vnd'] as const;
+      return toCsv(
+        ['Tháng', 'Thu tiền phòng/dịch vụ', 'Nhận cọc', 'Nhận giữ chỗ', 'Tổng tiền vào', 'Hoàn cọc', 'Hoàn tiền dư', 'Hoàn giữ chỗ', 'Chi phí', 'Tổng tiền ra', 'Chênh lệch tiền'],
+        [...r.rows.map((x) => [mm(x.period), ...cols.map((c) => x[c])]), ['Tổng', ...cols.map((c) => r.totals[c])]],
+      );
+    }
+    if (type === 'occupancy') {
+      const r = await this.finance.occupancy(user, financeRangeQuerySchema.parse(q));
+      return toCsv(['Tháng', 'Ngày-phòng', 'Ngày-phòng có thuê', 'Tỷ lệ lấp đầy (%)'], r.rows.map((x) => [mm(x.period), x.room_days, x.occupied_days, x.rate_pct]));
+    }
+    if (type === 'operating') {
+      const r = await this.finance.operating(user, financeRangeQuerySchema.parse(q));
+      return toCsv(
+        ['Tháng', 'Doanh thu thuần', 'Thu nhập khác (giữ chỗ bị giữ lại)', 'Chi phí', 'Thu nhập vận hành'],
+        [...r.rows.map((x) => [mm(x.period), x.net_revenue_vnd, x.other_income_vnd, x.expenses_vnd, x.operating_income_vnd]), ['Tổng', r.totals.net_revenue_vnd, r.totals.other_income_vnd, r.totals.expenses_vnd, r.totals.operating_income_vnd]],
+      );
     }
     if (type === 'debts') {
       const r = await this.debts.list(user, debtQuerySchema.parse({ ...q, page: 1, page_size: 100 }));

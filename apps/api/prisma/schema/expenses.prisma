@@ -1,0 +1,42 @@
+// V1.1 Phase 12: chi phí vận hành (MASTER_PLAN 6.7, 13). Chi phí không sửa/xóa: sai thì đảo (REVERSED) có lý do.
+
+enum ExpenseCategory {
+  REPAIR
+  UTILITY_BILL
+  CLEANING
+  INTERNET
+  SALARY
+  SUPPLIES
+  TAX_FEE
+  OTHER
+}
+
+model Expense {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  workspaceId   String          @map("workspace_id") @db.Uuid
+  /// Số chứng từ PC-YYYYMM-nnnn.
+  number        String
+  /// Tòa/phòng của khoản chi; null = chi chung cả nhà trọ (chỉ người có phạm vi mọi tòa thấy).
+  buildingId    String?         @map("building_id") @db.Uuid
+  roomId        String?         @map("room_id") @db.Uuid
+  category      ExpenseCategory
+  amountVnd     BigInt          @map("amount_vnd")
+  spentOn       DateTime        @map("spent_on") @db.Date
+  method        PaymentMethod
+  payee         String?
+  note          String?
+  status        PostingStatus   @default(POSTED)
+  reversedAt    DateTime?       @map("reversed_at") @db.Timestamptz(3)
+  reversedBy    String?         @map("reversed_by") @db.Uuid
+  reverseReason String?         @map("reverse_reason")
+  createdBy     String          @map("created_by") @db.Uuid
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  building  Building? @relation(fields: [buildingId], references: [id], onDelete: Restrict)
+  room      Room?     @relation(fields: [roomId], references: [id], onDelete: Restrict)
+
+  @@unique([workspaceId, number])
+  @@index([workspaceId, spentOn])
+  @@map("expenses")
+}

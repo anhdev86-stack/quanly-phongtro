@@ -24,6 +24,8 @@ model Workspace {
   idempotencyRequests IdempotencyRequest[]
   auditLogs           AuditLog[]
 
+  expenses Expense[]
+
   @@map("workspaces")
 }
 
@@ -135,6 +137,8 @@ model Building {
   rooms      Room[]
   prices     ServicePriceHistory[]
 
+  expenses Expense[]
+
   @@unique([workspaceId, code])
   @@unique([id, workspaceId])
   @@map("buildings")
@@ -169,6 +173,8 @@ model Room {
   tenancies       Tenancy[]
   serviceDefaults RoomServiceDefault[]
   meters          Meter[]
+
+  expenses Expense[]
 
   @@unique([buildingId, code])
   @@unique([id, workspaceId])
