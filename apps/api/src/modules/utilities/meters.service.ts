@@ -28,6 +28,7 @@ import { type Db, PrismaService } from '../../infrastructure/prisma/prisma.servi
 import { runInTransaction } from '../../infrastructure/prisma/transaction.js';
 import { AccessService } from '../access/access.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { assertPeriodOpen } from '../billing/periods.service.js';
 import { OPEN_TENANCY_STATUSES, RoomsService } from '../rooms/rooms.service.js';
 import { PricesService } from './prices.service.js';
 import { SettingsService } from './settings.service.js';
@@ -355,7 +356,7 @@ export class MetersService {
           update: {},
           create: { workspaceId: user.workspaceId, monthStart: toDbDate(monthStart) },
         });
-        if (period.status === 'CLOSED') throw new AppError('BUSINESS_RULE_VIOLATION', `Kỳ ${input.period} đã đóng.`);
+        await assertPeriodOpen(tx, user.workspaceId, monthStart, 'nhập chỉ số');
 
         const saved: string[] = [];
         for (const [i, item] of input.items.entries()) {
@@ -407,7 +408,8 @@ export class MetersService {
     if (!found) throw new AppError('NOT_FOUND');
     await runInTransaction(this.prisma, async (tx) => {
       await lockRows(tx, 'rooms', [found.meter.roomId]);
-      const r = await tx.meterReading.findUniqueOrThrow({ where: { id: readingId } });
+      const r = await tx.meterReading.findUniqueOrThrow({ where: { id: readingId }, include: { statementPeriod: { select: { monthStart: true } } } });
+      if (r.statementPeriod) await assertPeriodOpen(tx, user.workspaceId, day(r.statementPeriod.monthStart), 'sửa chỉ số của kỳ');
       await this.assertOrder(tx, found.meter, day(r.readOn), parseFixed2(input.value), r.id, 'value');
       await updateVersioned(tx.meterReading, { id: readingId }, input.expected_version, { value: input.value });
       // Chỉ số đọc đúng ngày lắp (VD chỉ số nhận phòng khi đồng hồ tạo lúc nhận phòng) chính là chỉ số ban đầu của đồng hồ.

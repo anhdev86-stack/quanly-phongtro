@@ -17,8 +17,9 @@ test.describe('Phase 3 — hợp đồng, gia hạn, đổi giá', () => {
 
     // Danh sách sắp hết hạn có phòng này
     await page.goto('/contracts?expiring_within_days=30');
-    await expect(page.getByRole('link', { name: new RegExp(`· ${code}$`) })).toBeVisible();
-    await page.getByRole('link', { name: new RegExp(`· ${code}$`) }).click();
+    // Phase 11 thêm thẻ cảnh báo phía trên cũng có link phòng: chỉ xét bảng danh sách.
+    await expect(page.getByRole('table').getByRole('link', { name: new RegExp(`· ${code}$`) })).toBeVisible();
+    await page.getByRole('table').getByRole('link', { name: new RegExp(`· ${code}$`) }).click();
 
     // Gia hạn với giá mới
     await page.getByRole('button', { name: 'Gia hạn' }).click();

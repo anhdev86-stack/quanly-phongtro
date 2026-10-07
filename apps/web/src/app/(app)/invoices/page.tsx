@@ -9,7 +9,7 @@ import { Suspense, useState } from 'react';
 import { FilterBar, PageHeader, Pagination } from '@/components/common/page';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FormError, Select, TextInput } from '@/components/ui/form';
 import { Table, Td, Th, Tr } from '@/components/ui/table';
@@ -53,6 +53,11 @@ function InvoicesContent() {
       <PageHeader
         title="Thông báo tiền phòng"
         description="Mỗi tháng: nhập chỉ số → xem trước → tạo nháp → kiểm tra → phát hành. Thông báo đã phát hành không sửa; thay đổi sau đó được đối soát ở kỳ kế tiếp."
+        actions={
+          <Link href="/invoices/periods" className={buttonVariants({ variant: 'outline' })}>
+            Kỳ phát hành
+          </Link>
+        }
       />
       <FilterBar>
         <Field id="iv-period" label="Tháng phát hành" className="sm:w-44">

@@ -11,6 +11,8 @@ import { ContractStatusBadge, expiryText } from './contract-status';
 export interface ContractRowActions {
   onSign?: (c: ContractDto) => void;
   onCancel?: (c: ContractDto) => void;
+  /** V1.1: lập phụ lục cho hợp đồng đã ký đang hiệu lực/chưa bắt đầu. */
+  onRevise?: (c: ContractDto) => void;
 }
 
 /** Hủy được: nháp, hoặc đã ký nhưng chưa bắt đầu (cần quyền riêng). Hợp đồng đang hiệu lực kết thúc qua trả phòng. */
@@ -32,7 +34,7 @@ export function ContractTable({ items, showTenancy = false, actions = {} }: { it
           <Th>Trạng thái</Th>
           <Th className="hidden text-right md:table-cell">Giá / cọc theo kỳ</Th>
           <Th className="hidden lg:table-cell">Ký ngày</Th>
-          {actions.onSign || actions.onCancel ? <Th /> : null}
+          {actions.onSign || actions.onCancel || actions.onRevise ? <Th /> : null}
         </tr>
       </thead>
       <tbody>
@@ -63,8 +65,13 @@ export function ContractTable({ items, showTenancy = false, actions = {} }: { it
               <div className="text-xs text-slate-500">{c.terms.deposit_required_vnd ? `cọc ${formatVnd(c.terms.deposit_required_vnd)}` : ''}</div>
             </Td>
             <Td className="hidden tabular lg:table-cell">{c.signed_at ? formatBusinessDate(c.signed_at) : '—'}</Td>
-            {actions.onSign || actions.onCancel ? (
+            {actions.onSign || actions.onCancel || actions.onRevise ? (
               <Td className="text-right whitespace-nowrap">
+                {actions.onRevise && (c.status === 'ACTIVE' || c.status === 'SCHEDULED') && can(PERMISSIONS.CONTRACTS_MANAGE) ? (
+                  <Button size="sm" variant="outline" onClick={() => actions.onRevise!(c)}>
+                    Phụ lục
+                  </Button>
+                ) : null}
                 {actions.onSign && c.status === 'DRAFT' && can(PERMISSIONS.CONTRACTS_MANAGE) ? (
                   <Button size="sm" variant="outline" onClick={() => actions.onSign!(c)}>
                     Xác nhận đã ký

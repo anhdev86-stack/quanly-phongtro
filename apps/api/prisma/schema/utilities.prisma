@@ -27,11 +27,18 @@ enum StatementPeriodStatus {
 
 /// Tháng phát hành; chỉ số chốt nhập theo đợt của tháng này. Tạo khi cần (lần nhập chỉ số đầu tiên hoặc khi tính phí).
 model StatementPeriod {
-  id          String                @id @default(uuid(7)) @db.Uuid
-  workspaceId String                @map("workspace_id") @db.Uuid
-  monthStart  DateTime              @map("month_start") @db.Date
-  status      StatementPeriodStatus @default(OPEN)
-  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  id           String                @id @default(uuid(7)) @db.Uuid
+  workspaceId  String                @map("workspace_id") @db.Uuid
+  monthStart   DateTime              @map("month_start") @db.Date
+  status       StatementPeriodStatus @default(OPEN)
+  /// V1.1 (Phase 11): đóng kỳ chặn tạo/sửa thông thường; mở lại cần quyền period.reopen và lý do (T36).
+  closedAt     DateTime?             @map("closed_at") @db.Timestamptz(3)
+  closedBy     String?               @map("closed_by") @db.Uuid
+  reopenedAt   DateTime?             @map("reopened_at") @db.Timestamptz(3)
+  reopenedBy   String?               @map("reopened_by") @db.Uuid
+  reopenReason String?               @map("reopen_reason")
+  version      Int                   @default(1)
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
 
   readings MeterReading[]
   invoices Invoice[]

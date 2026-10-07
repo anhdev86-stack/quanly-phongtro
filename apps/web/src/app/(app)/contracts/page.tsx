@@ -8,6 +8,7 @@ import { FilterBar, PageHeader, Pagination } from '@/components/common/page';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
 import { Card } from '@/components/ui/card';
 import { Field, Select } from '@/components/ui/form';
+import { ContractAlertsCard } from '@/features/contracts/alerts';
 import { useContracts } from '@/features/contracts/api';
 import { ContractTable } from '@/features/contracts/contract-table';
 import { useBuildings } from '@/features/property/api';
@@ -33,6 +34,7 @@ function ContractsContent() {
         title="Hợp đồng"
         description="Tạo, ký, gia hạn hợp đồng ở trang chi tiết lần thuê. Hết hạn hợp đồng không kết thúc lần thuê — khách tiếp tục thuê theo tháng."
       />
+      <ContractAlertsCard />
       <FilterBar>
         <Field id="cf-expiring" label="Sắp hết hạn" className="sm:w-48">
           <Select

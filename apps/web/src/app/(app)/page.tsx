@@ -10,6 +10,7 @@ import { Field, Select, TextInput } from '@/components/ui/form';
 import { useMe } from '@/features/auth/api';
 import { useDashboard } from '@/features/reports/api';
 import { formatVnd, todayLocal } from '@/lib/format';
+import { ContractAlertsCard } from '@/features/contracts/alerts';
 
 const STATUS_STYLES = {
   AVAILABLE: 'bg-emerald-50 text-emerald-800',
@@ -50,6 +51,8 @@ export default function DashboardPage() {
           </Field>
         </div>
       </div>
+
+      {me.permissions.includes('contracts.view') ? <ContractAlertsCard /> : null}
 
       {dash.isPending ? (
         <LoadingState />

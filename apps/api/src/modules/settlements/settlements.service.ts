@@ -24,6 +24,7 @@ import { lockRows } from '../../infrastructure/locking/lock-rows.js';
 import { type Db, PrismaService } from '../../infrastructure/prisma/prisma.service.js';
 import { runInTransaction } from '../../infrastructure/prisma/transaction.js';
 import { AuditService } from '../audit/audit.service.js';
+import { assertPeriodOpen } from '../billing/periods.service.js';
 import { ChargeCalculator, type ComputedLine, type ExtraCharge, finalCutoff, toItemData } from '../billing/charges.js';
 import { toDates } from '../contracts/contracts.service.js';
 import { IdempotencyService } from '../idempotency/idempotency.service.js';
@@ -183,6 +184,8 @@ export class SettlementsService {
       if (s.version !== expectedVersion) throw new AppError('VERSION_CONFLICT');
       const today = this.clock.today();
       if (day(s.lastChargeDate) > today) throw new AppError('BUSINESS_RULE_VIOLATION', 'Chưa tới ngày cuối tính tiền; hoàn tất khi khách đã bàn giao.');
+      // Thông báo cuối và chứng từ điều chỉnh lập trong tháng hiện tại.
+      await assertPeriodOpen(tx, s.workspaceId, firstDayOfMonth(today), 'hoàn tất quyết toán');
       const c = await this.compute(tx, s);
       if (c.preview.input_hash !== s.inputHash) {
         throw new AppError('STALE', 'Thanh toán, giá, chỉ số hoặc thông báo đã thay đổi sau khi duyệt. Hãy xem trước và duyệt lại.');

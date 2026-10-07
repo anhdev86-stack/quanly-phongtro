@@ -14,6 +14,7 @@ import { formatBusinessDate } from '@/lib/format';
 import { useContractAction, useTenancyContracts } from './api';
 import { ContractFormDialog, SignContractDialog } from './contract-dialogs';
 import { ContractTable } from './contract-table';
+import { RevisionDialog, RevisionList } from './revisions';
 
 /** Số ngày trước khi hết hạn bắt đầu nhắc gia hạn ở trang lần thuê. */
 const EXPIRY_WARNING_DAYS = 30;
@@ -31,6 +32,7 @@ export function ContractsSection({ tenancy }: { tenancy: TenancyDetail }) {
   const [form, setForm] = useState<{ renewFrom: ContractDto | null } | null>(null);
   const [signing, setSigning] = useState<ContractDto | null>(null);
   const [cancelling, setCancelling] = useState<ContractDto | null>(null);
+  const [revising, setRevising] = useState<ContractDto | null>(null);
   const manage = can(PERMISSIONS.CONTRACTS_MANAGE) && tenancy.status !== 'ENDED';
 
   const items = list.data?.items ?? [];
@@ -76,8 +78,16 @@ export function ContractsSection({ tenancy }: { tenancy: TenancyDetail }) {
       ) : items.length === 0 ? (
         <EmptyState title="Chưa có hợp đồng">Lần thuê đang là thuê theo tháng.</EmptyState>
       ) : (
-        <ContractTable items={items} actions={manage ? { onSign: setSigning, onCancel: setCancelling } : {}} />
+        <>
+          <ContractTable items={items} actions={manage ? { onSign: setSigning, onCancel: setCancelling, onRevise: setRevising } : {}} />
+          {items
+            .filter((c) => c.lifecycle === 'SIGNED')
+            .map((c) => (
+              <RevisionList key={c.id} contract={c} />
+            ))}
+        </>
       )}
+      <RevisionDialog contract={revising} onClose={() => setRevising(null)} />
 
       <ContractFormDialog open={!!form} onClose={() => setForm(null)} tenancy={tenancy} renewFrom={form?.renewFrom ?? null} />
       <SignContractDialog contract={signing} onClose={() => setSigning(null)} currentRent={tenancy.current_rent_vnd} />
