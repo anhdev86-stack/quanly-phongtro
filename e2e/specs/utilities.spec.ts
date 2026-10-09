@@ -15,7 +15,7 @@ test.describe('Điện nước: thiết lập đồng hồ, chốt chỉ số th
   test('chốt chỉ số theo tháng tiêu thụ: chỉ số cũ tự điền, tạm tính khi gõ, lưu từng phòng, chặn số nhỏ hơn, dùng được ở 360px', async ({ page }, info) => {
     const desktop = info.project.name === 'desktop';
     const building = desktop ? 'A' : 'B';
-    const code = `${building}104`;
+    const code = `${building}301`; // phòng riêng của kịch bản này (contracts-v11 dùng x104)
     const price = desktop ? '280.000 ₫' : '304.000 ₫'; // 80 kWh × giá demo tòa A 3.500 / tòa B 3.800
     await loginAs(page, 'owner');
     await openRoom(page, code);

@@ -11,7 +11,7 @@ test.describe('Phase 8A — tổng quan và báo cáo', () => {
     await expect(page.getByRole('heading', { name: 'Việc cần xử lý' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Tiền' })).toBeVisible();
 
-    await page.getByRole('link', { name: 'Báo cáo' }).click();
+    await page.getByRole('link', { name: 'Báo cáo', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Báo cáo', level: 1 })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Phát sinh' })).toBeVisible();
     await expect(page.getByText(/Phát sinh = Đã thu \+ Còn nợ/)).toBeVisible();

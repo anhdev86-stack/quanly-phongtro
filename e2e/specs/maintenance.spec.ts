@@ -7,7 +7,7 @@ test.describe('Phase 13 — bảo trì và tệp riêng tư', () => {
   test('tạo yêu cầu bảo trì, đính kèm ảnh, mở ảnh qua link có kiểm tra quyền, đánh dấu xong', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'Luồng nhập liệu: kiểm trên desktop; mobile kiểm hiển thị ở test sau.');
     await loginAs(page, 'managerA');
-    await page.getByRole('link', { name: 'Bảo trì' }).click();
+    await page.getByRole('link', { name: 'Bảo trì', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Bảo trì', level: 1 })).toBeVisible();
     const title = `Vòi nước rò rỉ ${uniqueCode('M')}`;
     await page.getByRole('button', { name: 'Tạo yêu cầu' }).click();

@@ -71,6 +71,11 @@ test.describe('Phase 1 — tòa, phòng, giữ phòng', () => {
     await page.getByRole('link', { name: code, exact: true }).click();
     await expect(page.getByTestId('meter-price-ELECTRICITY')).toContainText('3.600 ₫/kWh');
     await expect(page.getByTestId('meter-price-WATER')).toContainText('16.000 ₫/m³');
+
+    // Dọn dữ liệu E2E: lưu trữ tòa thử để các kịch bản khác vẫn thấy đúng 3 tòa mẫu
+    await page.goto('/buildings');
+    await page.getByRole('button', { name: `Lưu trữ tòa ${code}` }).click();
+    await expect(page.getByText(`Đã lưu trữ tòa ${code}.`)).toBeVisible();
   });
 
   test('quản lý tòa B, C chỉ thấy phòng của tòa B, C', async ({ page }) => {

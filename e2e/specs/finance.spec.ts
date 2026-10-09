@@ -5,7 +5,7 @@ test.describe('Phase 12 — chi phí và báo cáo tài chính', () => {
   test('ghi chi phí, đảo có lý do; báo cáo dòng tiền và thu nhập vận hành hiển thị', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'Luồng nhập liệu dài: kiểm trên desktop; mobile kiểm hiển thị ở test sau.');
     await loginAs(page, 'owner');
-    await page.getByRole('link', { name: 'Chi phí' }).click();
+    await page.getByRole('link', { name: 'Chi phí', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Chi phí', level: 1 })).toBeVisible();
     const note = `Sửa ống nước ${uniqueCode('E')}`;
     await page.getByRole('button', { name: 'Ghi chi phí' }).click();
