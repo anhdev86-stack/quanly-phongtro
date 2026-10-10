@@ -29,10 +29,10 @@ export default function LoginPage() {
   const { errors } = form.formState;
 
   return (
-    <main className="flex min-h-full items-center justify-center bg-gradient-to-br from-cream via-white to-sky-100 px-4 py-12">
+    <main className="flex min-h-full items-center justify-center bg-canvas px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <span className="flex size-11 items-center justify-center rounded-lg bg-brand-200 text-brand-900 shadow-sm">
+          <span className="flex size-11 items-center justify-center rounded-xl bg-brand-500 text-brand-950">
             <Building2 className="size-6" aria-hidden />
           </span>
           <h1 className="text-xl font-semibold">Quản lý nhà trọ</h1>

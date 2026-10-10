@@ -24,26 +24,29 @@ import { ErrorState, LoadingState } from '@/components/common/states';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, Select, TextInput } from '@/components/ui/form';
 import { useMe } from '@/features/auth/api';
+import { ContractAlertsCard } from '@/features/contracts/alerts';
 import { useDashboard } from '@/features/reports/api';
 import { formatVnd, todayLocal } from '@/lib/format';
-import { ContractAlertsCard } from '@/features/contracts/alerts';
 
-/** Mỗi trạng thái phòng một màu + biểu tượng (ô nền nhạt, viền trái đậm). */
-const STATUS_TILES: Record<'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'MAINTENANCE', { tile: string; icon: string; Icon: LucideIcon }> = {
-  AVAILABLE: { tile: 'border-l-emerald-500 bg-gradient-to-br from-emerald-50 to-white', icon: 'bg-emerald-500', Icon: DoorOpen },
-  OCCUPIED: { tile: 'border-l-blue-500 bg-gradient-to-br from-blue-50 to-white', icon: 'bg-blue-500', Icon: KeyRound },
-  RESERVED: { tile: 'border-l-violet-500 bg-gradient-to-br from-violet-50 to-white', icon: 'bg-violet-500', Icon: CalendarClock },
-  MAINTENANCE: { tile: 'border-l-amber-500 bg-gradient-to-br from-amber-50 to-white', icon: 'bg-amber-500', Icon: Wrench },
+type RoomStatus = 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'MAINTENANCE';
+
+/** Thẻ trạng thái phòng: nền trắng, biểu tượng trong ô màu nhạt (không gradient). */
+const STATUS_TILES: Record<RoomStatus, { chip: string; Icon: LucideIcon; note?: string }> = {
+  AVAILABLE: { chip: 'bg-emerald-50 text-emerald-600', Icon: DoorOpen },
+  OCCUPIED: { chip: 'bg-blue-50 text-blue-600', Icon: KeyRound },
+  RESERVED: { chip: 'bg-violet-50 text-violet-600', Icon: CalendarClock },
+  // Phòng tạm ngừng cho thuê để sửa; yêu cầu sửa vặt khi khách vẫn ở không đổi trạng thái phòng.
+  MAINTENANCE: { chip: 'bg-amber-50 text-amber-600', Icon: Wrench, note: 'Sửa chữa: xem Việc cần xử lý' },
 };
 
-/** Ô tiền: màu nhấn + biểu tượng; màu số chỉ áp khi khác 0. */
+/** Ô tiền: biểu tượng màu theo ý nghĩa; số chỉ tô màu khi khác 0 (quá hạn đỏ, thực thu xanh). */
 const MONEY_TONES = {
-  slate: { icon: 'bg-slate-100 text-slate-600', value: '' },
-  red: { icon: 'bg-red-100 text-red-600', value: 'text-red-700' },
-  green: { icon: 'bg-emerald-100 text-emerald-600', value: 'text-emerald-700' },
-  blue: { icon: 'bg-blue-100 text-blue-600', value: 'text-blue-800' },
-  violet: { icon: 'bg-violet-100 text-violet-600', value: 'text-violet-700' },
-  amber: { icon: 'bg-amber-100 text-amber-600', value: 'text-amber-800' },
+  slate: { chip: 'bg-slate-100 text-slate-500', value: '' },
+  danger: { chip: 'bg-red-50 text-red-600', value: 'text-red-600' },
+  primary: { chip: 'bg-emerald-50 text-emerald-600', value: 'text-emerald-700' },
+  info: { chip: 'bg-blue-50 text-blue-600', value: '' },
+  warning: { chip: 'bg-amber-50 text-amber-600', value: '' },
+  violet: { chip: 'bg-violet-50 text-violet-600', value: '' },
 } as const;
 
 /** Tổng quan (MASTER_PLAN 12, 13): phòng theo trạng thái, tiền, việc cần xử lý — trong phạm vi tòa của bạn. */
@@ -54,16 +57,17 @@ export default function DashboardPage() {
   const dash = useDashboard({ ...(buildingId ? { building_id: buildingId } : {}), period });
   if (!me) return null;
   const d = dash.data;
+  const monthLabel = `${period.slice(5)}/${period.slice(0, 4)}`;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Xin chào, {me.display_name}</h1>
-          <p className="mt-1 text-sm text-slate-500">{me.workspace.name}</p>
+    <div className="mx-auto flex max-w-7xl flex-col gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-heading md:text-[26px]">Xin chào, {me.display_name}</h1>
+          <p className="mt-1 text-sm text-muted">Tổng quan nhà trọ · {me.workspace.name}</p>
         </div>
-        <div className="flex gap-2">
-          <Field id="db-building" label="Tòa" className="w-44">
+        <div className="flex flex-wrap gap-3">
+          <Field id="db-building" label="Tòa" className="w-48">
             <Select id="db-building" value={buildingId} onChange={(e) => setBuildingId(e.target.value)}>
               <option value="">Tất cả tòa</option>
               {me.buildings.map((b) => (
@@ -73,7 +77,7 @@ export default function DashboardPage() {
               ))}
             </Select>
           </Field>
-          <Field id="db-period" label="Tháng" className="w-48">
+          <Field id="db-period" label="Tháng" className="w-44">
             <TextInput id="db-period" type="month" value={period} onChange={(e) => e.target.value && setPeriod(e.target.value)} />
           </Field>
         </div>
@@ -87,68 +91,72 @@ export default function DashboardPage() {
         <ErrorState error={dash.error} onRetry={() => void dash.refetch()} />
       ) : d ? (
         <>
-          <section aria-label="Phòng theo trạng thái" className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Card className="border-0 bg-gradient-to-br from-brand-200 to-brand-300 text-brand-900 shadow-md">
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-brand-800">Tổng phòng</p>
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/50 text-brand-800">
-                    <BedDouble className="size-4" aria-hidden />
-                  </span>
+          <section aria-label="Phòng theo trạng thái" className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+            <Card className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[13px] font-medium text-muted">Tổng phòng</p>
+                <span className="flex size-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                  <BedDouble className="size-[18px]" aria-hidden />
+                </span>
+              </div>
+              <p className="mt-1 text-3xl font-bold tracking-tight text-heading tabular">{d.rooms.total}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <div className="h-1.5 flex-1 rounded-full bg-slate-100" aria-hidden>
+                  <div className="h-1.5 rounded-full bg-brand-500" style={{ width: `${Math.min(100, d.rooms.occupancy_rate)}%` }} />
                 </div>
-                <p className="text-3xl font-bold tabular">{d.rooms.total}</p>
-                <div className="mt-2 h-1.5 rounded-full bg-white/50" aria-hidden>
-                  <div className="h-1.5 rounded-full bg-brand-700" style={{ width: `${Math.min(100, d.rooms.occupancy_rate)}%` }} />
-                </div>
-                <p className="mt-1 text-xs text-brand-800">Lấp đầy {d.rooms.occupancy_rate}%</p>
-              </CardContent>
+                <span className="text-[13px] text-muted tabular">Lấp đầy {d.rooms.occupancy_rate}%</span>
+              </div>
             </Card>
             {(['AVAILABLE', 'OCCUPIED', 'RESERVED', 'MAINTENANCE'] as const).map((s) => {
               const t = STATUS_TILES[s];
               return (
-                <Link key={s} href={`/rooms?status=${s}`} className="group">
-                  <Card className={`h-full border-l-4 transition-shadow group-hover:shadow-md ${t.tile}`}>
-                    <CardContent>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-slate-700">{s === 'MAINTENANCE' ? 'Ngừng cho thuê' : ROOM_STATUS_LABELS[s]}</p>
-                        <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-white shadow-sm ${t.icon}`}>
-                          <t.Icon className="size-4" aria-hidden />
-                        </span>
-                      </div>
-                      <p className="text-3xl font-bold tabular text-slate-900" data-testid={`rooms-${s}`}>
-                        {d.rooms[s]}
-                      </p>
-                      {s === 'MAINTENANCE' ? (
-                        // Phòng tạm ngừng cho thuê để sửa; yêu cầu sửa vặt khi khách vẫn ở không đổi trạng thái phòng.
-                        <p className="mt-1 text-xs text-slate-500">Phòng đang bảo trì. Yêu cầu sửa chữa: xem Việc cần xử lý</p>
-                      ) : null}
-                    </CardContent>
+                <Link key={s} href={`/rooms?status=${s}`} className="group rounded-xl focus-visible:outline-2 focus-visible:outline-brand-500">
+                  <Card className="h-full p-4 transition-colors group-hover:border-slate-300">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[13px] font-medium text-muted">{s === 'MAINTENANCE' ? 'Ngừng cho thuê' : ROOM_STATUS_LABELS[s]}</p>
+                      <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${t.chip}`}>
+                        <t.Icon className="size-[18px]" aria-hidden />
+                      </span>
+                    </div>
+                    <p className="mt-1 text-3xl font-bold tracking-tight text-heading tabular" data-testid={`rooms-${s}`}>
+                      {d.rooms[s]}
+                    </p>
+                    <p className="mt-3 flex items-center gap-1 text-[13px] text-muted">
+                      {t.note ?? 'Xem phòng'}
+                      <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                    </p>
                   </Card>
                 </Link>
               );
             })}
           </section>
-          <p className="-mt-2 text-xs text-slate-500">
-            Trong số phòng đang thuê: {d.secondary.notice_given} đã báo trả · {d.secondary.month_to_month} thuê theo tháng · {d.secondary.contracts_expiring_30} hợp đồng hết hạn trong 30 ngày (chỉ số
-            phụ, không cộng vào tổng).
+          <p className="-mt-2 text-[13px] text-muted">
+            Trong số phòng đang thuê: <strong className="font-semibold text-heading">{d.secondary.notice_given}</strong> đã báo trả ·{' '}
+            <strong className="font-semibold text-heading">{d.secondary.month_to_month}</strong> thuê theo tháng ·{' '}
+            <strong className="font-semibold text-heading">{d.secondary.contracts_expiring_30}</strong> hợp đồng hết hạn trong 30 ngày (chỉ số phụ, không cộng vào tổng).
           </p>
 
-          <div className="grid gap-4 lg:grid-cols-[2fr_3fr]">
-            <Card>
-              <CardHeader>
+          <div className="grid gap-6 lg:grid-cols-5">
+            <Card className="lg:col-span-2">
+              <CardHeader className="flex items-center justify-between">
                 <CardTitle>Việc cần xử lý</CardTitle>
+                {d.todo.length ? (
+                  <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[13px] font-semibold text-amber-700 tabular">{d.todo.reduce((n, t) => n + t.count, 0)}</span>
+                ) : null}
               </CardHeader>
               {d.todo.length === 0 ? (
-                <CardContent className="text-sm text-slate-500">Không có việc tồn đọng.</CardContent>
+                <CardContent className="text-sm text-muted">Không có việc tồn đọng.</CardContent>
               ) : (
-                <ul className="divide-y divide-slate-100" data-testid="todo-list">
+                <ul className="divide-y divide-line" data-testid="todo-list">
                   {d.todo.map((t) => (
                     <li key={t.kind}>
-                      <Link href={t.href} className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50">
-                        <AlertTriangle className="size-4 shrink-0 text-amber-600" aria-hidden />
-                        <span className="flex-1">{t.label}</span>
-                        <span className="font-semibold tabular">{t.count}</span>
-                        {t.amount_vnd ? <span className="hidden text-slate-500 tabular sm:inline">{formatVnd(t.amount_vnd)}</span> : null}
+                      <Link href={t.href} className="flex items-center gap-3 px-5 py-3 text-sm transition-colors hover:bg-slate-50">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+                          <AlertTriangle className="size-4" aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1 text-heading">{t.label}</span>
+                        {t.amount_vnd ? <span className="hidden text-[13px] text-muted tabular sm:inline">{formatVnd(t.amount_vnd)}</span> : null}
+                        <span className="min-w-7 rounded-md bg-slate-100 px-2 py-0.5 text-center text-[13px] font-semibold text-heading tabular">{t.count}</span>
                         <ChevronRight className="size-4 text-slate-400" aria-hidden />
                       </Link>
                     </li>
@@ -157,31 +165,31 @@ export default function DashboardPage() {
               )}
             </Card>
             {d.money ? (
-              <Card>
+              <Card className="lg:col-span-3">
                 <CardHeader>
                   <CardTitle>Tiền</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
                     {(
                       [
-                        ['Còn phải thu (gồm khách đã trả phòng)', d.money.debt_vnd, 'blue', Wallet],
-                        ['Trong đó quá hạn', d.money.overdue_vnd, 'red', AlertTriangle],
-                        [`Tổng tiền phải thu tháng ${period.slice(5)}/${period.slice(0, 4)}`, d.money.invoiced_in_period_vnd, 'slate', ReceiptText],
-                        ['Thực thu theo tháng', d.money.collected_in_period_vnd, 'green', HandCoins],
-                        ['Cọc đang giữ (nghĩa vụ phải trả)', d.money.deposit_held_vnd, 'amber', PiggyBank],
+                        ['Còn phải thu (gồm khách đã trả phòng)', d.money.debt_vnd, 'info', Wallet],
+                        ['Trong đó quá hạn', d.money.overdue_vnd, 'danger', AlertTriangle],
+                        [`Tổng tiền phải thu tháng ${monthLabel}`, d.money.invoiced_in_period_vnd, 'slate', ReceiptText],
+                        ['Thực thu theo tháng', d.money.collected_in_period_vnd, 'primary', HandCoins],
+                        ['Cọc đang giữ (nghĩa vụ phải trả)', d.money.deposit_held_vnd, 'warning', PiggyBank],
                         ['Phải hoàn cọc (đã trả phòng)', d.money.deposit_refund_payable_vnd, 'violet', Undo2],
                         ['Phải hoàn tiền dư (credit)', d.money.credit_refund_payable_vnd, 'violet', Undo2],
                         ['Tiền giữ chỗ chưa xử lý', d.money.holding_unresolved_vnd, 'slate', CircleDollarSign],
                       ] as const
                     ).map(([l, v, tone, Icon]) => (
-                      <div key={l} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
-                        <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${MONEY_TONES[tone].icon}`}>
+                      <div key={l} className="flex items-start gap-3">
+                        <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg ${MONEY_TONES[tone].chip}`}>
                           <Icon className="size-4" aria-hidden />
                         </span>
                         <div className="min-w-0">
-                          <dt className="text-slate-500">{l}</dt>
-                          <dd className={`text-lg font-semibold tabular ${v !== '0' ? MONEY_TONES[tone].value : ''}`}>{formatVnd(v)}</dd>
+                          <dt className="text-[13px] text-muted">{l}</dt>
+                          <dd className={`text-lg font-semibold text-heading tabular ${v !== '0' ? MONEY_TONES[tone].value : ''}`}>{formatVnd(v)}</dd>
                         </div>
                       </div>
                     ))}
@@ -195,19 +203,19 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader className="flex items-center gap-2">
-          <Building2 className="size-4 text-brand-700" aria-hidden />
+          <Building2 className="size-[18px] text-muted" aria-hidden />
           <CardTitle>Tòa trong phạm vi của bạn</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="grid gap-2 sm:grid-cols-3" data-testid="building-list">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="building-list">
             {me.buildings.map((b) => (
-              <li key={b.id} className="flex items-center gap-3 text-sm">
-                <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded bg-brand-50 px-1.5 font-semibold text-brand-800">{b.code}</span>
-                {b.name}
+              <li key={b.id} className="flex items-center gap-3 rounded-lg border border-line px-3 py-2 text-sm">
+                <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-brand-50 px-1.5 text-[13px] font-semibold text-brand-700">{b.code}</span>
+                <span className="truncate text-heading">{b.name}</span>
               </li>
             ))}
           </ul>
-          {me.buildings.length === 0 ? <p className="text-sm text-slate-500">Bạn chưa được giao tòa nào. Liên hệ chủ trọ để được giao phạm vi.</p> : null}
+          {me.buildings.length === 0 ? <p className="text-sm text-muted">Bạn chưa được giao tòa nào. Liên hệ chủ trọ để được giao phạm vi.</p> : null}
         </CardContent>
       </Card>
     </div>

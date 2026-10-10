@@ -1,97 +1,43 @@
 @import 'tailwindcss';
 
-/* Phong cách quản lý: nền kem sáng, tông xanh xô thơm (sage) dịu, chữ dễ đọc (MASTER_PLAN mục 12). */
+/*
+ * Design system “Premium SaaS Dashboard — Dark Sidebar + Light Content” (chủ dự án duyệt yêu cầu 10/10/2026).
+ * Token màu dùng thẳng tên Tailwind mặc định khi trùng giá trị (emerald, slate, red, amber, blue) để mọi trang tự đồng bộ;
+ * các tên ngữ nghĩa dưới đây dùng cho khung ứng dụng và thành phần dùng chung.
+ */
 @theme {
-  /*
-   * Bảng màu chủ dự án chọn (10/10/2026, coolors): #5D7B6F xô thơm đậm · #A4C3A2 xô thơm · #B0D4B8 bạc hà nhạt · #EAE7D6 kem · #D7F9FA ngọc nhạt.
-   * brand = xô thơm (600 = nút chính #5D7B6F). Các màu trạng thái của Tailwind (emerald/sky/blue/violet/amber) được làm dịu theo cùng tông
-   * để mọi trang hài hòa; red giữ nguyên cho quá hạn/lỗi.
-   */
-  --color-brand-50: #f1f6f2;
-  --color-brand-100: #e1ece3;
-  --color-brand-200: #b0d4b8;
-  --color-brand-300: #a4c3a2;
-  --color-brand-400: #8aae93;
-  --color-brand-500: #739284;
-  --color-brand-600: #5d7b6f;
-  --color-brand-700: #4e685d;
-  --color-brand-800: #41564d;
-  --color-brand-900: #364840;
-  --color-brand-950: #243029;
-  /* Nền trang: kem #EAE7D6 pha nhạt. */
-  --color-canvas: #f7f5ec;
-  --color-cream: #eae7d6;
+  /* Primary = emerald: 500 #10B981 (Primary), 600 #059669 (Primary hover), 900 #064E3B (Sidebar active). */
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
 
-  /* Xanh lá (trống, đã thu, thành công) → xô thơm. */
-  --color-emerald-50: #f0f6f0;
-  --color-emerald-100: #ddebdc;
-  --color-emerald-200: #c1dbbf;
-  --color-emerald-300: #a4c3a2;
-  --color-emerald-400: #86ab84;
-  --color-emerald-500: #6a9268;
-  --color-emerald-600: #557a55;
-  --color-emerald-700: #466346;
-  --color-emerald-800: #3a513a;
-  --color-emerald-900: #314431;
-  --color-emerald-950: #1b261b;
+  /* Khung ứng dụng */
+  --color-sidebar: #111827;
+  --color-sidebar-text: #cbd5e1;
+  --color-sidebar-active: #064e3b;
+  --color-canvas: #f8fafc; /* Main background */
+  --color-surface: #ffffff; /* Card */
+  --color-heading: #0f172a;
+  --color-muted: #64748b; /* Secondary text */
+  --color-line: #e2e8f0; /* Border */
 
-  /* Khung thông tin → ngọc nhạt #D7F9FA. */
-  --color-sky-50: #f0fdfd;
-  --color-sky-100: #d7f9fa;
-  --color-sky-200: #b5edef;
-  --color-sky-300: #8fdce0;
-  --color-sky-400: #6cc3c8;
-  --color-sky-500: #4fa8ae;
-  --color-sky-600: #3e8c92;
-  --color-sky-700: #357277;
-  --color-sky-800: #2f5d61;
-  --color-sky-900: #2a4e51;
-  --color-sky-950: #183235;
-
-  /* Xanh dương (đang thuê, còn phải thu) → xanh ngọc xám. */
-  --color-blue-50: #eff6f7;
-  --color-blue-100: #dcebee;
-  --color-blue-200: #bfd9de;
-  --color-blue-300: #9ac1c8;
-  --color-blue-400: #72a3ad;
-  --color-blue-500: #568993;
-  --color-blue-600: #44707a;
-  --color-blue-700: #3a5d65;
-  --color-blue-800: #334e54;
-  --color-blue-900: #2d4247;
-  --color-blue-950: #1c2a2e;
-
-  /* Tím (đã giữ, phải hoàn) → oải hương dịu. */
-  --color-violet-50: #f5f2f8;
-  --color-violet-100: #eae4f1;
-  --color-violet-200: #d6cae3;
-  --color-violet-300: #bca9d0;
-  --color-violet-400: #a08aba;
-  --color-violet-500: #8670a3;
-  --color-violet-600: #6f5a8a;
-  --color-violet-700: #5c4a72;
-  --color-violet-800: #4c3e5e;
-  --color-violet-900: #40354f;
-  --color-violet-950: #282133;
-
-  /* Vàng cam (cảnh báo, ngừng cho thuê, cọc) → cát, hợp với kem. */
-  --color-amber-50: #faf6ec;
-  --color-amber-100: #f2ead3;
-  --color-amber-200: #e6d6ae;
-  --color-amber-300: #d8be85;
-  --color-amber-400: #cba766;
-  --color-amber-500: #b98f4a;
-  --color-amber-600: #9e763b;
-  --color-amber-700: #805e31;
-  --color-amber-800: #6a4e2c;
-  --color-amber-900: #5a4227;
-  --color-amber-950: #332413;
+  /* Trạng thái */
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #2563eb;
 
   --font-sans: var(--font-app), 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  /* Chữ to hơn mặc định khoảng 1px cho dễ đọc (chủ trọ dùng điện thoại/máy tính phổ thông). */
-  --text-xs: 0.8125rem; /* 13px */
-  --text-sm: 0.9375rem; /* 15px */
-  --text-base: 1.0625rem; /* 17px */
+  /* Body 14px (text-sm mặc định), chữ phụ 13px. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
 }
 
 html,
@@ -101,7 +47,7 @@ body {
 
 body {
   background-color: var(--color-canvas);
-  color: var(--color-slate-900);
+  color: var(--color-heading);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
