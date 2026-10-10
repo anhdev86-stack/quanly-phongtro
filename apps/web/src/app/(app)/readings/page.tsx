@@ -203,7 +203,7 @@ function SheetBody({ sheet, readOn, onlyPending }: { sheet: ReadingSheet; readOn
             </span>
           </div>
           <div className="h-2 rounded bg-slate-100" aria-hidden>
-            <div className={`h-2 rounded ${r.done === r.total ? 'bg-emerald-600' : 'bg-brand-600'}`} style={{ width: `${pct}%` }} />
+            <div className={`h-2 rounded ${r.done === r.total ? 'bg-emerald-500' : 'bg-brand-400'}`} style={{ width: `${pct}%` }} />
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             {r.done === r.total ? (

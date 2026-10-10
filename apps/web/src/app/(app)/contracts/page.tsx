@@ -88,7 +88,7 @@ function ContractsContent() {
         ) : null}
       </Card>
       <p className="mt-3 text-sm text-slate-500">
-        <Link href="/tenancies" className="text-brand-800 hover:underline">
+        <Link href="/tenancies" className="font-medium text-brand-600 hover:underline">
           Về danh sách lần thuê
         </Link>
       </p>

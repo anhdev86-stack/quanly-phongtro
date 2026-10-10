@@ -80,7 +80,7 @@ export function Attachments({ ownerType, ownerId, categories, canManage, title =
           <ul className="flex flex-col divide-y divide-slate-100 text-sm">
             {list.data.map((f) => (
               <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <a href={f.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-2 text-brand-800 hover:underline">
+                <a href={f.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-2 font-medium text-brand-600 hover:underline">
                   {f.mime === 'application/pdf' ? <FileText className="size-4 shrink-0" aria-hidden /> : <ImageIcon className="size-4 shrink-0" aria-hidden />}
                   <span className="truncate">{f.original_name}</span>
                 </a>

@@ -148,12 +148,12 @@ export default function SettlementPage() {
             />
             <p className="mt-3 flex flex-wrap gap-3 text-sm">
               {s.final_invoice_id ? (
-                <Link href={`/invoices/${s.final_invoice_id}`} className="text-brand-800 hover:underline">
+                <Link href={`/invoices/${s.final_invoice_id}`} className="font-medium text-brand-600 hover:underline">
                   Thông báo trả phòng
                 </Link>
               ) : null}
               {s.credit_invoice_id ? (
-                <Link href={`/invoices/${s.credit_invoice_id}`} className="text-brand-800 hover:underline">
+                <Link href={`/invoices/${s.credit_invoice_id}`} className="font-medium text-brand-600 hover:underline">
                   Chứng từ điều chỉnh giảm
                 </Link>
               ) : null}

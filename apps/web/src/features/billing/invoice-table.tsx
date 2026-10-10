@@ -26,7 +26,7 @@ export function InvoiceTable({ items, showRoom = true }: { items: InvoiceSummary
         {items.map((i) => (
           <Tr key={i.id} className={i.lifecycle === 'CANCELLED' ? 'opacity-60' : ''}>
             <Td className="whitespace-nowrap">
-              <Link href={`/invoices/${i.id}`} className="font-medium text-brand-800 hover:underline">
+              <Link href={`/invoices/${i.id}`} className="font-medium text-brand-600 hover:underline">
                 {invoiceTitle(i)}
               </Link>
             </Td>

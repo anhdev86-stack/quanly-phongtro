@@ -35,11 +35,11 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
               key={item.href}
               aria-disabled="true"
               title={`Sẽ có ở Phase ${phaseLabel(item.availableFromPhase)}`}
-              className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-brand-200/50"
+              className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-brand-700/50"
             >
               <Icon className="size-4" aria-hidden />
               <span className="flex-1">{item.label}</span>
-              <span className="rounded bg-white/10 px-1.5 text-[10px] font-medium">P{phaseLabel(item.availableFromPhase)}</span>
+              <span className="rounded bg-white/40 px-1.5 text-[10px] font-medium">P{phaseLabel(item.availableFromPhase)}</span>
             </span>
           );
         }
@@ -51,10 +51,10 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
             aria-current={active ? 'page' : undefined}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              active ? 'bg-white text-brand-800 shadow-sm' : 'text-brand-50/90 hover:bg-white/10 hover:text-white',
+              active ? 'bg-cream text-brand-900 shadow-sm' : 'text-brand-900 hover:bg-white/45',
             )}
           >
-            <Icon className={cn('size-4', active ? 'text-brand-600' : 'text-brand-300')} aria-hidden />
+            <Icon className={cn('size-4', active ? 'text-brand-700' : 'text-brand-600')} aria-hidden />
             {item.label}
           </Link>
         );
@@ -64,7 +64,7 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
 
   return (
     <div className="flex min-h-full">
-      <aside className="hidden w-64 shrink-0 bg-gradient-to-b from-brand-800 via-brand-900 to-brand-950 lg:block">
+      <aside className="hidden w-64 shrink-0 bg-gradient-to-b from-brand-200 to-brand-300 lg:block">
         <Brand />
         {nav}
       </aside>
@@ -78,10 +78,10 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
             tabIndex={-1}
             onClick={() => setOpen(false)}
           />
-          <aside className="relative h-full w-72 overflow-y-auto bg-gradient-to-b from-brand-800 via-brand-900 to-brand-950 shadow-xl">
+          <aside className="relative h-full w-72 overflow-y-auto bg-gradient-to-b from-brand-200 to-brand-300 shadow-xl">
             <div className="flex items-center justify-between pr-2">
               <Brand />
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" aria-label="Đóng menu" onClick={() => setOpen(false)}>
+              <Button variant="ghost" size="sm" className="text-brand-900 hover:bg-white/45" aria-label="Đóng menu" onClick={() => setOpen(false)}>
                 <X className="size-4" />
               </Button>
             </div>
@@ -107,7 +107,7 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
             </div>
             <span
               aria-hidden
-              className="hidden size-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-semibold text-white shadow-sm sm:flex"
+              className="hidden size-9 items-center justify-center rounded-full bg-brand-200 text-sm font-semibold text-brand-900 ring-2 ring-white shadow-sm sm:flex"
             >
               {initials(me.display_name)}
             </span>
@@ -125,11 +125,11 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
 
 function Brand() {
   return (
-    <div className="flex h-14 items-center gap-2 border-b border-white/10 px-4">
+    <div className="flex h-14 items-center gap-2 border-b border-brand-300/70 px-4">
       <span className="flex size-8 items-center justify-center rounded-lg bg-white text-brand-700 shadow-sm">
         <Building2 className="size-4" aria-hidden />
       </span>
-      <span className="font-semibold text-white">Quản lý nhà trọ</span>
+      <span className="font-semibold text-brand-900">Quản lý nhà trọ</span>
     </div>
   );
 }

@@ -100,7 +100,7 @@ export default function MaintenancePage() {
               {list.data.items.map((m) => (
                 <Tr key={m.id} className="cursor-pointer" onClick={() => setOpen(m)}>
                   <Td>
-                    <button type="button" className="text-left font-medium text-brand-800 hover:underline" onClick={() => setOpen(m)}>
+                    <button type="button" className="text-left font-medium text-brand-600 hover:underline" onClick={() => setOpen(m)}>
                       {m.title}
                     </button>
                     <div className="text-xs text-slate-500">

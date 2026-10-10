@@ -680,3 +680,10 @@ thanh trên cùng có ảnh đại diện chữ cái; tiêu đề trang có vạ
 lấp đầy, mỗi trạng thái phòng một màu + biểu tượng, ô tiền có biểu tượng và màu nhấn. Trang đăng nhập nền chuyển màu mint.
 Kiểm tra: lint, typecheck ✅; ảnh chụp đăng nhập, Tổng quan, phòng, điện nước, form ghi nhận thu, báo cáo, điện thoại; E2E auth, property,
 reports, payments, maintenance, permissions 34 ✅.
+
+## Điều chỉnh giao diện: bảng màu chủ dự án chọn (B0D4B8 chính; EAE7D6, D7F9FA phụ) ✅
+
+Màu chính #B0D4B8 (`brand-200`): thanh menu, nút chính (chữ xanh đậm `brand-950`, viền `brand-300`), ô Tổng phòng, tab đang chọn. Màu phụ:
+kem #EAE7D6 (nền trang pha nhạt, mục menu đang chọn, trang đăng nhập), ngọc nhạt #D7F9FA (tiêu đề bảng, khung thông tin — `sky-*`).
+Các màu trạng thái Tailwind (emerald/sky/blue/violet/amber) được làm dịu cùng tông trong `globals.css`; red giữ nguyên cho quá hạn/lỗi.
+Liên kết: `font-medium text-brand-600`. Kiểm tra: lint, typecheck ✅; ảnh chụp các trang chính và điện thoại.

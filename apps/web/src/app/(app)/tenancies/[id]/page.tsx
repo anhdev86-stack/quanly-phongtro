@@ -149,7 +149,7 @@ export default function TenancyDetailPage() {
         {t.initial_readings.length ? (
           <CardContent className="text-sm text-slate-600">
             Chỉ số lúc nhận phòng: {t.initial_readings.map((r) => `${r.type === 'ELECTRICITY' ? 'Điện' : 'Nước'} ${r.value}`).join(' · ')} ·{' '}
-            <Link href={`/rooms/${t.room_id}#meters`} className="text-brand-800 hover:underline">
+            <Link href={`/rooms/${t.room_id}#meters`} className="font-medium text-brand-600 hover:underline">
               Đồng hồ và chỉ số
             </Link>
           </CardContent>
@@ -157,7 +157,7 @@ export default function TenancyDetailPage() {
       </Card>
 
       <p className="text-sm text-slate-500">
-        <Link href={`/tenancies?room_id=${t.room_id}`} className="text-brand-800 hover:underline">
+        <Link href={`/tenancies?room_id=${t.room_id}`} className="font-medium text-brand-600 hover:underline">
           Các lần thuê khác của phòng này
         </Link>
       </p>

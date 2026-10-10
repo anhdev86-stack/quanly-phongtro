@@ -42,7 +42,7 @@ export default function MoveOutPage() {
         <Card>
           <CardContent>
             Đã hoàn tất trả phòng.{' '}
-            <Link href={`/settlements/${live.id}`} className="text-brand-800 hover:underline">
+            <Link href={`/settlements/${live.id}`} className="font-medium text-brand-600 hover:underline">
               Xem quyết toán {live.code}
             </Link>
           </CardContent>

@@ -134,7 +134,7 @@ export default function InvoiceDetailPage() {
               {
                 label: 'Lần thuê',
                 value: (
-                  <Link href={`/tenancies/${inv.tenancy_id}`} className="text-brand-800 hover:underline">
+                  <Link href={`/tenancies/${inv.tenancy_id}`} className="font-medium text-brand-600 hover:underline">
                     {inv.tenancy_code}
                   </Link>
                 ),
@@ -144,7 +144,7 @@ export default function InvoiceDetailPage() {
                     {
                       label: 'Chứng từ gốc',
                       value: (
-                        <Link href={`/invoices/${inv.source_invoice_id}`} className="text-brand-800 hover:underline">
+                        <Link href={`/invoices/${inv.source_invoice_id}`} className="font-medium text-brand-600 hover:underline">
                           {inv.source_invoice_number ?? 'Xem'}
                         </Link>
                       ),
@@ -160,7 +160,7 @@ export default function InvoiceDetailPage() {
               {inv.adjustments.map((a, i) => (
                 <span key={a.id}>
                   {i ? ', ' : ''}
-                  <Link href={`/invoices/${a.id}`} className="text-brand-800 hover:underline">
+                  <Link href={`/invoices/${a.id}`} className="font-medium text-brand-600 hover:underline">
                     {a.number ?? INVOICE_TYPE_LABELS[a.type]}
                   </Link>{' '}
                   <Badge tone="violet">{INVOICE_TYPE_LABELS[a.type]}</Badge> {formatVnd(a.total_vnd)}

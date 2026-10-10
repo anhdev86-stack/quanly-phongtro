@@ -33,7 +33,7 @@ export function TransferSection({ tenancy: t }: { tenancy: TenancyDetail }) {
           {t.transferred_from ? (
             <p>
               Chuyển từ{' '}
-              <Link href={`/tenancies/${t.transferred_from.tenancy_id}`} className="font-medium text-brand-800 hover:underline">
+              <Link href={`/tenancies/${t.transferred_from.tenancy_id}`} className="font-medium text-brand-600 hover:underline">
                 {t.transferred_from.building_code} · {t.transferred_from.room_code} ({t.transferred_from.tenancy_code})
               </Link>{' '}
               ngày {formatBusinessDate(t.transferred_from.transfer_date)}; cọc chuyển sang {formatVnd(t.transferred_from.deposit_amount_vnd)}.
@@ -42,7 +42,7 @@ export function TransferSection({ tenancy: t }: { tenancy: TenancyDetail }) {
           {t.transferred_to ? (
             <p>
               Đã chuyển sang{' '}
-              <Link href={`/tenancies/${t.transferred_to.tenancy_id}`} className="font-medium text-brand-800 hover:underline">
+              <Link href={`/tenancies/${t.transferred_to.tenancy_id}`} className="font-medium text-brand-600 hover:underline">
                 {t.transferred_to.building_code} · {t.transferred_to.room_code} ({t.transferred_to.tenancy_code})
               </Link>{' '}
               ngày {formatBusinessDate(t.transferred_to.transfer_date)}; cọc chuyển đi {formatVnd(t.transferred_to.deposit_amount_vnd)}.

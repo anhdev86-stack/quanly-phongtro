@@ -8,7 +8,7 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-brand-600 text-white hover:bg-brand-700',
+        default: 'bg-brand-200 font-semibold text-brand-950 shadow-sm ring-1 ring-brand-300 ring-inset hover:bg-brand-300',
         outline: 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-100',
         ghost: 'text-slate-700 hover:bg-slate-100',
       },

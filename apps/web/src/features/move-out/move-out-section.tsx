@@ -139,7 +139,7 @@ export function MoveOutSection({ tenancy }: { tenancy: TenancyDetail }) {
       <CardContent className="flex flex-col gap-2 text-sm">
         {sts.map((s) => (
           <p key={s.id} className="flex flex-wrap items-center gap-2">
-            <Link href={`/settlements/${s.id}`} className="font-medium text-brand-800 hover:underline">
+            <Link href={`/settlements/${s.id}`} className="font-medium text-brand-600 hover:underline">
               Quyết toán {s.code}
             </Link>
             <Badge tone={s.status === 'COMPLETED' ? 'green' : s.status === 'CANCELLED' ? 'gray' : 'amber'}>{SETTLEMENT_STATUS_LABELS[s.status]}</Badge>

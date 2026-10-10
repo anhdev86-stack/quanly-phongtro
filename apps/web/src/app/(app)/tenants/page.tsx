@@ -59,7 +59,7 @@ export default function TenantsPage() {
               {list.data.items.map((t) => (
                 <Tr key={t.id}>
                   <Td className="font-medium">
-                    <Link href={`/tenants/${t.id}`} className="text-brand-800 hover:underline">
+                    <Link href={`/tenants/${t.id}`} className="font-medium text-brand-600 hover:underline">
                       {t.full_name}
                     </Link>
                   </Td>

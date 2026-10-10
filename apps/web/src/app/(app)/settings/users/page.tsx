@@ -57,7 +57,7 @@ export default function UsersPage() {
               {users.data.map((u) => (
                 <Tr key={u.id} className="cursor-pointer" onClick={() => setEditing(u)}>
                   <Td className="font-medium">
-                    <button type="button" className="text-left text-brand-800 hover:underline" onClick={() => setEditing(u)}>
+                    <button type="button" className="text-left font-medium text-brand-600 hover:underline" onClick={() => setEditing(u)}>
                       {u.display_name}
                     </button>
                   </Td>

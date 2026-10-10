@@ -54,7 +54,7 @@ export function StatementSection({ tenancy }: { tenancy: TenancyDetail }) {
                   <Td>
                     <span className="text-xs text-slate-500">{STATEMENT_ENTRY_LABELS[e.kind]} </span>
                     {e.kind === 'INVOICE' || e.kind === 'CREDIT_NOTE' ? (
-                      <Link href={`/invoices/${e.ref_id}`} className="text-brand-800 hover:underline">
+                      <Link href={`/invoices/${e.ref_id}`} className="font-medium text-brand-600 hover:underline">
                         {e.ref_number}
                       </Link>
                     ) : (

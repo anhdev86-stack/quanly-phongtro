@@ -214,7 +214,7 @@ function BillingRunPanel({ period, buildingId }: { period: string; buildingId: s
                 <Tr key={i.tenancy_id}>
                   <Td>
                     {i.invoice_id ? (
-                      <Link href={`/invoices/${i.invoice_id}`} className="text-brand-800 hover:underline">
+                      <Link href={`/invoices/${i.invoice_id}`} className="font-medium text-brand-600 hover:underline">
                         {i.building_code} · {i.room_code}
                       </Link>
                     ) : (
@@ -240,7 +240,7 @@ function BillingRunPanel({ period, buildingId }: { period: string; buildingId: s
       ) : (
         <CardContent className="text-sm text-slate-500">
           Xem trước không ghi gì. Tạo nháp chạy lại nhiều lần vẫn chỉ có một thông báo mỗi phòng mỗi tháng. Thông báo tháng này tính điện nước tháng {previousMonth(period).slice(5)}/{previousMonth(period).slice(0, 4)} — chốt chỉ số trước khi tạo (
-          <Link href={`/readings?month=${previousMonth(period)}${buildingId ? `&building_id=${buildingId}` : ''}`} className="text-brand-800 hover:underline">
+          <Link href={`/readings?month=${previousMonth(period)}${buildingId ? `&building_id=${buildingId}` : ''}`} className="font-medium text-brand-600 hover:underline">
             Chốt chỉ số điện nước
           </Link>
           ).

@@ -44,7 +44,7 @@ export function ReservationTable({ items, showRoom = true }: { items: Reservatio
             <Tr key={r.id}>
               {showRoom ? (
                 <Td className="font-semibold whitespace-nowrap">
-                  <Link href={`/rooms/${r.room_id}`} className="text-brand-800 hover:underline">
+                  <Link href={`/rooms/${r.room_id}`} className="font-medium text-brand-600 hover:underline">
                     {r.building_code} · {r.room_code}
                   </Link>
                 </Td>

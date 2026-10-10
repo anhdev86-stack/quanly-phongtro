@@ -196,7 +196,7 @@ function ServiceDetailView({ id, manage }: { id: string; manage: boolean }) {
           {buildings.data?.map((b, i) => (
             <span key={b.id}>
               {i ? ', ' : ''}
-              <Link href={`/buildings/${b.id}`} className="text-brand-800 hover:underline">
+              <Link href={`/buildings/${b.id}`} className="font-medium text-brand-600 hover:underline">
                 Tòa {b.code}
               </Link>
             </span>

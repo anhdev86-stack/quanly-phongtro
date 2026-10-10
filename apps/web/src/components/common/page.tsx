@@ -26,7 +26,7 @@ export function PageHeader({
             {back.label}
           </Link>
         ) : null}
-        <h1 className="border-l-4 border-brand-600 pl-3 text-xl font-semibold text-slate-900 sm:text-2xl">{title}</h1>
+        <h1 className="border-l-4 border-brand-300 pl-3 text-xl font-semibold text-slate-900 sm:text-2xl">{title}</h1>
         {description ? <p className="mt-1 pl-4 text-sm text-slate-500">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}

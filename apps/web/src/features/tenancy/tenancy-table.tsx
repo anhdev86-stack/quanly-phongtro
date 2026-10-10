@@ -24,7 +24,7 @@ export function TenancyTable({ items }: { items: TenancySummary[] }) {
         {items.map((t) => (
           <Tr key={t.id}>
             <Td className="font-semibold">
-              <Link href={`/tenancies/${t.id}`} className="text-brand-800 hover:underline">
+              <Link href={`/tenancies/${t.id}`} className="font-medium text-brand-600 hover:underline">
                 {t.code}
               </Link>
             </Td>

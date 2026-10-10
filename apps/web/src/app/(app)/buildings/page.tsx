@@ -82,7 +82,7 @@ export default function BuildingsPage() {
               {buildings.data.map((b) => (
                 <Tr key={b.id}>
                   <Td className="font-semibold">
-                    <Link href={`/buildings/${b.id}`} className="inline-flex items-center gap-2 text-brand-800 hover:underline">
+                    <Link href={`/buildings/${b.id}`} className="inline-flex items-center gap-2 font-medium text-brand-600 hover:underline">
                       <Building2 className="size-4" aria-hidden />
                       {b.code}
                     </Link>

@@ -55,7 +55,7 @@ function DebtSection({ invoice, paying, setPaying }: { invoice: InvoiceDetail; p
             <p className="text-sm text-slate-600">
               Chưa có QR: {qr.error instanceof ApiError ? qr.error.message : ''}{' '}
               {can(PERMISSIONS.PAYMENT_ACCOUNTS_MANAGE) ? (
-                <Link href="/settings/payment-account" className="text-brand-800 hover:underline">
+                <Link href="/settings/payment-account" className="font-medium text-brand-600 hover:underline">
                   Cấu hình tài khoản nhận tiền
                 </Link>
               ) : null}
@@ -107,7 +107,7 @@ function DebtSection({ invoice, paying, setPaying }: { invoice: InvoiceDetail; p
               <Tr key={c.id} className={c.status === 'REVERSED' ? 'opacity-60' : ''}>
                 <Td>
                   Cấn trừ credit{' '}
-                  <Link href={`/invoices/${c.credit_invoice_id}`} className="text-brand-800 hover:underline">
+                  <Link href={`/invoices/${c.credit_invoice_id}`} className="font-medium text-brand-600 hover:underline">
                     {c.credit_invoice_number}
                   </Link>
                   {c.status === 'REVERSED' ? (
@@ -340,7 +340,7 @@ function CreditSection({ invoice }: { invoice: InvoiceDetail }) {
               <Tr key={c.id} className={c.status === 'REVERSED' ? 'opacity-60' : ''}>
                 <Td>
                   Cấn trừ vào{' '}
-                  <Link href={`/invoices/${c.target_invoice_id}`} className="text-brand-800 hover:underline">
+                  <Link href={`/invoices/${c.target_invoice_id}`} className="font-medium text-brand-600 hover:underline">
                     {c.target_invoice_number}
                   </Link>
                   {c.status === 'REVERSED' ? ' (đã đảo)' : ''}

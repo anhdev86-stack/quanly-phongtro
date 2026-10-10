@@ -46,7 +46,7 @@ export function ContractTable({ items, showTenancy = false, actions = {} }: { it
             </Td>
             {showTenancy ? (
               <Td>
-                <Link href={`/tenancies/${c.tenancy_id}`} className="text-brand-800 hover:underline">
+                <Link href={`/tenancies/${c.tenancy_id}`} className="font-medium text-brand-600 hover:underline">
                   {c.building_code} · {c.room_code}
                 </Link>
                 <div className="text-xs text-slate-500">{c.primary_tenant_name ?? '—'}</div>

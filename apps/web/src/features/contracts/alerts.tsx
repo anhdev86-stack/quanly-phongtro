@@ -38,7 +38,7 @@ export function ContractAlertsCard() {
             <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <span>
                 <Badge tone={a.milestone_days <= 7 ? 'red' : 'amber'}>Mốc {a.milestone_days} ngày</Badge>{' '}
-                <Link href={`/tenancies/${a.tenancy_id}`} className="font-medium text-brand-800 hover:underline">
+                <Link href={`/tenancies/${a.tenancy_id}`} className="font-medium text-brand-600 hover:underline">
                   {a.building_code} · {a.room_code}
                 </Link>{' '}
                 — {a.contract_code}, {a.primary_tenant_name ?? '—'}, hết hạn {formatBusinessDate(a.term_end)} (còn {a.days_to_expiry} ngày)

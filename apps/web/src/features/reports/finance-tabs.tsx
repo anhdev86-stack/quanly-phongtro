@@ -205,7 +205,7 @@ export function OccupancyTab({ buildingId }: { buildingId?: string }) {
                   <Td className="text-right tabular font-medium">{r.rate_pct.replace('.', ',')}%</Td>
                   <Td className="hidden w-1/3 sm:table-cell">
                     <div className="h-2 rounded bg-slate-100" aria-hidden>
-                      <div className="h-2 rounded bg-brand-600" style={{ width: `${Math.min(100, Number(r.rate_pct))}%` }} />
+                      <div className="h-2 rounded bg-brand-400" style={{ width: `${Math.min(100, Number(r.rate_pct))}%` }} />
                     </div>
                   </Td>
                 </Tr>

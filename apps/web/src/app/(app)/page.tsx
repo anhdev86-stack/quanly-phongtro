@@ -88,19 +88,19 @@ export default function DashboardPage() {
       ) : d ? (
         <>
           <section aria-label="Phòng theo trạng thái" className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            <Card className="border-0 bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-md">
+            <Card className="border-0 bg-gradient-to-br from-brand-200 to-brand-300 text-brand-900 shadow-md">
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-brand-50">Tổng phòng</p>
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/15">
+                  <p className="text-sm font-medium text-brand-800">Tổng phòng</p>
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-white/50 text-brand-800">
                     <BedDouble className="size-4" aria-hidden />
                   </span>
                 </div>
                 <p className="text-3xl font-bold tabular">{d.rooms.total}</p>
-                <div className="mt-2 h-1.5 rounded-full bg-white/20" aria-hidden>
-                  <div className="h-1.5 rounded-full bg-white" style={{ width: `${Math.min(100, d.rooms.occupancy_rate)}%` }} />
+                <div className="mt-2 h-1.5 rounded-full bg-white/50" aria-hidden>
+                  <div className="h-1.5 rounded-full bg-brand-700" style={{ width: `${Math.min(100, d.rooms.occupancy_rate)}%` }} />
                 </div>
-                <p className="mt-1 text-xs text-brand-50">Lấp đầy {d.rooms.occupancy_rate}%</p>
+                <p className="mt-1 text-xs text-brand-800">Lấp đầy {d.rooms.occupancy_rate}%</p>
               </CardContent>
             </Card>
             {(['AVAILABLE', 'OCCUPIED', 'RESERVED', 'MAINTENANCE'] as const).map((s) => {

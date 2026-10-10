@@ -65,7 +65,7 @@ export default function MoveOutsPage() {
               {list.data.items.map((s) => (
                 <Tr key={s.id}>
                   <Td>
-                    <Link href={`/settlements/${s.id}`} className="font-medium text-brand-800 hover:underline">
+                    <Link href={`/settlements/${s.id}`} className="font-medium text-brand-600 hover:underline">
                       {s.code}
                     </Link>
                   </Td>

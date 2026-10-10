@@ -63,7 +63,7 @@ export function MembersSection({ tenancy }: { tenancy: TenancyDetail }) {
           {tenancy.members.map((m) => (
             <Tr key={m.id} className={m.left_on ? 'opacity-60' : ''}>
               <Td>
-                <Link href={`/tenants/${m.tenant_id}`} className="font-medium text-brand-800 hover:underline">
+                <Link href={`/tenants/${m.tenant_id}`} className="font-medium text-brand-600 hover:underline">
                   {m.full_name}
                 </Link>
                 {m.phone ? <div className="text-xs text-slate-500">{m.phone}</div> : null}

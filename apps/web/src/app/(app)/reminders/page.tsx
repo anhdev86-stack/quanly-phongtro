@@ -149,7 +149,7 @@ function ReminderRow({ m, expanded, onToggle, canManage, onResend, busy }: { m: 
     <>
       <Tr data-testid="reminder-row">
         <Td>
-          <Link href={`/invoices/${m.invoice_id}`} className="font-medium text-brand-800 hover:underline">
+          <Link href={`/invoices/${m.invoice_id}`} className="font-medium text-brand-600 hover:underline">
             {m.building_code} · {m.room_code}
           </Link>
           <div className="text-xs text-slate-500">

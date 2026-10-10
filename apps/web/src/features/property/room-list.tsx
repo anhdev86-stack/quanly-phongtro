@@ -59,7 +59,7 @@ export function RoomTable({ rooms }: { rooms: Room[] }) {
         {rooms.map((r) => (
           <Tr key={r.id}>
             <Td className="font-semibold">
-              <Link href={`/rooms/${r.id}`} className="text-brand-800 hover:underline">
+              <Link href={`/rooms/${r.id}`} className="font-medium text-brand-600 hover:underline">
                 {r.code}
               </Link>
             </Td>

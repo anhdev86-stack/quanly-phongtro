@@ -107,7 +107,7 @@ function DebtsTab({ buildingId }: { buildingId: string }) {
               {debts.data.items.map((d) => (
                 <Tr key={d.tenancy_id}>
                   <Td>
-                    <Link href={`/tenancies/${d.tenancy_id}#statement`} className="text-brand-800 hover:underline">
+                    <Link href={`/tenancies/${d.tenancy_id}#statement`} className="font-medium text-brand-600 hover:underline">
                       {d.building_code} · {d.room_code}
                     </Link>
                     {d.tenancy_status === 'ENDED' ? (
@@ -182,7 +182,7 @@ function PaymentsTab({ buildingId }: { buildingId: string }) {
               {list.data.items.map((p) => (
                 <Tr key={p.id} className={p.status === 'REVERSED' ? 'opacity-60' : ''}>
                   <Td className="whitespace-nowrap">
-                    <Link href={`/print/payments/${p.id}`} target="_blank" className="font-medium text-brand-800 hover:underline">
+                    <Link href={`/print/payments/${p.id}`} target="_blank" className="font-medium text-brand-600 hover:underline">
                       {p.number}
                     </Link>
                     <div className="text-xs text-slate-500">{formatBusinessDate(p.paid_at)}</div>

@@ -67,7 +67,7 @@ export default function BuildingDetailPage() {
                     {can(PERMISSIONS.USERS_MANAGE) ? (
                       <>
                         {' · '}
-                        <Link href="/settings/users" className="text-brand-800 hover:underline">
+                        <Link href="/settings/users" className="font-medium text-brand-600 hover:underline">
                           Giao quản lý
                         </Link>
                       </>

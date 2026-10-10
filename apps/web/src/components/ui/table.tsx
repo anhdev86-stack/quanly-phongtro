@@ -13,7 +13,7 @@ export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>)
 export function Th({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn('border-b border-brand-100 bg-brand-50/80 px-3 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-brand-800 uppercase', className)}
+      className={cn('border-b border-sky-200 bg-sky-100/80 px-3 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-brand-800 uppercase', className)}
       {...props}
     />
   );

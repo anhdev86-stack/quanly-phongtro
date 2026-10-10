@@ -254,7 +254,7 @@ function DebtsTab({ buildingId }: { buildingId?: string }) {
               {q.data.items.map((d) => (
                 <Tr key={d.tenancy_id}>
                   <Td>
-                    <Link href={`/tenancies/${d.tenancy_id}#statement`} className="text-brand-800 hover:underline">
+                    <Link href={`/tenancies/${d.tenancy_id}#statement`} className="font-medium text-brand-600 hover:underline">
                       {d.building_code} · {d.room_code}
                     </Link>
                     <div className="text-xs text-slate-500">{d.primary_tenant_name}</div>
@@ -318,7 +318,7 @@ function DepositsTab({ buildingId }: { buildingId?: string }) {
               {q.data.rows.map((d) => (
                 <Tr key={d.tenancy_id}>
                   <Td>
-                    <Link href={`/tenancies/${d.tenancy_id}`} className="text-brand-800 hover:underline">
+                    <Link href={`/tenancies/${d.tenancy_id}`} className="font-medium text-brand-600 hover:underline">
                       {d.building_code} · {d.room_code}
                     </Link>
                     <div className="text-xs text-slate-500">
@@ -406,7 +406,7 @@ function CollectionsTab({ buildingId }: { buildingId?: string }) {
                     <Tr key={p.id}>
                       <Td className="tabular whitespace-nowrap">{formatBusinessDate(p.paid_at)}</Td>
                       <Td>
-                        <Link href={`/print/payments/${p.id}`} target="_blank" className="text-brand-800 hover:underline">
+                        <Link href={`/print/payments/${p.id}`} target="_blank" className="font-medium text-brand-600 hover:underline">
                           {p.number}
                         </Link>
                       </Td>

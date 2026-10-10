@@ -19,7 +19,7 @@ export function PropertyTabs({ active }: { active: 'rooms' | 'buildings' }) {
           aria-current={active === t.key ? 'page' : undefined}
           className={cn(
             'inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium',
-            active === t.key ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+            active === t.key ? 'bg-brand-200 text-brand-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
           )}
         >
           <t.icon className="size-4" aria-hidden />
