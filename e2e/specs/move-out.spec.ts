@@ -15,6 +15,8 @@ test.describe('Phase 7 — báo trả, trả phòng, quyết toán', () => {
     await expect(page.getByText(/Đã ghi báo trả, dự kiến trả hết ngày/)).toBeVisible();
     await expect(page.getByText('Đang báo trả', { exact: true }).or(page.getByText(/Khách đã báo trả ngày/)).first()).toBeVisible();
 
+    // Vào trả phòng thẳng từ trang phòng (nút cạnh “Chuyển bảo trì”)
+    await openRoom(page, code);
     await page.getByRole('link', { name: 'Trả phòng', exact: true }).click();
     await expect(page.getByRole('heading', { name: `Trả phòng ${code}` })).toBeVisible();
     await page.getByLabel('Chỉ số điện cuối kỳ').fill('1530');

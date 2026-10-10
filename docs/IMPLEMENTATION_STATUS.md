@@ -661,3 +661,5 @@ reports, transfer 8 ✅.
 - Kiểm tra: lint, typecheck ✅; `pnpm test:integration` toàn bộ **342** ✅ (thêm test D-046: dọn 26/10, tính hết 31/10 → không có dòng tiền phòng,
   điện nước tới chỉ số 26/10, không credit, hoàn tất 26/10, khách mới bị chặn trước 01/11; ngày bàn giao > ngày cuối → 422); E2E move-out,
   transfer (đặt ngày cuối = ngày chuyển), payments, billing ✅.
+
+- Trang phòng có nút “Trả phòng” (cạnh “Chuyển bảo trì”) khi phòng có khách, vào thẳng trang trả phòng. E2E move-out (đi từ trang phòng), property, transfer 11 ✅.

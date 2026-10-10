@@ -1,13 +1,13 @@
 'use client';
 
 import { PERMISSIONS } from '@ql-tro/shared';
-import { Archive, CalendarPlus, KeyRound, Pencil, Wrench } from 'lucide-react';
+import { Archive, CalendarPlus, DoorOpen, KeyRound, Pencil, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { DescriptionList, PageHeader } from '@/components/common/page';
 import { EmptyState, ErrorState, LoadingState } from '@/components/common/states';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
 import { useCan } from '@/features/auth/permissions';
@@ -66,29 +66,40 @@ export default function RoomDetailPage() {
         }
         description={`${r.building_code} — ${r.building_name}${r.floor !== null ? ` · Tầng ${r.floor}` : ''}`}
         actions={
-          canManage ? (
-            <>
-              <Button variant="outline" onClick={() => setEditing(true)}>
-                <Pencil className="size-4" aria-hidden />
-                Sửa
-              </Button>
-              {r.operational_status === 'READY' ? (
-                <Button variant="outline" onClick={() => setMaintenance(true)}>
-                  <Wrench className="size-4" aria-hidden />
-                  Chuyển bảo trì
+          <>
+            {canManage ? (
+              <>
+                <Button variant="outline" onClick={() => setEditing(true)}>
+                  <Pencil className="size-4" aria-hidden />
+                  Sửa
                 </Button>
-              ) : (
-                <Button variant="outline" onClick={() => void markReady()} disabled={setStatus.isPending}>
-                  <Wrench className="size-4" aria-hidden />
-                  Sẵn sàng cho thuê
-                </Button>
-              )}
+                {r.operational_status === 'READY' ? (
+                  <Button variant="outline" onClick={() => setMaintenance(true)}>
+                    <Wrench className="size-4" aria-hidden />
+                    Chuyển bảo trì
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => void markReady()} disabled={setStatus.isPending}>
+                    <Wrench className="size-4" aria-hidden />
+                    Sẵn sàng cho thuê
+                  </Button>
+                )}
+              </>
+            ) : null}
+            {r.current_tenancy && can(PERMISSIONS.SETTLEMENT_MANAGE) ? (
+              // Vào thẳng trang trả phòng của khách đang thuê, không phải qua trang lần thuê.
+              <Link href={`/tenancies/${r.current_tenancy.id}/move-out`} className={buttonVariants()}>
+                <DoorOpen className="size-4" aria-hidden />
+                Trả phòng
+              </Link>
+            ) : null}
+            {canManage ? (
               <Button variant="outline" onClick={() => void doArchive()} disabled={archive.isPending}>
                 <Archive className="size-4" aria-hidden />
                 {r.archived_at ? 'Bỏ lưu trữ' : 'Lưu trữ'}
               </Button>
-            </>
-          ) : null
+            ) : null}
+          </>
         }
       />
 
