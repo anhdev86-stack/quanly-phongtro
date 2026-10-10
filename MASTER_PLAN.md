@@ -13,7 +13,7 @@
 | # | Mục | Thay đổi |
 |---|---|---|
 | 1 | 2.2, 8.1 | **Ân hạn khi lập thông báo muộn.** Thông báo tháng lập/phát hành khi hạn theo lịch (ngày 5, hoặc ngày nhận phòng với thông báo đầu tiên) đã qua thì hạn = ngày phát hành + 7 ngày; không “Quá hạn” ngay khi gửi khách. Quyết định: D-044. |
-| 2 | 13 | Báo cáo doanh thu theo tháng gọn 4 cột: **Tổng tiền thông báo** (chia thành Đã thu + Còn nợ), Đã thu, Còn nợ, Tiền nhận trong tháng; chi tiết (giảm trừ, doanh thu thuần, cách thu) ở “Xem chi tiết”. Chỉ đổi hiển thị. |
+| 2 | 13 | Báo cáo doanh thu theo tháng gọn 4 cột: **Tổng tiền thông báo** (chia thành Đã thu + Còn nợ), Đã thu, Còn nợ, Thực thu theo tháng; chi tiết (giảm trừ, doanh thu thuần, cách thu) ở “Xem chi tiết”. Chỉ đổi hiển thị. |
 
 ### Thay đổi so với v2.6 (yêu cầu của chủ dự án, 07/10/2026)
 

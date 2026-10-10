@@ -150,7 +150,7 @@ export class ReportsController {
     if (type === 'revenue-monthly') {
       const r = await this.reports.revenue(user, revenueQuerySchema.parse(q));
       // Cùng tên cột với màn hình (chế độ chi tiết).
-      const head = ['Tháng', 'Tổng tiền thông báo', 'Giảm trừ', 'Doanh thu thuần', 'Đã thu - tiền mặt/CK', 'Đã thu - trừ cọc', 'Đã thu - cấn trừ tiền dư', 'Đã thu', 'Còn nợ', 'Tiền nhận trong tháng'];
+      const head = ['Tháng', 'Tổng tiền thông báo', 'Giảm trừ', 'Doanh thu thuần', 'Đã thu - tiền mặt/CK', 'Đã thu - trừ cọc', 'Đã thu - cấn trừ tiền dư', 'Đã thu', 'Còn nợ', 'Thực thu theo tháng'];
       const line = (p: string, x: (typeof r.rows)[number] | typeof r.totals) => [
         p,
         x.invoiced_vnd,

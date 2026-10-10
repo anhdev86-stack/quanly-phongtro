@@ -620,8 +620,8 @@ phiếu thu gốc, số dư nhảy lên con số chưa từng có (số dư cu�
 
 Điều chỉnh hiển thị theo góp ý chủ dự án:
 - Tổng quan: ô “Bảo trì” → “Ngừng cho thuê (bảo trì)” (đếm phòng tạm ngừng cho thuê, khác yêu cầu sửa chữa ở Việc cần xử lý);
-  “Phát sinh tháng” → “Tổng tiền thông báo tháng …”; “Thực thu trong tháng (phiếu thu)” → “Tiền nhận trong tháng”.
-- Báo cáo doanh thu theo tháng: mặc định 4 cột Tổng tiền thông báo / Đã thu / Còn nợ / Tiền nhận trong tháng (tổng chia thành Đã thu và Còn nợ);
+  “Phát sinh tháng” → “Tổng tiền thông báo tháng …”; “Thực thu trong tháng (phiếu thu)” → “Thực thu theo tháng”.
+- Báo cáo doanh thu theo tháng: mặc định 4 cột Tổng tiền thông báo / Đã thu / Còn nợ / Thực thu theo tháng (tổng chia thành Đã thu và Còn nợ);
   Giảm trừ, Doanh thu thuần, cách thu (tiền mặt/CK, trừ cọc, cấn trừ tiền dư) ở “Xem chi tiết”, có nhắc khi khác 0. CSV đổi tên cột theo màn
   hình, số liệu không đổi. Kiểm tra: lint, typecheck ✅; integration reports 6 ✅; E2E reports, finance, maintenance 9 ✅.
 

@@ -120,7 +120,7 @@ function RevenueTab({ buildingId }: { buildingId?: string }) {
         <CardContent className="border-t border-slate-100 text-xs text-slate-500">
           <p>
             <strong>Tổng tiền thông báo</strong>: tổng số tiền ghi trên các thông báo đã phát hành của tháng (nháp không tính). Số này chia thành hai phần:{' '}
-            <strong>Đã thu</strong> (khách đã trả, kể cả trả vào tháng sau) và <strong>Còn nợ</strong> (chưa trả). <strong>Tiền nhận trong tháng</strong>: tiền thực tế nhận trong tháng (theo ngày trên phiếu thu), kể cả trả nợ tháng trước —
+            <strong>Đã thu</strong> (khách đã trả, kể cả trả vào tháng sau) và <strong>Còn nợ</strong> (chưa trả). <strong>Thực thu theo tháng</strong>: tiền thực tế nhận trong tháng (theo ngày trên phiếu thu), kể cả trả nợ tháng trước —
             dùng để đối chiếu sổ ngân hàng.
           </p>
         </CardContent>
@@ -175,7 +175,7 @@ function RevenueTable({ data }: { data: RevenueData }) {
                 </>
               ) : null}
               <Th className="text-right">Còn nợ</Th>
-              <Th className="text-right">Tiền nhận trong tháng</Th>
+              <Th className="text-right">Thực thu theo tháng</Th>
             </tr>
           </thead>
           <tbody>
@@ -208,7 +208,7 @@ function RevenueTable({ data }: { data: RevenueData }) {
         <CardContent className="border-t border-slate-100 text-xs text-slate-500">
           <strong>Giảm trừ</strong>: chứng từ giảm tiền phát hành sau (VD giảm giá, trả lại tiền thu trước khi trả phòng sớm), tính theo tháng phát hành chứng từ.{' '}
           <strong>Doanh thu thuần</strong> = Tổng tiền thông báo − Giảm trừ. <strong>Đã thu</strong> = tiền mặt/chuyển khoản + trừ cọc + cấn trừ tiền dư; hai phần sau không có tiền mới vào
-          nên không nằm trong “Tiền nhận trong tháng”. Tiền dư/giảm trừ dùng để trả nợ tháng khác nằm trong “Đã thu” của tháng được trả. Thông báo trả phòng/điều chỉnh tính theo tháng
+          nên không nằm trong “Thực thu theo tháng”. Tiền dư/giảm trừ dùng để trả nợ tháng khác nằm trong “Đã thu” của tháng được trả. Thông báo trả phòng/điều chỉnh tính theo tháng
           của ngày lập.
         </CardContent>
       ) : null}

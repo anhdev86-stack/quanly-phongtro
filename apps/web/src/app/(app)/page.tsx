@@ -126,7 +126,7 @@ export default function DashboardPage() {
                       ['Còn phải thu (gồm khách đã trả phòng)', d.money.debt_vnd, ''],
                       ['Trong đó quá hạn', d.money.overdue_vnd, 'text-red-700'],
                       [`Tổng tiền thông báo tháng ${period.slice(5)}/${period.slice(0, 4)}`, d.money.invoiced_in_period_vnd, ''],
-                      ['Tiền nhận trong tháng', d.money.collected_in_period_vnd, 'text-emerald-700'],
+                      ['Thực thu theo tháng', d.money.collected_in_period_vnd, 'text-emerald-700'],
                       ['Cọc đang giữ (nghĩa vụ phải trả)', d.money.deposit_held_vnd, ''],
                       ['Phải hoàn cọc (đã trả phòng)', d.money.deposit_refund_payable_vnd, 'text-violet-700'],
                       ['Phải hoàn tiền dư (credit)', d.money.credit_refund_payable_vnd, 'text-violet-700'],
