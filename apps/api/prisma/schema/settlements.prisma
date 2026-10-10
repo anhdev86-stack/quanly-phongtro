@@ -48,6 +48,8 @@ model MoveOutSettlement {
   status                SettlementStatus      @default(DRAFT)
   lastChargeDate        DateTime              @map("last_charge_date") @db.Date
   chargeEndExclusive    DateTime              @map("charge_end_exclusive") @db.Date
+  /// Ngày bàn giao thực tế (khách dọn đi), ngày ghi chỉ số cuối; null = ngày cuối tính tiền (dữ liệu cũ). D-046.
+  handoverDate          DateTime?             @map("handover_date") @db.Date
   destinationRoomStatus DestinationRoomStatus @map("destination_room_status")
   handoverBy            String?               @map("handover_by")
   /// Kiểm kê tài sản khi bàn giao (bắt buộc trước khi duyệt).

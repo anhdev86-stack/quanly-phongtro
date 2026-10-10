@@ -48,3 +48,11 @@ export function firstOfNextMonth(date: string): string {
   const [y, m] = date.split('-').map(Number) as [number, number];
   return toDateOnly(new Date(Date.UTC(y, m, 1)));
 }
+
+/** "2026-09-26" → "2026-09-30": ngày cuối của tháng chứa ngày đó. */
+export function endOfMonth(value: string): string {
+  const y = Number(value.slice(0, 4));
+  const m = Number(value.slice(5, 7));
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${value.slice(0, 7)}-${String(last).padStart(2, '0')}`;
+}

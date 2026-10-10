@@ -138,6 +138,55 @@ describe('Phase 7 — trả phòng và quyết toán', () => {
   });
   afterAll(() => t.close());
 
+  it('D-046: dọn đi 26/10, tính tiền hết 31/10 → không tính/hoàn theo ngày, tháng cuối chỉ còn điện nước; hoàn tất ngay ngày bàn giao; khách mới vào từ 01/11', async () => {
+    await prices();
+    const r = await moveIn('2026-10-01', '0');
+    const oct = await publishDraft(r.tenancyId); // tiền phòng tháng 10 thu đủ đầu tháng
+    expect(oct.total_vnd).toBe('3000000');
+
+    await at('2026-10-26');
+    // Ngày bàn giao sau ngày cuối tính tiền: từ chối
+    const bad = await post(`/api/v1/tenancies/${r.tenancyId}/move-out-settlements`, {
+      destination_room_status: 'READY',
+      inventory_note: 'Đủ',
+      last_charge_date: '2026-10-25',
+      handover_date: '2026-10-26',
+    });
+    expect(bad.status).toBe(422);
+    expect(bad.body.field_errors.handover_date).toBeDefined();
+
+    const s = await startSettlement(r.tenancyId, { handover_date: '2026-10-26', last_charge_date: '2026-10-31', final_readings: await finals(r.roomId, '1080', '106') });
+    expect(s).toMatchObject({ handover_date: '2026-10-26', last_charge_date: '2026-10-31' });
+    const { pv, done } = await approveAndComplete(s.id); // hoàn tất được ngay ngày 26/10
+    expect(done.status).toBe('COMPLETED');
+    // Thông báo trả phòng: không có tiền phòng (tháng 10 đã thu đủ), chỉ điện nước tới chỉ số lúc bàn giao
+    expect(pv.final_lines.filter((l) => l.charge_kind === 'RENT')).toEqual([]);
+    expect(pv.final_lines.map((l) => [l.label, l.amount_vnd])).toEqual([
+      ['Điện 01/10–26/10/2026: 1000 → 1080 = 80 kWh', '320000'],
+      ['Nước 01/10–26/10/2026: 100 → 106 = 6 m³', '120000'],
+    ]);
+    expect(pv.credit_vnd).toBe('0'); // không hoàn tiền phòng 27–31/10
+    expect(pv.customer_receivable_vnd).toBe('3440000'); // tháng 10 chưa trả 3.000.000 + điện nước 440.000
+
+    const reading = await t.prisma.meterReading.findFirstOrThrow({ where: { tenancyId: r.tenancyId, kind: 'FINAL', meter: { type: 'ELECTRICITY' } } });
+    expect(reading.readOn.toISOString().slice(0, 10)).toBe('2026-10-26');
+    const tenancy = await t.prisma.tenancy.findUniqueOrThrow({ where: { id: r.tenancyId } });
+    expect(tenancy.actualMoveOutDate?.toISOString().slice(0, 10)).toBe('2026-10-26');
+
+    // Khách mới vào phòng này từ 01/11 (khách cũ đã trả tiền hết tháng 10)
+    const next = (start: string) =>
+      post(
+        '/api/v1/tenancies/move-in',
+        { room_id: r.roomId, start_date: start, monthly_rent_vnd: '3000000', deposit_required_vnd: '0', primary: { new_tenant: { full_name: 'Khách Mới' } }, meter_readings: [] },
+        key(),
+      );
+    const early = await next('2026-10-28');
+    expect(early.status).toBe(422);
+    expect(early.body.field_errors.start_date).toBeDefined();
+    await at('2026-11-01');
+    expect((await next('2026-11-01')).status).toBe(201);
+  });
+
   it('Ví dụ 1 (T23, T27, T25): đủ cọc, đã trả tháng 11 → credit 1.000.000 cấn 820.000, hoàn 180.000 + cọc 3.000.000 ghi riêng', async () => {
     const { roomId, tenancyId, oct, nov } = await scenario('3000000', '106');
     expect(nov.total_vnd).toBe('3520000');

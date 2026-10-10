@@ -45,7 +45,13 @@ const chargeSchema = z.strictObject({
 });
 
 export const settlementInputSchema = z.strictObject({
+  /**
+   * Ngày cuối tính tiền phòng (khách ở hết ngày). D-046: mặc định ở giao diện = ngày cuối tháng khách dọn đi — tiền phòng tháng đó đã thu
+   * đủ đầu tháng, không tính/hoàn theo ngày; tháng cuối chỉ còn điện nước. Chuyển phòng giữa tháng thì đặt bằng ngày chuyển.
+   */
   last_charge_date: businessDateSchema,
+  /** Ngày bàn giao thực tế (khách dọn đi): ghi chỉ số cuối ngày này, hoàn tất được từ ngày này. Bỏ trống = ngày cuối tính tiền. */
+  handover_date: businessDateSchema.nullish().transform((v) => v ?? null),
   destination_room_status: z.enum(['READY', 'MAINTENANCE']),
   handover_by: optionalText(100),
   inventory_note: optionalText(2000),
@@ -95,6 +101,8 @@ export const settlementSchema = z.object({
   primary_tenant_name: z.string().nullable(),
   status: z.enum(['DRAFT', 'APPROVED', 'COMPLETED', 'CANCELLED']),
   last_charge_date: z.string(),
+  /** Ngày bàn giao thực tế (dữ liệu cũ: = ngày cuối tính tiền). */
+  handover_date: z.string(),
   destination_room_status: z.enum(['READY', 'MAINTENANCE']),
   handover_by: z.string().nullable(),
   inventory_note: z.string().nullable(),

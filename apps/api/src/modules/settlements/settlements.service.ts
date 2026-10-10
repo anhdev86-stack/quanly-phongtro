@@ -93,7 +93,7 @@ export class SettlementsService {
       await lockRows(tx, 'tenancies', [tenancyId]);
       const t = await tx.tenancy.findUniqueOrThrow({ where: { id: tenancyId } });
       if (t.status !== 'ACTIVE' && t.status !== 'NOTICE_GIVEN') throw new AppError('BUSINESS_RULE_VIOLATION', 'Lần thuê đang trả phòng hoặc đã kết thúc.');
-      this.validateDates(t.startDate, input.last_charge_date);
+      this.validateDates(t.startDate, input.last_charge_date, input.handover_date);
       const live = await tx.moveOutSettlement.findFirst({ where: { tenancyId, status: { not: 'CANCELLED' } } });
       if (live) throw new AppError('CONFLICT', 'Lần thuê đã có quyết toán chưa hủy.');
       const today = this.clock.today();
@@ -116,7 +116,7 @@ export class SettlementsService {
       const s = await tx.moveOutSettlement.findUniqueOrThrow({ where: { id } });
       if (s.status !== 'DRAFT' && s.status !== 'APPROVED') throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ sửa được quyết toán chưa hoàn tất.');
       if (s.version !== input.expected_version) throw new AppError('VERSION_CONFLICT');
-      this.validateDates(head.tenancy.startDate, input.last_charge_date);
+      this.validateDates(head.tenancy.startDate, input.last_charge_date, input.handover_date);
       const { expected_version: _v, ...data } = input;
       await tx.moveOutSettlement.update({
         where: { id },
@@ -183,7 +183,8 @@ export class SettlementsService {
       if (s.status !== 'APPROVED') throw new AppError('BUSINESS_RULE_VIOLATION', 'Chỉ hoàn tất được quyết toán đã duyệt.');
       if (s.version !== expectedVersion) throw new AppError('VERSION_CONFLICT');
       const today = this.clock.today();
-      if (day(s.lastChargeDate) > today) throw new AppError('BUSINESS_RULE_VIOLATION', 'Chưa tới ngày cuối tính tiền; hoàn tất khi khách đã bàn giao.');
+      // Hoàn tất được từ ngày bàn giao, không phải chờ hết ngày cuối tính tiền (D-046: tính tới cuối tháng nhưng khách đã dọn đi).
+      if (day(s.handoverDate ?? s.lastChargeDate) > today) throw new AppError('BUSINESS_RULE_VIOLATION', 'Chưa tới ngày bàn giao; hoàn tất khi khách đã bàn giao.');
       // Thông báo cuối và chứng từ điều chỉnh lập trong tháng hiện tại.
       await assertPeriodOpen(tx, s.workspaceId, firstDayOfMonth(today), 'hoàn tất quyết toán');
       const c = await this.compute(tx, s);
@@ -306,7 +307,8 @@ export class SettlementsService {
       // 5. Kết thúc lần thuê, hợp đồng, thành viên, báo trả, phòng.
       await tx.tenancy.update({
         where: { id: s.tenancyId },
-        data: { status: 'ENDED', actualMoveOutDate: toDbDate(last), chargeEndExclusive: toDbDate(endEx), version: { increment: 1 } },
+        // Ngày dọn đi thực tế = ngày bàn giao; tiền phòng tính tới ngày cuối tính tiền (D-046).
+        data: { status: 'ENDED', actualMoveOutDate: s.handoverDate ?? toDbDate(last), chargeEndExclusive: toDbDate(endEx), version: { increment: 1 } },
       });
       await tx.contract.updateMany({
         where: { tenancyId: s.tenancyId, lifecycle: 'SIGNED', terminatedOn: null, termStart: { lte: toDbDate(last) }, termEnd: { gt: toDbDate(last) } },
@@ -523,14 +525,19 @@ export class SettlementsService {
 
   // ------------------------------------------------------------------ Hỗ trợ
 
-  private validateDates(start: Date, last: DateOnly) {
+  private validateDates(start: Date, last: DateOnly, handover: DateOnly | null) {
     if (last < fromDbDate(start)) throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày cuối tính tiền trước ngày nhận phòng.', { last_charge_date: ['Trước ngày nhận phòng.'] });
+    if (handover && handover < fromDbDate(start)) throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày bàn giao trước ngày nhận phòng.', { handover_date: ['Trước ngày nhận phòng.'] });
+    if (handover && handover > last) {
+      throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày bàn giao sau ngày cuối tính tiền: khách còn ở thì phải tính tiền tới ngày đó.', { handover_date: ['Sau ngày cuối tính tiền.'] });
+    }
   }
 
   private fields(input: Omit<Input, 'final_readings' | 'charges'>) {
     return {
       lastChargeDate: toDbDate(input.last_charge_date),
       chargeEndExclusive: toDbDate(addDays(input.last_charge_date, 1)),
+      handoverDate: input.handover_date ? toDbDate(input.handover_date) : null,
       destinationRoomStatus: input.destination_room_status,
       handoverBy: input.handover_by,
       inventoryNote: input.inventory_note,
@@ -544,7 +551,8 @@ export class SettlementsService {
     if (input.charges.length) {
       await tx.settlementItem.createMany({ data: input.charges.map((c) => ({ settlementId, kind: c.kind, amountVnd: BigInt(c.amount_vnd), reason: c.reason })) });
     }
-    await this.meters.setFinalReadingsInTx(tx, user, tenancyId, roomId, input.last_charge_date, input.final_readings);
+    // Chỉ số cuối đọc lúc bàn giao (D-046); dữ liệu cũ không có ngày bàn giao thì là ngày cuối tính tiền.
+    await this.meters.setFinalReadingsInTx(tx, user, tenancyId, roomId, input.handover_date ?? input.last_charge_date, input.final_readings);
   }
 
   private async number(tx: Prisma.TransactionClient, workspaceId: string, type: InvoiceType, monthKey: DateOnly) {
@@ -592,6 +600,7 @@ export class SettlementsService {
         primary_tenant_name: s.tenancy.members[0]?.tenant.fullName ?? null,
         status: s.status,
         last_charge_date: day(s.lastChargeDate),
+        handover_date: day(s.handoverDate ?? s.lastChargeDate),
         destination_room_status: s.destinationRoomStatus,
         handover_by: s.handoverBy,
         inventory_note: s.inventoryNote,

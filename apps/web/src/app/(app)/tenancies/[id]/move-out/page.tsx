@@ -19,7 +19,7 @@ import { useTenancy } from '@/features/tenancy/api';
 import { useRoomMeters } from '@/features/utilities/api';
 import { normalizeReading } from '@/features/utilities/estimate';
 import { ApiError } from '@/lib/api-client';
-import { formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
+import { endOfMonth, formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
 import { useIdempotencyKey } from '@/lib/use-idempotency-key';
 
 export default function MoveOutPage() {
@@ -69,8 +69,12 @@ function Wizard({ tenancy, settlement, planned }: { tenancy: TenancyDetail; sett
   const action = useMoveOutAction<SettlementDto>();
   const [key, renew] = useIdempotencyKey();
   const activeMeters = (meters.data?.meters ?? []).filter((m) => !m.retired_on);
+  // D-046: ngày bàn giao mặc định hôm nay (hoặc ngày dự kiến nếu đã qua); ngày cuối tính tiền mặc định hết tháng của ngày bàn giao.
+  const initialHandover = settlement?.handover_date ?? (planned && planned < todayLocal() ? planned : todayLocal());
+  const [lastTouched, setLastTouched] = useState(!!settlement);
   const [v, setV] = useState({
-    last_charge_date: settlement?.last_charge_date ?? planned ?? todayLocal(),
+    handover_date: initialHandover,
+    last_charge_date: settlement?.last_charge_date ?? endOfMonth(initialHandover),
     destination_room_status: settlement?.destination_room_status ?? ('READY' as 'READY' | 'MAINTENANCE'),
     handover_by: settlement?.handover_by ?? '',
     inventory_note: settlement?.inventory_note ?? '',
@@ -152,8 +156,32 @@ function Wizard({ tenancy, settlement, planned }: { tenancy: TenancyDetail; sett
           <CardTitle>1. Bàn giao</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field id="mo-last" label="Ngày cuối tính tiền (khách ở hết ngày)" required error={fe.last_charge_date?.[0]}>
-            <TextInput id="mo-last" type="date" min={tenancy.start_date} value={v.last_charge_date} onChange={(e) => setV({ ...v, last_charge_date: e.target.value })} />
+          <Field id="mo-handover" label="Ngày bàn giao (khách dọn đi)" required error={fe.handover_date?.[0]} hint="Chỉ số điện nước cuối đọc ngày này.">
+            <TextInput
+              id="mo-handover"
+              type="date"
+              min={tenancy.start_date}
+              value={v.handover_date}
+              onChange={(e) => setV({ ...v, handover_date: e.target.value, ...(lastTouched || !e.target.value ? {} : { last_charge_date: endOfMonth(e.target.value) }) })}
+            />
+          </Field>
+          <Field
+            id="mo-last"
+            label="Ngày cuối tính tiền phòng"
+            required
+            error={fe.last_charge_date?.[0]}
+            hint="Mặc định hết tháng: tiền phòng tháng này đã thu đủ, không tính/hoàn theo ngày — tháng cuối chỉ còn điện nước. Chuyển phòng giữa tháng: đặt bằng ngày chuyển."
+          >
+            <TextInput
+              id="mo-last"
+              type="date"
+              min={v.handover_date || tenancy.start_date}
+              value={v.last_charge_date}
+              onChange={(e) => {
+                setLastTouched(true);
+                setV({ ...v, last_charge_date: e.target.value });
+              }}
+            />
           </Field>
           <Field id="mo-room" label="Trạng thái phòng sau bàn giao">
             <Select id="mo-room" value={v.destination_room_status} onChange={(e) => setV({ ...v, destination_room_status: e.target.value as 'READY' | 'MAINTENANCE' })}>

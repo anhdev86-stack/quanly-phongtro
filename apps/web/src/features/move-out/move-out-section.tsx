@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/toast';
 import { useCan } from '@/features/auth/permissions';
 import { ReasonDialog } from '@/features/property/reservation-forms';
 import { ApiError } from '@/lib/api-client';
-import { formatBusinessDate, todayLocal } from '@/lib/format';
+import { endOfMonth, formatBusinessDate, todayLocal } from '@/lib/format';
 import { useMoveOutAction, useNotices, useTenancySettlements } from './api';
 
 /** Nút ở đầu trang lần thuê: báo trả, hủy báo trả, trả phòng (MASTER_PLAN 7.5, 7.6). */
@@ -72,7 +72,8 @@ function NoticeForm({ tenancy, onClose }: { tenancy: TenancyDetail; onClose: () 
   const toast = useToast();
   const action = useMoveOutAction<unknown>();
   const today = todayLocal();
-  const [v, setV] = useState({ notice_date: today, planned_last_charge_date: today, reason: '' });
+  // D-046: khách báo trả thì dọn đi trước tháng mới — mặc định dự kiến ở hết tháng này.
+  const [v, setV] = useState({ notice_date: today, planned_last_charge_date: endOfMonth(today), reason: '' });
   const [error, setError] = useState('');
   const [fe, setFe] = useState<Record<string, string[]>>({});
   const submit = async () => {
@@ -97,7 +98,7 @@ function NoticeForm({ tenancy, onClose }: { tenancy: TenancyDetail; onClose: () 
         <Field id="nt-date" label="Ngày báo" required error={fe.notice_date?.[0]} hint="Ghi lùi ngày cần quyền và lý do.">
           <TextInput id="nt-date" type="date" max={today} value={v.notice_date} onChange={(e) => setV({ ...v, notice_date: e.target.value })} />
         </Field>
-        <Field id="nt-planned" label="Dự kiến ở hết ngày" required error={fe.planned_last_charge_date?.[0]}>
+        <Field id="nt-planned" label="Dự kiến ở hết ngày" required error={fe.planned_last_charge_date?.[0]} hint="Mặc định hết tháng: tiền phòng thu theo tháng, dọn đi sớm không hoàn theo ngày.">
           <TextInput id="nt-planned" type="date" value={v.planned_last_charge_date} onChange={(e) => setV({ ...v, planned_last_charge_date: e.target.value })} />
         </Field>
         <Field id="nt-reason" label="Ghi chú / lý do" className="sm:col-span-2" error={fe.reason?.[0]}>

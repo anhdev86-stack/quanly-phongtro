@@ -1,12 +1,19 @@
 # MASTER PLAN — PHẦN MỀM QUẢN LÝ NHÀ TRỌ
 
-**Phiên bản:** 2.8 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
+**Phiên bản:** 2.9 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
 **Ngày:** 07/10/2026  
 **Ngôn ngữ UI:** Tiếng Việt  
 **Tiền tệ:** VND  
 **Múi giờ nghiệp vụ:** Asia/Ho_Chi_Minh
 
 > Đọc toàn bộ tài liệu trước khi triển khai. Đây là nguồn yêu cầu nghiệp vụ chính thức. Những mặc định kỹ thuật được ghi rõ bên dưới dùng để triển khai mà không phải tự đoán. Nếu có yêu cầu mới của chủ dự án, cập nhật tài liệu và ghi lại quyết định trước khi thay đổi nghiệp vụ.
+
+### Thay đổi so với v2.8 (yêu cầu của chủ dự án, 10/10/2026)
+
+| # | Mục | Thay đổi |
+|---|---|---|
+| 1 | 7.6, 7.7 | **Trả phòng thu đủ tháng.** Khách báo trả thì dọn đi trước tháng mới; ngày cuối tính tiền mặc định = **ngày cuối tháng khách dọn đi**: tiền phòng tháng đó đã thu đủ đầu tháng, không tính/hoàn theo ngày — thông báo trả phòng chỉ còn điện nước (tới chỉ số lúc bàn giao) + nợ cũ − cọc. Tách **ngày bàn giao** (ghi chỉ số cuối, hoàn tất được ngay) khỏi ngày cuối tính tiền; khách mới vào từ ngày 1 tháng sau. Dọn lố sang tháng sau: tính đủ tháng đó (sửa tay được). Chuyển phòng giữa tháng: đặt ngày cuối tính tiền = ngày chuyển. Tháng nhận phòng vẫn chia theo ngày. Quyết định: D-046. |
+| 2 | 9.6 | **Người nhận tiền** trên phiếu thu (chủ trọ/quản lý có quyền thu ở tòa; mặc định người ghi). Quyết định: D-045. |
 
 ### Thay đổi so với v2.7 (yêu cầu của chủ dự án, 10/10/2026)
 
@@ -753,7 +760,7 @@ Form gồm kỳ mới, giá có hiệu lực, điều khoản, mức cọc yêu 
 
 Wizard:
 
-1. Ngày cuối tính tiền, người bàn giao, trạng thái phòng sau bàn giao READY/MAINTENANCE.
+1. **Ngày bàn giao** (khách dọn đi; ngày ghi chỉ số cuối), **ngày cuối tính tiền** (mặc định ngày cuối tháng của ngày bàn giao — D-046; sửa tay được, chuyển phòng giữa tháng đặt bằng ngày chuyển), người bàn giao, trạng thái phòng sau bàn giao READY/MAINTENANCE. Ngày bàn giao không được sau ngày cuối tính tiền.
 2. Kiểm tra hợp đồng: cảnh báo trả trước hạn hoặc báo trước thiếu ngày. Liệt kê hợp đồng SIGNED chưa bắt đầu; **bắt buộc hủy có lý do** trước khi duyệt.
 3. Nhập chỉ số cuối kỳ, tài sản và hư hỏng, các khoản phí kèm lý do.
 4. Preview đối soát cuối kỳ theo mục 8.6, với mốc tính cho **mọi nguồn phí** là `charge_end_exclusive`:
@@ -763,14 +770,14 @@ Wizard:
    - Liệt kê các invoice DRAFT đang mở của tenancy; chúng sẽ bị hủy khi hoàn tất vì FINAL đã bao trùm.
 5. Preview cấn trừ: credit → nợ, cọc → nợ còn lại, khoản khách còn phải trả, khoản phải hoàn (tách hoàn cọc và hoàn tiền dư).
 6. APPROVE: chốt snapshot và `input_hash`; ghi người duyệt.
-7. COMPLETE: kiểm tra lại dữ liệu; trong một transaction hủy các invoice DRAFT của tenancy, phát hành FINAL/CREDIT_ADJUSTMENT, tạo credit applications, áp cọc đã duyệt, ghi `actual_move_out_date` và `charge_end_exclusive`, ghi `terminated_on` nếu trước hạn, ENDED tenancy, FULFILLED notice, đổi trạng thái vận hành phòng.
+7. COMPLETE (được từ **ngày bàn giao**, không phải chờ hết ngày cuối tính tiền): kiểm tra lại dữ liệu; trong một transaction hủy các invoice DRAFT của tenancy, phát hành FINAL/CREDIT_ADJUSTMENT, tạo credit applications, áp cọc đã duyệt, ghi `actual_move_out_date` và `charge_end_exclusive`, ghi `terminated_on` nếu trước hạn, ENDED tenancy, FULFILLED notice, đổi trạng thái vận hành phòng.
 8. Ghi phiếu thu hoặc hoàn tiền khi thực nhận/chi. Nếu chưa thực hiện, giữ trạng thái RECEIVABLE/REFUND_PAYABLE trong danh sách việc cần xử lý.
 
 Nếu payment, giá, chỉ số hoặc invoice thay đổi sau khi duyệt: trả 409 `SETTLEMENT_STALE`, yêu cầu preview và duyệt lại. Gọi COMPLETE lặp lại với cùng key thì trả kết quả cũ, không áp cọc hay trả phòng hai lần.
 
 ### 7.7 Chuyển phòng (V1.1)
 
-- Quyết toán tenancy cũ như trả phòng (ngày cuối tính tiền là ngày trước ngày nhận phòng mới), rồi tạo tenancy mới ở phòng mới.
+- Quyết toán tenancy cũ như trả phòng (ngày cuối tính tiền là ngày trước ngày nhận phòng mới — đặt tay, không dùng mặc định hết tháng của D-046), rồi tạo tenancy mới ở phòng mới.
 - Cọc chuyển bằng cặp giao dịch liên kết `TRANSFER_OUT` (tenancy cũ) và `TRANSFER_IN` (tenancy mới), ghi trong `room_transfers`. Không sửa trực tiếp số dư.
 - Credit còn dư của tenancy cũ chỉ được cấn trừ vào nợ của tenancy cũ hoặc hoàn; không tự chuyển sang tenancy mới.
 

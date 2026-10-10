@@ -65,7 +65,7 @@ export default function SettlementPage() {
             {completed ? <Badge tone={cur.financial_status === 'BALANCED' ? 'green' : 'violet'}>{FINANCIAL_STATUS_LABELS[cur.financial_status]}</Badge> : null}
           </span>
         }
-        description={`${s.building_code} · Phòng ${s.room_code} · ${s.primary_tenant_name ?? '—'} · ngày cuối tính tiền ${formatBusinessDate(s.last_charge_date)}`}
+        description={`${s.building_code} · Phòng ${s.room_code} · ${s.primary_tenant_name ?? '—'} · bàn giao ${formatBusinessDate(s.handover_date)} · tính tiền phòng hết ngày ${formatBusinessDate(s.last_charge_date)}`}
         actions={
           <div className="flex flex-wrap gap-2">
             {!completed && s.status !== 'CANCELLED' ? (

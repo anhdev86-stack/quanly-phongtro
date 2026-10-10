@@ -496,3 +496,16 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   (vai trò + quyền riêng) và có phạm vi tòa của phòng (chủ trọ: mọi tòa); sai → 422 `received_by`. Danh sách: `GET /tenancies/:id/payment-receivers`.
 - Hiện ở: hộp “Ghi nhận thu”, các khoản đã thu trên thông báo, phiếu thu in (“Người thu tiền”, kèm người lập phiếu nếu khác), báo cáo
   Thu tiền + CSV, thu nợ sau trả phòng. Hoàn tiền (chi ra) không có người nhận.
+
+## D-046 — Trả phòng thu đủ tháng, tách ngày bàn giao (chủ dự án chốt 10/10/2026)
+
+- Chủ dự án: khách báo hết tháng 9 trả phòng thì dọn đi trước tháng 10; dọn 25–26/9 vẫn thu tiền phòng tháng 9 như bình thường, tháng cuối chỉ
+  thu điện nước. Chốt: (1) ngày cuối tính tiền mặc định = ngày cuối tháng khách dọn đi; (2) hoàn tất ngay khi bàn giao, khách mới vào từ ngày 1
+  tháng sau; (3a) dọn lố sang tháng sau thì tính đủ tháng đó (sửa tay được). Tháng nhận phòng vẫn chia theo ngày.
+- Dữ liệu: `move_out_settlements.handover_date` (null = ngày cuối tính tiền, dữ liệu cũ). Chỉ số FINAL đọc ngày bàn giao; `actual_move_out_date`
+  = ngày bàn giao; `charge_end_exclusive` = ngày cuối tính tiền + 1 (chặn khách mới trùng thời gian tính tiền). Ràng buộc: nhận phòng ≤ bàn giao
+  ≤ ngày cuối tính tiền (422 `handover_date`).
+- Công thức tính tiền không đổi: đối soát tới `charge_end_exclusive` như cũ (8.6). Vì mặc định hết tháng nên tiền phòng tháng đã phát hành không
+  tạo dòng CREDIT theo ngày; tháng chưa phát hành (nháp) được FINAL bù đủ tháng. Mặc định nằm ở giao diện (API vẫn nhận ngày bất kỳ).
+- Báo trả phòng: ngày dự kiến mặc định cuối tháng hiện tại.
+

@@ -652,3 +652,12 @@ Sao lưu trước: `backups/ql_tro-20261010-033128.dump`. Migration chỉ thêm 
 kiểm tra khớp schema bằng `prisma migrate diff` (rỗng). Áp bằng `prisma migrate deploy` cho dev và demo; không reset, không seed.
 Kiểm tra: lint, typecheck ✅; `pnpm test:integration` toàn bộ **341** ✅ (thêm test D-045; T47 cập nhật helper); E2E payments, move-out,
 reports, transfer 8 ✅.
+
+## Điều chỉnh: trả phòng thu đủ tháng, ngày bàn giao (D-046) ✅ · nút “Ghi nhận thu” đầu trang
+
+- Trang trả phòng: “Ngày bàn giao (khách dọn đi)” + “Ngày cuối tính tiền phòng” (mặc định hết tháng của ngày bàn giao); báo trả mặc định cuối
+  tháng; hoàn tất được từ ngày bàn giao. Migration `20261010050000_settlement_handover_date` (chỉ thêm cột cho phép trống).
+- Trang thông báo: nút “Ghi nhận thu” ở đầu trang (bỏ nút trùng ở khung Thanh toán).
+- Kiểm tra: lint, typecheck ✅; `pnpm test:integration` toàn bộ **342** ✅ (thêm test D-046: dọn 26/10, tính hết 31/10 → không có dòng tiền phòng,
+  điện nước tới chỉ số 26/10, không credit, hoàn tất 26/10, khách mới bị chặn trước 01/11; ngày bàn giao > ngày cuối → 422); E2E move-out,
+  transfer (đặt ngày cuối = ngày chuyển), payments, billing ✅.

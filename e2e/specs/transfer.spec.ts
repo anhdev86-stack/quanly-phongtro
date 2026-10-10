@@ -17,6 +17,9 @@ test.describe('Phase 14 — chuyển phòng', () => {
     await dialog(page).getByRole('button', { name: 'Ghi báo trả' }).click();
     await expect(page.getByText(/Đã ghi báo trả, dự kiến trả hết ngày/)).toBeVisible();
     await page.getByRole('link', { name: 'Trả phòng', exact: true }).click();
+    // Chuyển phòng giữa tháng: tính tiền phòng cũ tới ngày chuyển (mặc định hết tháng chỉ dùng khi dọn đi hẳn — D-046)
+    await expect(page.getByLabel('Ngày cuối tính tiền phòng')).toHaveValue(/-(28|29|30|31)$/);
+    await page.getByLabel('Ngày cuối tính tiền phòng').fill(localDate(0));
     await page.getByLabel('Chỉ số điện cuối kỳ').fill('1530');
     await page.getByLabel('Chỉ số nước cuối kỳ').fill('86');
     await page.getByLabel(/Kiểm kê tài sản/).fill('Đủ, chuyển sang phòng khác');
