@@ -637,3 +637,9 @@ lập sau ngày đến hạn (ngày 5) hiện “Quá hạn” ngay khi phát h�
 - Kiểm tra: lint, typecheck ✅; unit api 83 ✅ (thêm `due-date.test.ts` 3); `pnpm test:integration` toàn bộ **338** ✅ trước khi thêm test,
   thêm test D-044 trong `monthly-readings.int.test.ts` (4/4 ✅: lập 09/11 → hạn 16/11, phát hành 12/11 → 19/11 chưa quá hạn; phát hành 01/12 →
   05/12; nhận phòng phát hành cùng ngày → hạn ngày nhận); E2E reports, billing, payments, reminders 12 ✅.
+
+## Điều chỉnh: tòa/khu hiện quản lý phụ trách ✅
+
+`buildingSchema.managers` (tài khoản đang hoạt động được giao phạm vi tòa, sắp theo tên). Danh sách tòa có cột “Quản lý” (chưa giao: “Chưa
+giao”); trang tòa có “Quản lý phụ trách” + liên kết “Giao quản lý” (chủ trọ) tới Cấu hình → Người dùng.
+Kiểm tra: lint, typecheck ✅; integration property/openapi/access 37 ✅ (thêm test: tài khoản bị khóa không hiện); E2E auth + property 20 ✅.

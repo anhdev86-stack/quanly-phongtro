@@ -75,6 +75,8 @@ export const buildingSchema = z.object({
   archived_at: z.string().nullable(),
   version: z.number(),
   room_count: z.number(),
+  /** Tài khoản đang hoạt động được giao phụ trách tòa (phạm vi tòa của Quản lý). Giao ở Cấu hình → Người dùng. */
+  managers: z.array(z.object({ id: z.string(), display_name: z.string() })),
 });
 export type Building = z.infer<typeof buildingSchema>;
 

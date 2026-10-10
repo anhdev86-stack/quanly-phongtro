@@ -78,6 +78,15 @@ test.describe('Phase 1 — tòa, phòng, giữ phòng', () => {
     await expect(page.getByText(`Đã lưu trữ tòa ${code}.`)).toBeVisible();
   });
 
+  test('tòa/khu hiện quản lý phụ trách ở danh sách và trang tòa', async ({ page }) => {
+    await loginAs(page, 'owner');
+    await page.goto('/buildings');
+    if (page.viewportSize()!.width >= 640) await expect(page.getByTestId('building-managers-A')).toHaveText('Quản lý Tòa A');
+    await page.getByRole('link', { name: 'A', exact: true }).click();
+    await expect(page.getByTestId('building-managers')).toContainText('Quản lý Tòa A');
+    await expect(page.getByTestId('building-managers').getByRole('link', { name: 'Giao quản lý' })).toHaveAttribute('href', '/settings/users');
+  });
+
   test('quản lý tòa B, C chỉ thấy phòng của tòa B, C', async ({ page }) => {
     await loginAs(page, 'managerBC');
     await page.goto('/rooms');

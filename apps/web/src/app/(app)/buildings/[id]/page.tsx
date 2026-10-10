@@ -59,6 +59,22 @@ export default function BuildingDetailPage() {
           <DescriptionList
             items={[
               { label: 'Địa chỉ', value: b.address },
+              {
+                label: 'Quản lý phụ trách',
+                value: (
+                  <span data-testid="building-managers">
+                    {b.managers.length ? b.managers.map((m) => m.display_name).join(', ') : 'Chưa giao quản lý — chủ trọ phụ trách'}
+                    {can(PERMISSIONS.USERS_MANAGE) ? (
+                      <>
+                        {' · '}
+                        <Link href="/settings/users" className="text-brand-800 hover:underline">
+                          Giao quản lý
+                        </Link>
+                      </>
+                    ) : null}
+                  </span>
+                ),
+              },
               { label: 'Số tầng', value: b.floors },
               { label: 'Liên hệ', value: [b.contact_name, b.contact_phone].filter(Boolean).join(' · ') || null },
               { label: 'Ghi chú', value: b.note },

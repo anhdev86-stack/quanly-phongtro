@@ -47,6 +47,18 @@ describe('Phase 1 — tòa và phòng', () => {
       expect((await post(staff, '/api/v1/buildings', { code: 'X', name: 'X' })).status).toBe(403);
     });
 
+    it('tòa hiển thị người được giao phụ trách (đang hoạt động), ở danh sách và chi tiết', async () => {
+      const names = (b: { managers: { display_name: string }[] }) => b.managers.map((m) => m.display_name);
+      const list = (await owner.agent.get('/api/v1/buildings')).body as { code: string; managers: { display_name: string }[] }[];
+      expect(names(list.find((b) => b.code === 'A')!)).toEqual(['Nhân viên Tòa A', 'Quản lý Tòa A']);
+      expect(names(list.find((b) => b.code === 'C')!)).toEqual(['Nhân viên Tòa B, C', 'Quản lý Tòa B, C']);
+      // Tài khoản bị khóa không còn hiện là người phụ trách
+      await t.prisma.user.update({ where: { email: 'staff.a@example.test' }, data: { isActive: false } });
+      expect(names((await owner.agent.get(`/api/v1/buildings/${SEED_IDS.buildings.A}`)).body)).toEqual(['Quản lý Tòa A']);
+      const fresh = (await post(owner, '/api/v1/buildings', { code: 'M1', name: 'Chưa giao' })).body;
+      expect(fresh.managers).toEqual([]);
+    });
+
     it('lưu trữ tòa bị chặn khi còn phòng chưa lưu trữ', async () => {
       await createRoom(t, { building: 'C' });
       const res = await post(owner, `/api/v1/buildings/${SEED_IDS.buildings.C}/archive`, { expected_version: 1 });

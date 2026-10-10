@@ -32,15 +32,16 @@ export class BuildingsService {
   async list(user: AuthUser, includeArchived: boolean): Promise<Building[]> {
     const rows = await this.prisma.building.findMany({
       where: { ...this.access.buildingWhere(user), ...(includeArchived ? {} : { archivedAt: null }) },
-      include: { _count: { select: { rooms: { where: { archivedAt: null } } } } },
+      include: { _count: { select: { rooms: { where: { archivedAt: null } } } }, userScopes: MANAGER_SCOPES },
     });
-    return rows.sort((a, b) => naturalCompare(a.code, b.code)).map((b) => toDto(b, b._count.rooms));
+    return rows.sort((a, b) => naturalCompare(a.code, b.code)).map((b) => toDto(b, b._count.rooms, managersOf(b.userScopes)));
   }
 
   async get(user: AuthUser, id: string): Promise<Building> {
     const b = await this.access.getBuildingInScope(this.prisma, user, id);
     const roomCount = await this.prisma.room.count({ where: { buildingId: b.id, archivedAt: null } });
-    return toDto(b, roomCount);
+    const scopes = await this.prisma.userBuildingScope.findMany({ ...MANAGER_SCOPES, where: { buildingId: b.id, user: { isActive: true } } });
+    return toDto(b, roomCount, managersOf(scopes));
   }
 
   async create(user: AuthUser, input: CreateInput): Promise<Building> {
@@ -157,7 +158,15 @@ export class BuildingsService {
   }
 }
 
-function toDto(b: BuildingRow, roomCount: number): Building {
+/** Người được giao phụ trách tòa: chỉ tài khoản đang hoạt động, sắp theo tên. */
+const MANAGER_SCOPES = {
+  where: { user: { isActive: true } },
+  include: { user: { select: { id: true, displayName: true } } },
+  orderBy: { user: { displayName: 'asc' as const } },
+};
+const managersOf = (scopes: { user: { id: string; displayName: string } }[]) => scopes.map((s) => ({ id: s.user.id, display_name: s.user.displayName }));
+
+function toDto(b: BuildingRow, roomCount: number, managers: Building['managers'] = []): Building {
   return {
     id: b.id,
     code: b.code,
@@ -170,6 +179,7 @@ function toDto(b: BuildingRow, roomCount: number): Building {
     archived_at: iso(b.archivedAt),
     version: b.version,
     room_count: roomCount,
+    managers,
   };
 }
 
