@@ -698,3 +698,16 @@ Liên kết: `font-medium text-brand-600`. Kiểm tra: lint, typecheck ✅; ản
   validation, trạng thái đang đăng nhập, thông báo lỗi, API và session.
 - Kiểm tra: `pnpm lint`, `pnpm typecheck` ✅; `next build` (web) ✅; E2E `specs/auth.spec.ts` 12/12 ✅ (desktop + mobile); thử tay trên bản
   demo ở 1440px và 390px: không tràn ngang, lỗi định dạng, sai mật khẩu báo lỗi, đăng nhập đúng vào Tổng quan.
+
+## Kiểm tra toàn bộ sau redesign bước 1–3, trang đăng nhập và tài liệu (10/10/2026) ✅
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint` | ✅ |
+| `pnpm typecheck` | ✅ |
+| `pnpm test` | ✅ shared 16, web 6, api 83 |
+| `pnpm test:integration` | ✅ 30 file, 342 test |
+| `pnpm build` (web build vào `.next-build` để không đụng dev server) | ✅ |
+| `pnpm test:e2e` (toàn bộ, desktop + mobile) | ✅ 61/61 trong 6,7 phút |
+
+Tài liệu mới: `docs/GIOI_THIEU_DU_AN.md`, `docs/HUONG_DAN_SU_DUNG.md` (+ bản PDF, ảnh ở `docs/images/` chụp từ bản demo).
