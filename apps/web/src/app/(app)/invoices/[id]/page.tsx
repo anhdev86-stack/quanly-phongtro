@@ -1,7 +1,7 @@
 'use client';
 
 import { INVOICE_TYPE_LABELS, type InvoiceDetail, PERMISSIONS } from '@ql-tro/shared';
-import { Printer, RefreshCw, Scale, Send } from 'lucide-react';
+import { HandCoins, Printer, RefreshCw, Scale, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -33,6 +33,7 @@ export default function InvoiceDetailPage() {
   const [publishing, setPublishing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
 
   if (invoice.isPending) return <LoadingState />;
@@ -74,6 +75,13 @@ export default function InvoiceDetailPage() {
               <Button size="sm" onClick={() => setPublishing(true)} disabled={inv.blocking_errors.length > 0}>
                 <Send className="size-4" aria-hidden />
                 Phát hành
+              </Button>
+            ) : null}
+            {inv.lifecycle === 'PUBLISHED' && inv.type !== 'CREDIT_ADJUSTMENT' && inv.remaining_vnd !== '0' && can(PERMISSIONS.PAYMENTS_RECORD) ? (
+              // Nút chính khi khách đến trả tiền (tiền mặt/chuyển khoản/QR): mở hộp xác nhận đã nhận tiền.
+              <Button size="sm" onClick={() => setPaying(true)}>
+                <HandCoins className="size-4" aria-hidden />
+                Ghi nhận thu
               </Button>
             ) : null}
             {inv.lifecycle === 'PUBLISHED' && can(PERMISSIONS.INVOICES_ADJUST) ? (
@@ -172,7 +180,7 @@ export default function InvoiceDetailPage() {
         </CardContent>
       </Card>
 
-      <InvoiceMoneySection invoice={inv} />
+      <InvoiceMoneySection invoice={inv} paying={paying} onPayingChange={setPaying} />
 
       <PublishDialog open={publishing} onClose={() => setPublishing(false)} invoice={inv} />
       <AdjustDialog open={adjusting} onClose={() => setAdjusting(false)} invoice={inv} />

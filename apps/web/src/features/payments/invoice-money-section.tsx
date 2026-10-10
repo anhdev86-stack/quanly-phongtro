@@ -1,7 +1,7 @@
 'use client';
 
 import { type InvoiceDetail, PAYMENT_METHOD_HINT, PAYMENT_METHOD_LABELS, PERMISSIONS } from '@ql-tro/shared';
-import { Copy, HandCoins, Link2, Printer, Undo2 } from 'lucide-react';
+import { Copy, Link2, Printer, Undo2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -21,20 +21,20 @@ import { QrTransferInfo } from './qr-image';
 import { ReceiverSelect } from './receiver-select';
 
 /** Thu tiền của một thông báo (MASTER_PLAN 9.1, 9.6). QR không đổi trạng thái tiền; chỉ “Ghi nhận thu” mới giảm nợ. */
-export function InvoiceMoneySection({ invoice }: { invoice: InvoiceDetail }) {
+/** `paying`/`onPayingChange`: trang thông báo mở hộp “Ghi nhận thu” từ nút ở đầu trang. */
+export function InvoiceMoneySection({ invoice, paying, onPayingChange }: { invoice: InvoiceDetail; paying: boolean; onPayingChange: (v: boolean) => void }) {
   if (invoice.lifecycle !== 'PUBLISHED') return null;
-  return invoice.type === 'CREDIT_ADJUSTMENT' ? <CreditSection invoice={invoice} /> : <DebtSection invoice={invoice} />;
+  return invoice.type === 'CREDIT_ADJUSTMENT' ? <CreditSection invoice={invoice} /> : <DebtSection invoice={invoice} paying={paying} setPaying={onPayingChange} />;
 }
 
 // ---------------------------------------------------------------- Thông báo loại nợ
 
-function DebtSection({ invoice }: { invoice: InvoiceDetail }) {
+function DebtSection({ invoice, paying, setPaying }: { invoice: InvoiceDetail; paying: boolean; setPaying: (v: boolean) => void }) {
   const can = useCan();
   const toast = useToast();
   const settlements = useInvoiceSettlements(invoice.id);
   const owes = invoice.remaining_vnd !== '0';
   const qr = useInvoiceQr(invoice.id, owes);
-  const [paying, setPaying] = useState(false);
   const [reversing, setReversing] = useState<{ id: string; number: string; amount: string } | null>(null);
   const reverse = useMoneyAction<unknown>();
   const [key, renew] = useIdempotencyKey();
@@ -44,12 +44,6 @@ function DebtSection({ invoice }: { invoice: InvoiceDetail }) {
       <CardHeader className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle>Thanh toán</CardTitle>
         <div className="flex flex-wrap gap-2">
-          {owes && can(PERMISSIONS.PAYMENTS_RECORD) ? (
-            <Button size="sm" onClick={() => setPaying(true)}>
-              <HandCoins className="size-4" aria-hidden />
-              Ghi nhận thu
-            </Button>
-          ) : null}
           {can(PERMISSIONS.INVOICES_SHARE) ? <ShareLinkButton invoiceId={invoice.id} /> : null}
         </div>
       </CardHeader>
