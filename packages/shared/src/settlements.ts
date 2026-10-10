@@ -141,4 +141,6 @@ export const settlementCashSchema = z.strictObject({
   paid_at: businessDateSchema,
   method: paymentMethodSchema,
   reference: optionalText(100),
+  /** Chỉ dùng khi thu nợ: người nhận tiền (D-045). Bỏ trống = người đang ghi. */
+  received_by: uuidSchema.nullish().transform((v) => v ?? null),
 });

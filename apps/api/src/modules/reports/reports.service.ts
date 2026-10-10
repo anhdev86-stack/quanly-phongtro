@@ -25,6 +25,7 @@ import { DebtsService } from '../payments/debts.service.js';
 import { OPEN_TENANCY_STATUSES, RoomsService } from '../rooms/rooms.service.js';
 import { RENTAL_MODE, type RentalModeProvider } from '../tenancies/tenancies.service.js';
 import { MaintenanceService } from '../maintenance/maintenance.service.js';
+import { userNames } from '../utilities/user-names.js';
 
 /** Hook cho Phase 8B: số tin nhắc đóng tiền lỗi cần xử lý. */
 export interface DashboardTodoExtension {
@@ -322,6 +323,7 @@ export class ReportsService {
       where: { workspaceId: user.workspaceId, status: 'ACTIVE', createdAt: { gte: toDbDate(from), lt: toDbDate(addDays(to, 1)) }, tenancy: { room: scope } },
       include: { tenancy: { include: { room: true } } },
     });
+    const receivers = await userNames(this.prisma, payments.map((p) => p.receivedBy));
     const byMethod: Record<string, string> = {};
     for (const p of payments) byMethod[p.method] = (BigInt(byMethod[p.method] ?? '0') + p.amountVnd).toString();
     const liveDeposits = depositTxs.filter((d) => !reversed.has(d.id));
@@ -337,6 +339,7 @@ export class ReportsService {
         method: p.method,
         reference: p.reference,
         amount_vnd: p.amountVnd.toString(),
+        received_by_name: receivers.get(p.receivedBy) ?? null,
       })),
       deposit_applied: liveDeposits.map((d) => ({ id: d.id, date: d.paidAt ? day(d.paidAt) : d.createdAt.toISOString().slice(0, 10), room_code: d.tenancy.room.code, amount_vnd: d.amountVnd.toString() })),
       credit_applied: credits.map((c) => ({ id: c.id, date: c.createdAt.toISOString().slice(0, 10), room_code: c.tenancy.room.code, amount_vnd: c.amountVnd.toString() })),

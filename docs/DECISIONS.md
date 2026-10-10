@@ -488,3 +488,11 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
 - Không áp cho thông báo trả phòng (FINAL) và chứng từ điều chỉnh: giữ quy tắc cũ. Không đổi số tiền; ảnh hưởng trạng thái quá hạn, mốc nhắc
   đóng tiền, công nợ quá hạn.
 
+
+## D-045 — Người nhận tiền trên phiếu thu (chủ dự án yêu cầu 10/10/2026)
+
+- `payments.received_by` (bắt buộc; migration `20261010033500_payment_received_by`, phiếu cũ = `created_by`). Mặc định người ghi phiếu.
+- Chọn được người khác (VD chủ trọ ghi hộ tiền mặt quản lý đã nhận): phải là tài khoản đang hoạt động có quyền `payments.record`
+  (vai trò + quyền riêng) và có phạm vi tòa của phòng (chủ trọ: mọi tòa); sai → 422 `received_by`. Danh sách: `GET /tenancies/:id/payment-receivers`.
+- Hiện ở: hộp “Ghi nhận thu”, các khoản đã thu trên thông báo, phiếu thu in (“Người thu tiền”, kèm người lập phiếu nếu khác), báo cáo
+  Thu tiền + CSV, thu nợ sau trả phòng. Hoàn tiền (chi ra) không có người nhận.

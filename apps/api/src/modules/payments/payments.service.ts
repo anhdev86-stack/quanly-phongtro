@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { InvoiceSettlements, Paged, PaymentDto, paymentCreateSchema, paymentListQuerySchema } from '@ql-tro/shared';
+import { type InvoiceSettlements, type Paged, PERMISSIONS, type PaymentDto, type paymentCreateSchema, type paymentListQuerySchema } from '@ql-tro/shared';
 import type { z } from 'zod';
 import type { AuthUser } from '../../common/auth/auth-user.js';
+import { effectivePermissions } from '../../common/auth/effective-permissions.js';
 import { nextSequence } from '../../common/db/sequences.js';
 import { day, dayOrNull, iso, paged } from '../../common/dto/mappers.js';
 import { AppError } from '../../common/errors/app-error.js';
@@ -88,6 +89,11 @@ export class PaymentsService {
         throw new AppError('BUSINESS_RULE_VIOLATION', `Số tiền vượt số còn phải thu (${left.toString()}đ).`, { [`allocations.${i}.amount_vnd`]: [`Tối đa ${left.toString()}đ.`] });
       }
     }
+    const room = await tx.room.findUniqueOrThrow({ where: { id: tenancy.roomId }, select: { buildingId: true } });
+    const receivedBy = input.received_by ?? user.id;
+    if (receivedBy !== user.id && !(await this.receivers(tx, user.workspaceId, room.buildingId)).some((r) => r.id === receivedBy)) {
+      throw new AppError('BUSINESS_RULE_VIOLATION', 'Người nhận tiền phải là chủ trọ hoặc quản lý có quyền thu tiền ở tòa này.', { received_by: ['Không hợp lệ.'] });
+    }
     const yyyymm = input.paid_at.slice(0, 7).replace('-', '');
     const number = `PT-${yyyymm}-${String(await nextSequence(tx, user.workspaceId, 'PAYMENT', yyyymm)).padStart(4, '0')}`;
     const payment = await tx.payment.create({
@@ -100,6 +106,7 @@ export class PaymentsService {
         paidAt: toDbDate(input.paid_at),
         reference: input.reference,
         note: input.note,
+        receivedBy,
         createdBy: user.id,
         allocations: { create: input.allocations.map((a) => ({ invoiceId: a.invoice_id, amountVnd: BigInt(a.amount_vnd) })) },
       },
@@ -175,6 +182,7 @@ export class PaymentsService {
     const received = await this.prisma.creditApplication.findMany({ where: { targetInvoiceId: invoiceId }, include: { creditInvoice: { select: { number: true } } }, orderBy: { createdAt: 'asc' } });
     const given = await this.prisma.creditApplication.findMany({ where: { creditInvoiceId: invoiceId }, include: { targetInvoice: { select: { number: true } } }, orderBy: { createdAt: 'asc' } });
     const refunds = await this.prisma.creditRefund.findMany({ where: { creditInvoiceId: invoiceId }, orderBy: { createdAt: 'asc' } });
+    const receivers = await userNames(this.prisma, allocations.map((a) => a.payment.receivedBy));
     return {
       payments: allocations.map((a) => ({
         payment_id: a.paymentId,
@@ -184,6 +192,7 @@ export class PaymentsService {
         paid_at: day(a.payment.paidAt),
         reference: a.payment.reference,
         status: a.payment.status,
+        received_by_name: receivers.get(a.payment.receivedBy) ?? null,
       })),
       deposits: deposits.map((d) => ({ deposit_transaction_id: d.depositTransactionId, amount_vnd: d.amountVnd.toString(), paid_at: dayOrNull(d.depositTransaction.paidAt), active: !dead.has(d.depositTransactionId) })),
       credits_received: received.map((c) => ({ id: c.id, credit_invoice_id: c.creditInvoiceId, credit_invoice_number: c.creditInvoice.number, amount_vnd: c.amountVnd.toString(), status: c.status })),
@@ -198,8 +207,40 @@ export class PaymentsService {
     return p;
   }
 
+  /**
+   * Người có thể nhận tiền ở một tòa (D-045): tài khoản đang hoạt động có quyền thu tiền (vai trò + quyền riêng) và có phạm vi tòa đó
+   * (chủ trọ: mọi tòa). Sắp theo tên.
+   */
+  async receivers(db: Db, workspaceId: string, buildingId: string): Promise<{ id: string; display_name: string }[]> {
+    const users = await db.user.findMany({
+      where: { workspaceId, isActive: true },
+      include: {
+        roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
+        permissionOverrides: { include: { permission: true } },
+        buildingScopes: { where: { buildingId }, select: { buildingId: true } },
+      },
+      orderBy: { displayName: 'asc' },
+    });
+    return users
+      .filter((u) => {
+        const perms = effectivePermissions(
+          u.roles.flatMap((ur) => ur.role.permissions.map((rp) => rp.permission.code)),
+          u.permissionOverrides.map((o) => ({ code: o.permission.code, granted: o.granted })),
+        );
+        return perms.has(PERMISSIONS.PAYMENTS_RECORD) && (perms.has(PERMISSIONS.WORKSPACE_ALL_BUILDINGS) || u.buildingScopes.length > 0);
+      })
+      .map((u) => ({ id: u.id, display_name: u.displayName }));
+  }
+
+  /** Danh sách người nhận tiền cho màn hình ghi nhận thu của một lần thuê (trong phạm vi tòa của người hỏi). */
+  async receiversForTenancy(user: AuthUser, tenancyId: string) {
+    const t = await this.prisma.tenancy.findFirst({ where: { id: tenancyId, room: this.rooms.roomWhere(user) }, include: { room: { select: { buildingId: true } } } });
+    if (!t) throw new AppError('NOT_FOUND');
+    return this.receivers(this.prisma, user.workspaceId, t.room.buildingId);
+  }
+
   private async dtos(rows: PaymentFull[]): Promise<PaymentDto[]> {
-    const names = await userNames(this.prisma, rows.map((r) => r.createdBy));
+    const names = await userNames(this.prisma, rows.flatMap((r) => [r.createdBy, r.receivedBy]));
     return rows.map((p) => ({
       id: p.id,
       number: p.number,
@@ -217,6 +258,7 @@ export class PaymentsService {
       status: p.status,
       reversed_at: iso(p.reversedAt),
       reversal_reason: p.reversalReason,
+      received_by_name: names.get(p.receivedBy) ?? null,
       created_by_name: names.get(p.createdBy) ?? null,
       created_at: iso(p.createdAt)!,
       allocations: p.allocations.map((a) => ({

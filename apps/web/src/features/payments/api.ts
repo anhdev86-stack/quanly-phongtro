@@ -39,6 +39,14 @@ export function usePayments(filters: { tenancy_id?: string; building_id?: string
   });
 }
 
+/** Người có thể nhận tiền cho lần thuê này (D-045). */
+export const usePaymentReceivers = (tenancyId: string, enabled = true) =>
+  useQuery({
+    queryKey: [...paymentKeys.payments, 'receivers', tenancyId],
+    queryFn: ({ signal }) => api<{ id: string; display_name: string }[]>(`/tenancies/${tenancyId}/payment-receivers`, { signal }),
+    enabled: enabled && !!tenancyId,
+  });
+
 export const usePayment = (id: string) => useQuery({ queryKey: [...paymentKeys.payments, id], queryFn: ({ signal }) => api<PaymentDto>(`/payments/${id}`, { signal }) });
 
 export function useDebts(filters: { building_id?: string; overdue_only?: string; q?: string; page: number; page_size: number }) {

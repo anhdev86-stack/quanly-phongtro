@@ -22,10 +22,13 @@ test.describe('Phase 6 — thu tiền, VietQR, link xem thông báo', () => {
     await page.getByRole('button', { name: 'Ghi nhận thu' }).click();
     await dialog(page).getByLabel('Số tiền thu').fill('500000');
     await dialog(page).getByLabel('Mã giao dịch / tham chiếu').fill('FT-E2E-001');
+    await expect(dialog(page).getByLabel('Người nhận tiền')).toHaveValue(/.+/); // mặc định: người đang đăng nhập (D-045)
+    await expect(dialog(page).getByLabel('Người nhận tiền').locator('option', { hasText: 'Chủ trọ Demo (tôi)' })).toHaveCount(1);
     await dialog(page).getByRole('button', { name: /^Ghi nhận 500\.000 ₫$/ }).click();
     await expect(page.getByText(/Đã ghi phiếu thu PT-\d{6}-\d{4}: 500\.000 ₫/)).toBeVisible();
     await expect(page.getByText('Thu một phần').first()).toBeVisible();
     await expect(page.getByRole('cell', { name: /FT-E2E-001/ })).toBeVisible();
+    await expect(page.getByText('Người nhận: Chủ trọ Demo')).toBeVisible();
 
     await page.getByRole('button', { name: 'Sao chép link gửi khách' }).click();
     const toast = page.getByText(/Đã tạo và sao chép link/);

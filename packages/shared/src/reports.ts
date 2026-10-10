@@ -112,7 +112,18 @@ export const collectionsReportSchema = z.object({
   from: z.string(),
   to: z.string(),
   payments: z.array(
-    z.object({ id: z.string(), number: z.string(), paid_at: z.string(), room_code: z.string(), building_code: z.string(), method: z.string(), reference: z.string().nullable(), amount_vnd: z.string() }),
+    z.object({
+      id: z.string(),
+      number: z.string(),
+      paid_at: z.string(),
+      room_code: z.string(),
+      building_code: z.string(),
+      method: z.string(),
+      reference: z.string().nullable(),
+      amount_vnd: z.string(),
+      /** Người nhận tiền (D-045). */
+      received_by_name: z.string().nullable(),
+    }),
   ),
   /** Không phải tiền mặt vừa nhận — trình bày riêng (MASTER_PLAN 13). */
   deposit_applied: z.array(z.object({ id: z.string(), date: z.string(), room_code: z.string(), amount_vnd: z.string() })),

@@ -19,6 +19,7 @@ import { ReasonDialog } from '@/features/property/reservation-forms';
 import { ApiError } from '@/lib/api-client';
 import { formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
 import { useIdempotencyKey } from '@/lib/use-idempotency-key';
+import { ReceiverSelect } from '@/features/payments/receiver-select';
 
 type CashKind = 'receipts' | 'credit-refunds' | 'deposit-refunds';
 const CASH_TITLES: Record<CashKind, string> = { receipts: 'Thu khoản khách còn nợ', 'credit-refunds': 'Hoàn tiền dư cho khách', 'deposit-refunds': 'Hoàn cọc cho khách' };
@@ -232,12 +233,15 @@ function CashForm({ settlement, kind, onClose }: { settlement: SettlementDto; ki
   const action = useMoveOutAction<SettlementDto>();
   const [key, renew] = useIdempotencyKey();
   const suggested = kind === 'receipts' ? settlement.current.receivable_vnd : kind === 'credit-refunds' ? settlement.current.credit_refund_payable_vnd : settlement.current.deposit_refund_payable_vnd;
-  const [v, setV] = useState({ amount_vnd: suggested, paid_at: todayLocal(), method: 'CASH', reference: '' });
+  const [v, setV] = useState({ amount_vnd: suggested, paid_at: todayLocal(), method: 'CASH', reference: '', received_by: '' });
   const [error, setError] = useState('');
   const submit = async () => {
     setError('');
     try {
-      await action.mutateAsync({ path: `/settlements/${settlement.id}/${kind}`, body: { ...v, reference: v.reference.trim() || null }, key });
+      // Người nhận tiền chỉ có ý nghĩa khi thu (D-045); hoàn tiền là chi ra.
+      const { received_by, ...cash } = v;
+      const body = { ...cash, reference: v.reference.trim() || null, ...(kind === 'receipts' ? { received_by: received_by || null } : {}) };
+      await action.mutateAsync({ path: `/settlements/${settlement.id}/${kind}`, body, key });
       renew();
       toast.success(`${CASH_TITLES[kind]}: đã ghi ${formatVnd(v.amount_vnd)}.`);
       onClose();
@@ -267,6 +271,9 @@ function CashForm({ settlement, kind, onClose }: { settlement: SettlementDto; ki
         <Field id="cs-ref" label="Tham chiếu">
           <TextInput id="cs-ref" value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} />
         </Field>
+        {kind === 'receipts' ? (
+          <ReceiverSelect id="cs-receiver" tenancyId={settlement.tenancy_id} value={v.received_by} onChange={(received_by) => setV({ ...v, received_by })} />
+        ) : null}
       </div>
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>

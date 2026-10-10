@@ -645,3 +645,10 @@ giao”); trang tòa có “Quản lý phụ trách” + liên kết “Giao qu�
 Kiểm tra: lint, typecheck ✅; integration property/openapi/access 37 ✅ (thêm test: tài khoản bị khóa không hiện); E2E auth + property 20 ✅.
 
 Đổi tên lần nữa theo chủ dự án (10/10/2026): “Tổng tiền thông báo” → **“Tổng tiền phải thu”** (báo cáo, Tổng quan, CSV).
+
+## Điều chỉnh: người nhận tiền trên phiếu thu (D-045) ✅
+
+Sao lưu trước: `backups/ql_tro-20261010-033128.dump`. Migration chỉ thêm cột + điền `received_by = created_by` (dev: 0 phiếu; demo: 2 phiếu),
+kiểm tra khớp schema bằng `prisma migrate diff` (rỗng). Áp bằng `prisma migrate deploy` cho dev và demo; không reset, không seed.
+Kiểm tra: lint, typecheck ✅; `pnpm test:integration` toàn bộ **341** ✅ (thêm test D-045; T47 cập nhật helper); E2E payments, move-out,
+reports, transfer 8 ✅.

@@ -397,6 +397,7 @@ function CollectionsTab({ buildingId }: { buildingId?: string }) {
                     <Th>Phiếu thu</Th>
                     <Th>Phòng</Th>
                     <Th className="hidden md:table-cell">Phương thức</Th>
+                    <Th className="hidden sm:table-cell">Người nhận</Th>
                     <Th className="text-right">Số tiền</Th>
                   </tr>
                 </thead>
@@ -413,6 +414,7 @@ function CollectionsTab({ buildingId }: { buildingId?: string }) {
                         {p.building_code} · {p.room_code}
                       </Td>
                       <Td className="hidden md:table-cell">{PAYMENT_METHOD_LABELS[p.method as keyof typeof PAYMENT_METHOD_LABELS] ?? p.method}</Td>
+                      <Td className="hidden sm:table-cell">{p.received_by_name ?? '—'}</Td>
                       <Td className="text-right tabular">{v(p.amount_vnd)}</Td>
                     </Tr>
                   ))}

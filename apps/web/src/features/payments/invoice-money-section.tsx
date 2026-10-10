@@ -18,6 +18,7 @@ import { formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
 import { useIdempotencyKey } from '@/lib/use-idempotency-key';
 import { useInvoiceQr, useInvoiceSettlements, useMoneyAction, useShareLinkAction, useShareLinks } from './api';
 import { QrTransferInfo } from './qr-image';
+import { ReceiverSelect } from './receiver-select';
 
 /** Thu tiền của một thông báo (MASTER_PLAN 9.1, 9.6). QR không đổi trạng thái tiền; chỉ “Ghi nhận thu” mới giảm nợ. */
 export function InvoiceMoneySection({ invoice }: { invoice: InvoiceDetail }) {
@@ -87,6 +88,7 @@ function DebtSection({ invoice }: { invoice: InvoiceDetail }) {
                 <Td>
                   Phiếu thu {p.number} · {PAYMENT_METHOD_LABELS[p.method]}
                   {p.reference ? <span className="text-slate-500"> · {p.reference}</span> : null}
+                  {p.received_by_name ? <div className="text-xs text-slate-500">Người nhận: {p.received_by_name}</div> : null}
                   {p.status === 'REVERSED' ? (
                     <Badge tone="gray" className="ml-1">
                       Đã đảo
@@ -172,7 +174,7 @@ function PaymentForm({ invoice, onClose, suggestedRef }: { invoice: InvoiceDetai
   const toast = useToast();
   const action = useMoneyAction<{ number: string }>();
   const [key, renew] = useIdempotencyKey();
-  const [v, setV] = useState({ amount_vnd: invoice.remaining_vnd, method: 'BANK_TRANSFER', paid_at: todayLocal(), reference: '', note: '' });
+  const [v, setV] = useState({ amount_vnd: invoice.remaining_vnd, method: 'BANK_TRANSFER', paid_at: todayLocal(), reference: '', note: '', received_by: '' });
   const [error, setError] = useState('');
   const [fe, setFe] = useState<Record<string, string[]>>({});
   const submit = async () => {
@@ -189,6 +191,7 @@ function PaymentForm({ invoice, onClose, suggestedRef }: { invoice: InvoiceDetai
           paid_at: v.paid_at,
           reference: v.reference.trim() || null,
           note: v.note.trim() || null,
+          received_by: v.received_by || null,
           allocations: [{ invoice_id: invoice.id, amount_vnd: v.amount_vnd }],
         },
       });
@@ -227,7 +230,8 @@ function PaymentForm({ invoice, onClose, suggestedRef }: { invoice: InvoiceDetai
         <Field id="pm-ref" label="Mã giao dịch / tham chiếu" hint={suggestedRef ? `Nội dung chuyển khoản mong đợi: ${suggestedRef}` : undefined}>
           <TextInput id="pm-ref" value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} />
         </Field>
-        <Field id="pm-note" label="Ghi chú" className="sm:col-span-2">
+        <ReceiverSelect id="pm-receiver" tenancyId={invoice.tenancy_id} value={v.received_by} onChange={(received_by) => setV({ ...v, received_by })} error={fe.received_by?.[0]} />
+        <Field id="pm-note" label="Ghi chú">
           <TextInput id="pm-note" value={v.note} onChange={(e) => setV({ ...v, note: e.target.value })} />
         </Field>
       </div>

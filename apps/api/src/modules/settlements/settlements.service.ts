@@ -377,7 +377,7 @@ export class SettlementsService {
       if (BigInt(input.amount_vnd) > total) throw new AppError('BUSINESS_RULE_VIOLATION', `Tiền dư còn phải hoàn chỉ ${total.toString()}đ.`, { amount_vnd: ['Vượt số phải hoàn.'] });
       const cr = credits.find((c) => c.available >= BigInt(input.amount_vnd));
       if (!cr) throw new AppError('BUSINESS_RULE_VIOLATION', 'Hãy hoàn theo từng chứng từ credit (số tiền vượt credit của một chứng từ).');
-      const r = await this.credits.refundInTx(tx, user, cr, { credit_invoice_id: cr.id, ...input });
+      const r = await this.credits.refundInTx(tx, user, cr, { credit_invoice_id: cr.id, ...withoutReceiver(input) });
       return { kind: 'CREDIT_REFUND' as const, linkedId: r.id };
     });
   }
@@ -386,7 +386,7 @@ export class SettlementsService {
   async depositRefund(user: AuthUser, id: string, input: z.output<typeof settlementCashSchema>, key: string | undefined) {
     const s = await this.row(this.prisma, user, id);
     return this.cash(user, s, 'deposit-refunds', input, key, async (tx) => {
-      const d = await this.ledgers.createDepositInTx(tx, user, s.tenancyId, { type: 'REFUND', ...input, reason: `Hoàn cọc khi trả phòng ${s.code}` }, s.id);
+      const d = await this.ledgers.createDepositInTx(tx, user, s.tenancyId, { type: 'REFUND', ...withoutReceiver(input), reason: `Hoàn cọc khi trả phòng ${s.code}` }, s.id);
       return { kind: 'DEPOSIT_REFUND' as const, linkedId: d.id };
     });
   }
@@ -651,3 +651,8 @@ function lineDto(l: ComputedLine) {
   };
 }
 
+/** Hoàn tiền là tiền chi ra: không có “người nhận tiền” (D-045 chỉ áp cho thu). */
+function withoutReceiver<T extends { received_by?: string | null }>(input: T): Omit<T, 'received_by'> {
+  const { received_by: _receiver, ...rest } = input;
+  return rest;
+}

@@ -67,7 +67,10 @@ export default function PrintPaymentPage() {
           <p>
             Người thu tiền
             <br />
-            <span className="text-xs text-slate-500">{p.created_by_name}</span>
+            <span className="text-xs text-slate-500">{p.received_by_name ?? p.created_by_name}</span>
+            {p.created_by_name && p.received_by_name && p.created_by_name !== p.received_by_name ? (
+              <span className="block text-xs text-slate-400">Người lập phiếu: {p.created_by_name}</span>
+            ) : null}
           </p>
         </div>
         <footer className="mt-16 border-t border-slate-300 pt-2 text-center text-xs text-slate-500">Chứng từ nội bộ, không phải hóa đơn GTGT.</footer>

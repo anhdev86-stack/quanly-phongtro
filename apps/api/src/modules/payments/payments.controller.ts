@@ -12,6 +12,7 @@ import {
   paymentAccountSchema,
   paymentCreateSchema,
   paymentListQuerySchema,
+  paymentReceiversSchema,
   paymentSchema,
   PERMISSIONS,
   publicInvoiceSchema,
@@ -73,6 +74,15 @@ export class PaymentsController {
   @ApiErrorResponses(400, 401, 403)
   list(@CurrentUser() user: AuthUser, @Query(new ZodPipe(paymentListQuerySchema)) q: z.output<typeof paymentListQuerySchema>) {
     return this.payments.list(user, q);
+  }
+
+  @Get('tenancies/:id/payment-receivers')
+  @RequirePermissions(PERMISSIONS.PAYMENTS_RECORD)
+  @ApiOperation({ summary: 'Người có thể nhận tiền khi ghi nhận thu cho lần thuê này (chủ trọ/quản lý có quyền thu ở tòa)' })
+  @ApiZodResponse(200, paymentReceiversSchema, 'Danh sách')
+  @ApiErrorResponses(400, 401, 403, 404)
+  receivers(@CurrentUser() user: AuthUser, @Param('id', UuidPipe) id: string) {
+    return this.payments.receiversForTenancy(user, id);
   }
 
   @Get('payments/:id')

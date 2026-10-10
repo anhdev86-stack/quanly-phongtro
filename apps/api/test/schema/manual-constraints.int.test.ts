@@ -825,7 +825,7 @@ describe('T47 — ràng buộc SQL thủ công', () => {
 
   const pay = async (tx: Prisma.TransactionClient, extra: Record<string, unknown>) =>
     tx.payment.create({
-      data: { workspaceId: W, tenancyId: await mkTenancy(tx, await mkRoom(tx)), number: `PT-P6-${++n}`, amountVnd: 1n, method: 'CASH', paidAt: new Date('2026-10-01'), createdBy: userId, ...extra } as never,
+      data: { workspaceId: W, tenancyId: await mkTenancy(tx, await mkRoom(tx)), number: `PT-P6-${++n}`, amountVnd: 1n, method: 'CASH', paidAt: new Date('2026-10-01'), receivedBy: userId, createdBy: userId, ...extra } as never,
     });
   const creditPair = async (tx: Prisma.TransactionClient) => {
     const tn = await mkTenancy(tx, await mkRoom(tx));

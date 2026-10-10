@@ -205,10 +205,10 @@ export class ReportsController {
       );
     }
     const r = await this.reports.collections(user, collectionsQuerySchema.parse(q));
-    return toCsv(['Loại', 'Ngày', 'Số', 'Tòa', 'Phòng', 'Phương thức', 'Tham chiếu', 'Số tiền'], [
-      ...r.payments.map((p) => ['Phiếu thu', p.paid_at, p.number, p.building_code, p.room_code, PAYMENT_METHOD_LABELS[p.method as keyof typeof PAYMENT_METHOD_LABELS] ?? p.method, p.reference, p.amount_vnd]),
-      ...r.deposit_applied.map((d) => ['Trừ vào cọc (không phải tiền mới)', d.date, '', '', d.room_code, '', '', d.amount_vnd]),
-      ...r.credit_applied.map((c) => ['Cấn trừ credit (không phải tiền mới)', c.date, '', '', c.room_code, '', '', c.amount_vnd]),
+    return toCsv(['Loại', 'Ngày', 'Số', 'Tòa', 'Phòng', 'Phương thức', 'Tham chiếu', 'Người nhận tiền', 'Số tiền'], [
+      ...r.payments.map((p) => ['Phiếu thu', p.paid_at, p.number, p.building_code, p.room_code, PAYMENT_METHOD_LABELS[p.method as keyof typeof PAYMENT_METHOD_LABELS] ?? p.method, p.reference, p.received_by_name, p.amount_vnd]),
+      ...r.deposit_applied.map((d) => ['Trừ vào cọc (không phải tiền mới)', d.date, '', '', d.room_code, '', '', '', d.amount_vnd]),
+      ...r.credit_applied.map((c) => ['Cấn trừ credit (không phải tiền mới)', c.date, '', '', c.room_code, '', '', '', c.amount_vnd]),
     ]);
   }
 }

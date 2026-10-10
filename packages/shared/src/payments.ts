@@ -49,6 +49,8 @@ export const paymentCreateSchema = z
     paid_at: businessDateSchema,
     reference: optionalText(100),
     note: optionalText(500),
+    /** Người nhận tiền (D-045): chủ trọ hoặc quản lý có quyền thu tiền ở tòa này. Bỏ trống = người đang ghi phiếu. */
+    received_by: uuidSchema.nullish().transform((v) => v ?? null),
     /** Phân bổ vào thông báo đã phát hành của cùng lần thuê; tổng phải bằng số tiền (không có ví trả trước). */
     allocations: z.array(z.strictObject({ invoice_id: uuidSchema, amount_vnd: moneyVndSchema })).min(1).max(24),
   })
@@ -77,11 +79,16 @@ export const paymentSchema = z.object({
   status: z.enum(['POSTED', 'REVERSED']),
   reversed_at: z.string().nullable(),
   reversal_reason: z.string().nullable(),
+  /** Người nhận tiền (D-045). */
+  received_by_name: z.string().nullable(),
   created_by_name: z.string().nullable(),
   created_at: z.string(),
   allocations: z.array(z.object({ invoice_id: z.string(), invoice_number: z.string().nullable(), period: z.string().nullable(), amount_vnd: z.string() })),
 });
 export type PaymentDto = z.infer<typeof paymentSchema>;
+
+/** Người có thể nhận tiền của một lần thuê: tài khoản đang hoạt động có quyền thu tiền ở tòa của phòng (D-045). */
+export const paymentReceiversSchema = z.array(z.object({ id: z.string(), display_name: z.string() }));
 
 export const paymentListQuerySchema = pageQuerySchema.extend({
   tenancy_id: uuidSchema.optional(),
@@ -113,7 +120,17 @@ export const creditRefundCreateSchema = z.strictObject({
 /** Các khoản đã thu/cấn trừ của một thông báo (hoặc đã dùng, với chứng từ credit). */
 export const invoiceSettlementsSchema = z.object({
   payments: z.array(
-    z.object({ payment_id: z.string(), number: z.string(), amount_vnd: z.string(), method: paymentMethodSchema, paid_at: z.string(), reference: z.string().nullable(), status: z.enum(['POSTED', 'REVERSED']) }),
+    z.object({
+      payment_id: z.string(),
+      number: z.string(),
+      amount_vnd: z.string(),
+      method: paymentMethodSchema,
+      paid_at: z.string(),
+      reference: z.string().nullable(),
+      status: z.enum(['POSTED', 'REVERSED']),
+      /** Người nhận tiền (D-045). */
+      received_by_name: z.string().nullable(),
+    }),
   ),
   deposits: z.array(z.object({ deposit_transaction_id: z.string(), amount_vnd: z.string(), paid_at: z.string().nullable(), active: z.boolean() })),
   credits_received: z.array(z.object({ id: z.string(), credit_invoice_id: z.string(), credit_invoice_number: z.string().nullable(), amount_vnd: z.string(), status: z.enum(['ACTIVE', 'REVERSED']) })),

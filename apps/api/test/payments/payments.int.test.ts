@@ -82,6 +82,40 @@ describe('Phase 6 — thu tiền, credit, công nợ, VietQR', () => {
     expect(await invoice(invoiceId)).toMatchObject({ settled_vnd: '800000', remaining_vnd: '400000' });
   });
 
+  it('D-045: người nhận tiền — mặc định người ghi; chọn được người có quyền thu ở tòa; chặn người ngoài tòa; hiện ở phiếu thu và báo cáo', async () => {
+    const { tenancyId, invoiceId } = await setup();
+    const room = await t.prisma.tenancy.findUniqueOrThrow({ where: { id: tenancyId }, include: { room: { include: { building: true } } } });
+    expect(room.room.building.code).toBe('A');
+    const userId = async (email: string) => (await t.prisma.user.findUniqueOrThrow({ where: { email } })).id;
+
+    // Danh sách người có thể nhận tiền ở tòa A: chủ trọ + người có quyền thu được giao tòa A; không có người tòa B, C
+    const receivers = (await owner.agent.get(`/api/v1/tenancies/${tenancyId}/payment-receivers`)).body as { display_name: string }[];
+    const names = receivers.map((r) => r.display_name);
+    expect(names).toEqual(expect.arrayContaining(['Chủ trọ Demo', 'Quản lý Tòa A']));
+    expect(names).not.toContain('Quản lý Tòa B, C');
+
+    // Mặc định: người ghi phiếu là người nhận
+    const a = await pay(tenancyId, invoiceId, '100000');
+    expect(a.status, JSON.stringify(a.body)).toBe(201);
+    expect(a.body).toMatchObject({ received_by_name: 'Chủ trọ Demo', created_by_name: 'Chủ trọ Demo' });
+
+    // Chủ trọ ghi hộ tiền mặt quản lý tòa A đã nhận
+    const b = await pay(tenancyId, invoiceId, '200000', { received_by: await userId('manager.a@example.test') });
+    expect(b.status, JSON.stringify(b.body)).toBe(201);
+    expect(b.body).toMatchObject({ received_by_name: 'Quản lý Tòa A', created_by_name: 'Chủ trọ Demo' });
+
+    // Người không có phạm vi tòa A → từ chối, gắn lỗi đúng ô
+    const c = await pay(tenancyId, invoiceId, '300000', { received_by: await userId('manager.bc@example.test') });
+    expect(c.status).toBe(422);
+    expect(c.body.field_errors.received_by).toBeDefined();
+
+    // Hiện ở thông báo (các khoản đã thu) và báo cáo thu tiền
+    const settled = (await owner.agent.get(`/api/v1/invoices/${invoiceId}/settlements`)).body as { payments: { received_by_name: string }[] };
+    expect(settled.payments.map((p) => p.received_by_name)).toEqual(['Chủ trọ Demo', 'Quản lý Tòa A']);
+    const report = (await owner.agent.get('/api/v1/reports/collections?from=2026-10-01&to=2026-10-31')).body as { payments: { received_by_name: string }[] };
+    expect(report.payments.map((p) => p.received_by_name)).toEqual(['Chủ trọ Demo', 'Quản lý Tòa A']);
+  });
+
   it('idempotency: cùng key cùng payload trả kết quả cũ; khác payload 409; thiếu key 400', async () => {
     const { tenancyId, invoiceId } = await setup();
     const k = key();
