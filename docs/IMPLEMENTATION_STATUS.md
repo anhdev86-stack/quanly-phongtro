@@ -688,11 +688,12 @@ kem #EAE7D6 (nền trang pha nhạt, mục menu đang chọn, trang đăng nhậ
 Các màu trạng thái Tailwind (emerald/sky/blue/violet/amber) được làm dịu cùng tông trong `globals.css`; red giữ nguyên cho quá hạn/lỗi.
 Liên kết: `font-medium text-brand-600`. Kiểm tra: lint, typecheck ✅; ảnh chụp các trang chính và điện thoại.
 
-## Redesign “Premium Dashboard” — bước 1–3 (chờ duyệt trước bước 4) · trang đăng nhập mới ✅
+## Redesign “Premium Dashboard” — bước 1–3 · trang đăng nhập mới ✅ (chủ dự án duyệt giao diện, không làm bước 4)
 
 - Bước 1–3 (commit 524fb47): token Dark Sidebar + Light Content trong `globals.css` (sidebar #111827, primary #10B981, nền #F8FAFC, chữ
   #0F172A/#64748B, viền #E2E8F0); sidebar tối chia nhóm Vận hành / Tài chính / Hệ thống (máy tính bảng: cột biểu tượng 72px; điện thoại:
-  ngăn kéo); header trắng 64px; Dashboard thẻ trắng. Bỏ tên nhà trọ ở header và dòng phụ Dashboard (daa3c34). Các trang khác chưa áp (bước 4).
+  ngăn kéo); header trắng 64px; Dashboard thẻ trắng. Bỏ tên nhà trọ ở header và dòng phụ Dashboard (daa3c34). 10/10/2026 chủ dự án thấy giao diện các trang còn lại đã ổn (nhận màu, phông,
+  nút qua token chung): không làm bước 4; giữ “Bảo trì” trong nhóm Vận hành và nút chính #10B981 chữ xanh đậm.
 - Trang đăng nhập: hai cột 55/45 (giới thiệu nền #ECFDF5 có slogan, ảnh do chủ dự án cung cấp `public/images/login-boarding-house.webp`,
   ba mục tính năng; form 400px, ô nhập 48px, nút #047857 chữ trắng). Dưới 1024px chỉ còn dải giới thiệu gọn + form. Giữ nguyên
   validation, trạng thái đang đăng nhập, thông báo lỗi, API và session.
@@ -711,3 +712,5 @@ Liên kết: `font-medium text-brand-600`. Kiểm tra: lint, typecheck ✅; ản
 | `pnpm test:e2e` (toàn bộ, desktop + mobile) | ✅ 61/61 trong 6,7 phút |
 
 Tài liệu mới: `docs/GIOI_THIEU_DU_AN.md`, `docs/HUONG_DAN_SU_DUNG.md` (+ bản PDF, ảnh ở `docs/images/` chụp từ bản demo).
+
+Đã xóa `docs/HUONG_DAN_DEMO.md` theo yêu cầu chủ dự án (thay bằng `docs/HUONG_DAN_SU_DUNG.md`).
