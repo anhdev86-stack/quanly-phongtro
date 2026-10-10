@@ -620,8 +620,8 @@ phiếu thu gốc, số dư nhảy lên con số chưa từng có (số dư cu�
 
 Điều chỉnh hiển thị theo góp ý chủ dự án:
 - Tổng quan: ô “Bảo trì” → “Ngừng cho thuê (bảo trì)” (đếm phòng tạm ngừng cho thuê, khác yêu cầu sửa chữa ở Việc cần xử lý);
-  “Phát sinh tháng” → “Tổng tiền thông báo tháng …”; “Thực thu trong tháng (phiếu thu)” → “Thực thu theo tháng”.
-- Báo cáo doanh thu theo tháng: mặc định 4 cột Tổng tiền thông báo / Đã thu / Còn nợ / Thực thu theo tháng (tổng chia thành Đã thu và Còn nợ);
+  “Phát sinh tháng” → “Tổng tiền phải thu tháng …”; “Thực thu trong tháng (phiếu thu)” → “Thực thu theo tháng”.
+- Báo cáo doanh thu theo tháng: mặc định 4 cột Tổng tiền phải thu / Đã thu / Còn nợ / Thực thu theo tháng (tổng chia thành Đã thu và Còn nợ);
   Giảm trừ, Doanh thu thuần, cách thu (tiền mặt/CK, trừ cọc, cấn trừ tiền dư) ở “Xem chi tiết”, có nhắc khi khác 0. CSV đổi tên cột theo màn
   hình, số liệu không đổi. Kiểm tra: lint, typecheck ✅; integration reports 6 ✅; E2E reports, finance, maintenance 9 ✅.
 
@@ -643,3 +643,5 @@ lập sau ngày đến hạn (ngày 5) hiện “Quá hạn” ngay khi phát h�
 `buildingSchema.managers` (tài khoản đang hoạt động được giao phạm vi tòa, sắp theo tên). Danh sách tòa có cột “Quản lý” (chưa giao: “Chưa
 giao”); trang tòa có “Quản lý phụ trách” + liên kết “Giao quản lý” (chủ trọ) tới Cấu hình → Người dùng.
 Kiểm tra: lint, typecheck ✅; integration property/openapi/access 37 ✅ (thêm test: tài khoản bị khóa không hiện); E2E auth + property 20 ✅.
+
+Đổi tên lần nữa theo chủ dự án (10/10/2026): “Tổng tiền thông báo” → **“Tổng tiền phải thu”** (báo cáo, Tổng quan, CSV).

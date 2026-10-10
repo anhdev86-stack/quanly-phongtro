@@ -119,7 +119,7 @@ function RevenueTab({ buildingId }: { buildingId?: string }) {
         )}
         <CardContent className="border-t border-slate-100 text-xs text-slate-500">
           <p>
-            <strong>Tổng tiền thông báo</strong>: tổng số tiền ghi trên các thông báo đã phát hành của tháng (nháp không tính). Số này chia thành hai phần:{' '}
+            <strong>Tổng tiền phải thu</strong>: tổng số tiền ghi trên các thông báo đã phát hành của tháng (nháp không tính). Số này chia thành hai phần:{' '}
             <strong>Đã thu</strong> (khách đã trả, kể cả trả vào tháng sau) và <strong>Còn nợ</strong> (chưa trả). <strong>Thực thu theo tháng</strong>: tiền thực tế nhận trong tháng (theo ngày trên phiếu thu), kể cả trả nợ tháng trước —
             dùng để đối chiếu sổ ngân hàng.
           </p>
@@ -132,7 +132,7 @@ function RevenueTab({ buildingId }: { buildingId?: string }) {
 type RevenueData = NonNullable<ReturnType<typeof useRevenue>['data']>;
 
 /**
- * Doanh thu theo tháng: mặc định 4 cột chính (Tổng tiền thông báo chia thành Đã thu và Còn nợ, T65). Giảm trừ, doanh thu thuần và cách thu
+ * Doanh thu theo tháng: mặc định 4 cột chính (Tổng tiền phải thu chia thành Đã thu và Còn nợ, T65). Giảm trừ, doanh thu thuần và cách thu
  * (tiền / trừ cọc / cấn trừ tiền dư) ẩn sau “Xem chi tiết”; có số khác 0 thì nhắc. Chỉ đổi cách hiển thị, số liệu giữ nguyên.
  */
 function RevenueTable({ data }: { data: RevenueData }) {
@@ -159,7 +159,7 @@ function RevenueTable({ data }: { data: RevenueData }) {
           <thead>
             <tr>
               <Th>Tháng</Th>
-              <Th className="text-right">Tổng tiền thông báo</Th>
+              <Th className="text-right">Tổng tiền phải thu</Th>
               {detail ? (
                 <>
                   <Th className="text-right">Giảm trừ</Th>
@@ -207,7 +207,7 @@ function RevenueTable({ data }: { data: RevenueData }) {
       {detail ? (
         <CardContent className="border-t border-slate-100 text-xs text-slate-500">
           <strong>Giảm trừ</strong>: chứng từ giảm tiền phát hành sau (VD giảm giá, trả lại tiền thu trước khi trả phòng sớm), tính theo tháng phát hành chứng từ.{' '}
-          <strong>Doanh thu thuần</strong> = Tổng tiền thông báo − Giảm trừ. <strong>Đã thu</strong> = tiền mặt/chuyển khoản + trừ cọc + cấn trừ tiền dư; hai phần sau không có tiền mới vào
+          <strong>Doanh thu thuần</strong> = Tổng tiền phải thu − Giảm trừ. <strong>Đã thu</strong> = tiền mặt/chuyển khoản + trừ cọc + cấn trừ tiền dư; hai phần sau không có tiền mới vào
           nên không nằm trong “Thực thu theo tháng”. Tiền dư/giảm trừ dùng để trả nợ tháng khác nằm trong “Đã thu” của tháng được trả. Thông báo trả phòng/điều chỉnh tính theo tháng
           của ngày lập.
         </CardContent>
