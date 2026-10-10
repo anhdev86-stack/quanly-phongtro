@@ -34,3 +34,4 @@ Thumbs.db
 !.claude/launch.json
 .next-e2e/
 .next-demo/
+e2e/demo/screenshots/

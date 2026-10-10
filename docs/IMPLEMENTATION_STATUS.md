@@ -597,3 +597,33 @@ Kiểm tra (07/10/2026):
 | `pnpm test:integration` | ✅ **333** (28 file; T47: 159; T48: 3) |
 | `pnpm test:e2e specs/transfer.spec.ts specs/move-out.spec.ts specs/tenancy.spec.ts` | ✅ 7 (1 bỏ qua có chủ đích trên mobile) |
 | `pnpm test:e2e` (toàn bộ) | ⏳ Chờ chủ dự án chạy |
+
+## Kiểm tra toàn bộ + demo có ảnh (09–10/10/2026) ✅
+
+| Lệnh | Kết quả |
+|---|---|
+| `pnpm lint`, `pnpm typecheck`, `pnpm build` | ✅ |
+| `pnpm test` | ✅ 102 |
+| `pnpm test:integration` | ✅ **338** (30 file) |
+| `pnpm test:e2e --trace on` (toàn bộ, chủ dự án yêu cầu) | ✅ **59 đạt**, 7 bỏ qua có chủ đích (mobile), 6,4 phút |
+
+Hai lượt đầu lỗi do dữ liệu test dùng chung (không phải lỗi chức năng), đã sửa: `utilities.spec` dùng A301/B301 (trùng A104/B104 với
+`contracts-v11`), `property.spec` lưu trữ tòa thử, các lệnh bấm menu dùng `exact` (Tổng quan có liên kết “Bảo trì 0”).
+
+**Vòng demo có ảnh** (`e2e/demo/walkthrough.spec.ts`, chạy trên bản demo, ảnh ở `e2e/demo/screenshots/`, không commit): 24 bước — chốt điện
+nước, tạo nháp, phát hành, QR, thu một phần, đảo phiếu thu, thu đủ, link gửi khách, người ở cùng, tạm trú, dịch vụ, đóng/mở lại kỳ, trả phòng
+có quyết toán, chi phí, báo cáo, bảo trì, nhật ký ✅.
+
+Lỗi tìm thấy và đã sửa: **sao kê công nợ** xếp các dòng cùng ngày bằng phép so sánh không nhất quán → dòng “Đảo phiếu thu” có thể đứng trước
+phiếu thu gốc, số dư nhảy lên con số chưa từng có (số dư cuối vẫn đúng). Nay cùng ngày xếp theo thời điểm ghi nhận; thêm test hồi quy
+(`payments.int.test.ts`, T37). Integration payments/settlements/tenancy/billing/contracts 71 ✅.
+
+Điều chỉnh hiển thị theo góp ý chủ dự án:
+- Tổng quan: ô “Bảo trì” → “Ngừng cho thuê (bảo trì)” (đếm phòng tạm ngừng cho thuê, khác yêu cầu sửa chữa ở Việc cần xử lý);
+  “Phát sinh tháng” → “Tiền phải thu tháng … (đã lập thông báo)”; “Thực thu trong tháng (phiếu thu)” → “Tiền nhận trong tháng”.
+- Báo cáo doanh thu theo tháng: mặc định 4 cột Tiền phải thu / Đã thu / Còn nợ / Tiền nhận trong tháng (Tiền phải thu = Đã thu + Còn nợ);
+  Giảm trừ, Doanh thu thuần, cách thu (tiền mặt/CK, trừ cọc, cấn trừ tiền dư) ở “Xem chi tiết”, có nhắc khi khác 0. CSV đổi tên cột theo màn
+  hình, số liệu không đổi. Kiểm tra: lint, typecheck ✅; integration reports 6 ✅; E2E reports, finance, maintenance 9 ✅.
+
+Ghi nhận, chờ chủ dự án quyết (chưa đổi): chốt điện nước và trả phòng **cùng ngày** bị chặn chỉ số cuối (một chỉ số/đồng hồ/ngày); thông báo
+lập sau ngày đến hạn (ngày 5) hiện “Quá hạn” ngay khi phát hành; tùy chọn tính đủ tháng khi nhận/trả phòng giữa tháng.

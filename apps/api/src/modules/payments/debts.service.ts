@@ -91,30 +91,32 @@ export class DebtsService {
     const refunds = await this.prisma.creditRefund.findMany({ where: { tenancyId } });
     const deposits = await this.prisma.depositTransaction.findMany({ where: { tenancyId, type: { in: ['APPLIED_TO_INVOICE', 'REVERSAL'] } } });
     const applied = deposits.filter((d) => d.type === 'APPLIED_TO_INVOICE');
-    const raw: Omit<StatementEntry, 'balance_vnd'>[] = [];
-    const e = (date: string, kind: StatementEntry['kind'], ref: string, num: string | null, desc: string, debit: bigint, credit: bigint) =>
-      raw.push({ date, kind, ref_id: ref, ref_number: num, description: desc, debit_vnd: debit.toString(), credit_vnd: credit.toString() });
+    // `at`: thời điểm ghi nhận thật, để xếp các dòng cùng ngày đúng thứ tự xảy ra (VD phiếu thu trước, dòng đảo phiếu thu sau).
+    const raw: (Omit<StatementEntry, 'balance_vnd'> & { at: number })[] = [];
+    const e = (date: string, at: Date, kind: StatementEntry['kind'], ref: string, num: string | null, desc: string, debit: bigint, credit: bigint) =>
+      raw.push({ date, at: at.getTime(), kind, ref_id: ref, ref_number: num, description: desc, debit_vnd: debit.toString(), credit_vnd: credit.toString() });
     for (const i of invoices) {
       const period = i.statementPeriod ? ` tháng ${day(i.statementPeriod.monthStart).slice(5, 7)}/${day(i.statementPeriod.monthStart).slice(0, 4)}` : '';
-      if (i.type === 'CREDIT_ADJUSTMENT') e(day(i.issueDate), 'CREDIT_NOTE', i.id, i.number, 'Chứng từ điều chỉnh giảm (credit)', 0n, i.totalVnd);
-      else e(day(i.issueDate), 'INVOICE', i.id, i.number, `Thông báo${period}`, i.totalVnd, 0n);
+      const at = i.publishedAt ?? i.createdAt;
+      if (i.type === 'CREDIT_ADJUSTMENT') e(day(i.issueDate), at, 'CREDIT_NOTE', i.id, i.number, 'Chứng từ điều chỉnh giảm (credit)', 0n, i.totalVnd);
+      else e(day(i.issueDate), at, 'INVOICE', i.id, i.number, `Thông báo${period}`, i.totalVnd, 0n);
     }
     for (const p of payments) {
-      e(day(p.paidAt), 'PAYMENT', p.id, p.number, `Thu tiền (${p.method})${p.reference ? ` · ${p.reference}` : ''}`, 0n, p.amountVnd);
-      if (p.status === 'REVERSED') e(p.reversedAt!.toISOString().slice(0, 10), 'PAYMENT_REVERSED', p.id, p.number, `Đảo phiếu thu: ${p.reversalReason}`, p.amountVnd, 0n);
+      e(day(p.paidAt), p.createdAt, 'PAYMENT', p.id, p.number, `Thu tiền (${p.method})${p.reference ? ` · ${p.reference}` : ''}`, 0n, p.amountVnd);
+      if (p.status === 'REVERSED') e(p.reversedAt!.toISOString().slice(0, 10), p.reversedAt!, 'PAYMENT_REVERSED', p.id, p.number, `Đảo phiếu thu: ${p.reversalReason}`, p.amountVnd, 0n);
     }
     for (const d of applied) {
-      e(d.paidAt ? day(d.paidAt) : d.createdAt.toISOString().slice(0, 10), 'DEPOSIT_APPLIED', d.id, null, 'Trừ vào tiền cọc', 0n, d.amountVnd);
+      e(d.paidAt ? day(d.paidAt) : d.createdAt.toISOString().slice(0, 10), d.createdAt, 'DEPOSIT_APPLIED', d.id, null, 'Trừ vào tiền cọc', 0n, d.amountVnd);
       const rev = deposits.find((x) => x.type === 'REVERSAL' && x.reversesTransactionId === d.id);
-      if (rev) e(rev.createdAt.toISOString().slice(0, 10), 'DEPOSIT_APPLIED_REVERSED', rev.id, null, 'Đảo trừ cọc', d.amountVnd, 0n);
+      if (rev) e(rev.createdAt.toISOString().slice(0, 10), rev.createdAt, 'DEPOSIT_APPLIED_REVERSED', rev.id, null, 'Đảo trừ cọc', d.amountVnd, 0n);
     }
     for (const r of refunds) {
-      e(day(r.paidAt), 'CREDIT_REFUND', r.id, null, 'Hoàn tiền credit cho khách', r.amountVnd, 0n);
-      if (r.status === 'REVERSED') e(r.reversedAt!.toISOString().slice(0, 10), 'CREDIT_REFUND_REVERSED', r.id, null, `Đảo hoàn credit: ${r.reversalReason}`, 0n, r.amountVnd);
+      e(day(r.paidAt), r.createdAt, 'CREDIT_REFUND', r.id, null, 'Hoàn tiền credit cho khách', r.amountVnd, 0n);
+      if (r.status === 'REVERSED') e(r.reversedAt!.toISOString().slice(0, 10), r.reversedAt!, 'CREDIT_REFUND_REVERSED', r.id, null, `Đảo hoàn credit: ${r.reversalReason}`, 0n, r.amountVnd);
     }
-    raw.sort((a, b) => (a.date === b.date ? (BigInt(b.debit_vnd) > 0n ? 1 : -1) : a.date < b.date ? -1 : 1));
+    raw.sort((a, b) => (a.date !== b.date ? (a.date < b.date ? -1 : 1) : a.at - b.at));
     let balance = 0n;
-    const entries = raw.map((r) => {
+    const entries = raw.map(({ at: _at, ...r }) => {
       balance += BigInt(r.debit_vnd) - BigInt(r.credit_vnd);
       return { ...r, balance_vnd: balance.toString() };
     });

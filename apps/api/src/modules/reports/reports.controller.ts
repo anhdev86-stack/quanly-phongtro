@@ -149,7 +149,8 @@ export class ReportsController {
   private async csvFor(user: AuthUser, type: (typeof REPORT_TYPES)[number], q: z.output<typeof exportQuerySchema>): Promise<string> {
     if (type === 'revenue-monthly') {
       const r = await this.reports.revenue(user, revenueQuerySchema.parse(q));
-      const head = ['Tháng', 'Phát sinh', 'Giảm trừ', 'Doanh thu thuần', 'Đã thu - tiền', 'Đã thu - trừ cọc', 'Đã thu - cấn trừ credit', 'Đã thu', 'Còn nợ', 'Thực thu trong tháng'];
+      // Cùng tên cột với màn hình (chế độ chi tiết).
+      const head = ['Tháng', 'Tiền phải thu', 'Giảm trừ', 'Doanh thu thuần', 'Đã thu - tiền mặt/CK', 'Đã thu - trừ cọc', 'Đã thu - cấn trừ tiền dư', 'Đã thu', 'Còn nợ', 'Tiền nhận trong tháng'];
       const line = (p: string, x: (typeof r.rows)[number] | typeof r.totals) => [
         p,
         x.invoiced_vnd,

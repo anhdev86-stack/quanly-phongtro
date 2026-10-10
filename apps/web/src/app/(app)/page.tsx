@@ -72,10 +72,16 @@ export default function DashboardPage() {
               <Link key={s} href={`/rooms?status=${s}`}>
                 <Card className="h-full hover:border-brand-600">
                   <CardContent>
-                    <p className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[s]}`}>{ROOM_STATUS_LABELS[s]}</p>
+                    <p className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[s]}`}>
+                      {s === 'MAINTENANCE' ? 'Ngừng cho thuê (bảo trì)' : ROOM_STATUS_LABELS[s]}
+                    </p>
                     <p className="mt-1 text-2xl font-semibold tabular" data-testid={`rooms-${s}`}>
                       {d.rooms[s]}
                     </p>
+                    {s === 'MAINTENANCE' ? (
+                      // Phòng tạm ngừng cho thuê để sửa; yêu cầu sửa vặt khi khách vẫn ở không đổi trạng thái phòng.
+                      <p className="mt-1 text-xs text-slate-500">Yêu cầu sửa chữa: xem Việc cần xử lý</p>
+                    ) : null}
                   </CardContent>
                 </Card>
               </Link>
@@ -119,8 +125,8 @@ export default function DashboardPage() {
                     {[
                       ['Còn phải thu (gồm khách đã trả phòng)', d.money.debt_vnd, ''],
                       ['Trong đó quá hạn', d.money.overdue_vnd, 'text-red-700'],
-                      [`Phát sinh tháng ${period.slice(5)}/${period.slice(0, 4)}`, d.money.invoiced_in_period_vnd, ''],
-                      ['Thực thu trong tháng (phiếu thu)', d.money.collected_in_period_vnd, 'text-emerald-700'],
+                      [`Tiền phải thu tháng ${period.slice(5)}/${period.slice(0, 4)} (đã lập thông báo)`, d.money.invoiced_in_period_vnd, ''],
+                      ['Tiền nhận trong tháng', d.money.collected_in_period_vnd, 'text-emerald-700'],
                       ['Cọc đang giữ (nghĩa vụ phải trả)', d.money.deposit_held_vnd, ''],
                       ['Phải hoàn cọc (đã trả phòng)', d.money.deposit_refund_payable_vnd, 'text-violet-700'],
                       ['Phải hoàn tiền dư (credit)', d.money.credit_refund_payable_vnd, 'text-violet-700'],

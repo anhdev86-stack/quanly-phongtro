@@ -106,6 +106,15 @@ describe('Phase 6 — thu tiền, credit, công nợ, VietQR', () => {
     expect(await invoice(invoiceId)).toMatchObject({ remaining_vnd: '1200000', payment_status: 'UNPAID' });
     expect((await post(`/api/v1/payments/${p.id}/reverse`, { reason: 'Đảo lại' })).status).toBe(422);
     expect(await t.prisma.auditLog.count({ where: { action: 'payment.reverse', entityId: p.id } })).toBe(1);
+
+    // Sao kê: phiếu thu đứng trước dòng đảo của nó (cùng ngày xếp theo thời điểm ghi nhận), số dư không nhảy lên con số chưa từng có
+    const st = (await owner.agent.get(`/api/v1/tenancies/${tenancyId}/statement`)).body as { entries: { kind: string; ref_id: string; balance_vnd: string }[] };
+    const mine = st.entries.filter((x) => x.ref_id === p.id).map((x) => x.kind);
+    expect(mine).toEqual(['PAYMENT', 'PAYMENT_REVERSED']);
+    const iPay = st.entries.findIndex((x) => x.kind === 'PAYMENT');
+    const before = iPay === 0 ? 0n : BigInt(st.entries[iPay - 1]!.balance_vnd);
+    expect(BigInt(st.entries[iPay]!.balance_vnd)).toBe(before - 1200000n);
+    expect(BigInt(st.entries[iPay + 1]!.balance_vnd)).toBe(before);
   });
 
   it('T29 / T37 (credit): credit cấn trừ nợ khác trước (đến hạn sớm nhất), phần dư hoàn riêng; đảo đúng số dư', async () => {

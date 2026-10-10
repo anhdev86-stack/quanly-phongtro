@@ -13,12 +13,15 @@ test.describe('Phase 8A — tổng quan và báo cáo', () => {
 
     await page.getByRole('link', { name: 'Báo cáo', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Báo cáo', level: 1 })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'Phát sinh' })).toBeVisible();
-    await expect(page.getByText(/Phát sinh = Đã thu \+ Còn nợ/)).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Tiền phải thu' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Giảm trừ' })).toHaveCount(0); // chi tiết ẩn mặc định
+    await expect(page.getByText(/luôn bằng Đã thu \+ Còn nợ/)).toBeVisible();
+    await page.getByRole('button', { name: 'Xem chi tiết' }).click();
+    await expect(page.getByRole('columnheader', { name: 'Doanh thu thuần' })).toBeVisible();
     const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Xuất CSV' }).click()]);
     const text = readFileSync((await download.path())!, 'utf8');
     expect(text.charCodeAt(0)).toBe(0xfeff);
-    expect(text).toContain('Tháng,Phát sinh,Giảm trừ,Doanh thu thuần');
+    expect(text).toContain('Tháng,Tiền phải thu,Giảm trừ,Doanh thu thuần');
 
     await page.getByRole('tab', { name: 'Cọc' }).click();
     await expect(page.getByText('Cọc đang giữ (nghĩa vụ phải trả)')).toBeVisible();

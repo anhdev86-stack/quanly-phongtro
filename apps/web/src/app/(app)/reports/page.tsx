@@ -115,52 +115,103 @@ function RevenueTab({ buildingId }: { buildingId?: string }) {
         ) : q.isError ? (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Tháng</Th>
-                  <Th className="text-right">Phát sinh</Th>
-                  <Th className="text-right">Giảm trừ</Th>
-                  <Th className="text-right">Doanh thu thuần</Th>
-                  <Th className="text-right">Đã thu</Th>
-                  <Th className="hidden text-right lg:table-cell">· tiền</Th>
-                  <Th className="hidden text-right lg:table-cell">· trừ cọc</Th>
-                  <Th className="hidden text-right lg:table-cell">· cấn trừ</Th>
-                  <Th className="text-right">Còn nợ</Th>
-                  <Th className="text-right">Thực thu trong tháng</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...q.data.rows.map((r) => ({ label: `${r.period.slice(5)}/${r.period.slice(0, 4)}`, r, total: false })), { label: 'Tổng', r: q.data.totals, total: true }].map(({ label, r, total }) => (
-                  <Tr key={label} className={total ? 'bg-slate-50 font-semibold' : ''}>
-                    <Td className="whitespace-nowrap">{label}</Td>
-                    <Td className="text-right tabular">{v(r.invoiced_vnd)}</Td>
-                    <Td className="text-right tabular">{v(r.reductions_vnd)}</Td>
-                    <Td className="text-right tabular">{v(r.net_vnd)}</Td>
-                    <Td className="text-right tabular">{v(r.paid_total_vnd)}</Td>
-                    <Td className="hidden text-right tabular text-slate-500 lg:table-cell">{v(r.paid_cash_vnd)}</Td>
-                    <Td className="hidden text-right tabular text-slate-500 lg:table-cell">{v(r.paid_deposit_vnd)}</Td>
-                    <Td className="hidden text-right tabular text-slate-500 lg:table-cell">{v(r.paid_credit_vnd)}</Td>
-                    <Td className={`text-right tabular ${r.outstanding_vnd !== '0' ? 'text-red-700' : ''}`}>{v(r.outstanding_vnd)}</Td>
-                    <Td className="text-right tabular text-emerald-700">{v(r.cash_in_period_vnd)}</Td>
-                  </Tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
+          <RevenueTable data={q.data} />
         )}
         <CardContent className="border-t border-slate-100 text-xs text-slate-500">
           <p>
-            <strong>Phát sinh</strong>: tổng thông báo loại nợ đã phát hành của tháng (thông báo không có tháng phát hành — trả phòng, điều chỉnh — tính theo tháng của ngày lập).{' '}
-            <strong>Giảm trừ</strong>: chứng từ credit của tháng. Luôn có <strong>Phát sinh = Đã thu + Còn nợ</strong>.
-          </p>
-          <p className="mt-1">
-            <strong>Đã thu</strong> tính theo tháng của thông báo (gồm cả tiền nhận ở tháng sau); <strong>Thực thu trong tháng</strong> tính theo ngày nhận tiền của mọi phiếu thu (dòng tiền).
-            Credit đã cấn trừ nằm trong “Đã thu” của thông báo nhận cấn trừ và trong “Giảm trừ” của tháng phát hành credit.
+            <strong>Tiền phải thu</strong>: tổng các thông báo đã phát hành của tháng (nháp không tính); luôn bằng <strong>Đã thu + Còn nợ</strong>. <strong>Đã thu / Còn nợ</strong>:
+            tiền của tháng đó đã thu chưa — kể cả tiền khách trả vào tháng sau. <strong>Tiền nhận trong tháng</strong>: tiền thực tế nhận trong tháng (theo ngày trên phiếu thu), kể cả trả nợ tháng trước —
+            dùng để đối chiếu sổ ngân hàng.
           </p>
         </CardContent>
       </Card>
+    </>
+  );
+}
+
+type RevenueData = NonNullable<ReturnType<typeof useRevenue>['data']>;
+
+/**
+ * Doanh thu theo tháng: mặc định 4 cột chính (Tiền phải thu = Đã thu + Còn nợ, T65). Giảm trừ, doanh thu thuần và cách thu
+ * (tiền / trừ cọc / cấn trừ tiền dư) ẩn sau “Xem chi tiết”; có số khác 0 thì nhắc. Chỉ đổi cách hiển thị, số liệu giữ nguyên.
+ */
+function RevenueTable({ data }: { data: RevenueData }) {
+  const [detail, setDetail] = useState(false);
+  const t = data.totals;
+  const hidden = [
+    t.reductions_vnd !== '0' ? `giảm trừ ${v(t.reductions_vnd)}` : null,
+    t.paid_deposit_vnd !== '0' ? `trừ cọc ${v(t.paid_deposit_vnd)}` : null,
+    t.paid_credit_vnd !== '0' ? `cấn trừ tiền dư ${v(t.paid_credit_vnd)}` : null,
+  ].filter(Boolean);
+  const rows = [...data.rows.map((r) => ({ label: `${r.period.slice(5)}/${r.period.slice(0, 4)}`, r, total: false })), { label: 'Tổng', r: t, total: true }];
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2 text-sm">
+        <span className="text-slate-500">
+          {hidden.length && !detail ? `Trong khoảng này có ${hidden.join(', ')} — bấm “Xem chi tiết” để thấy từng tháng.` : detail ? 'Đang xem chi tiết.' : 'Không có giảm trừ, trừ cọc hay cấn trừ trong khoảng này.'}
+        </span>
+        <Button size="sm" variant="outline" onClick={() => setDetail((x) => !x)} aria-pressed={detail}>
+          {detail ? 'Thu gọn' : 'Xem chi tiết'}
+        </Button>
+      </div>
+      <div className="overflow-x-auto">
+        <Table>
+          <thead>
+            <tr>
+              <Th>Tháng</Th>
+              <Th className="text-right">Tiền phải thu</Th>
+              {detail ? (
+                <>
+                  <Th className="text-right">Giảm trừ</Th>
+                  <Th className="text-right">Doanh thu thuần</Th>
+                </>
+              ) : null}
+              <Th className="text-right">Đã thu</Th>
+              {detail ? (
+                <>
+                  <Th className="text-right">· tiền mặt/CK</Th>
+                  <Th className="text-right">· trừ cọc</Th>
+                  <Th className="text-right">· cấn trừ tiền dư</Th>
+                </>
+              ) : null}
+              <Th className="text-right">Còn nợ</Th>
+              <Th className="text-right">Tiền nhận trong tháng</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ label, r, total }) => (
+              <Tr key={label} className={total ? 'bg-slate-50 font-semibold' : ''}>
+                <Td className="whitespace-nowrap">{label}</Td>
+                <Td className="text-right tabular">{v(r.invoiced_vnd)}</Td>
+                {detail ? (
+                  <>
+                    <Td className="text-right tabular text-slate-500">{v(r.reductions_vnd)}</Td>
+                    <Td className="text-right tabular text-slate-500">{v(r.net_vnd)}</Td>
+                  </>
+                ) : null}
+                <Td className="text-right tabular">{v(r.paid_total_vnd)}</Td>
+                {detail ? (
+                  <>
+                    <Td className="text-right tabular text-slate-500">{v(r.paid_cash_vnd)}</Td>
+                    <Td className="text-right tabular text-slate-500">{v(r.paid_deposit_vnd)}</Td>
+                    <Td className="text-right tabular text-slate-500">{v(r.paid_credit_vnd)}</Td>
+                  </>
+                ) : null}
+                <Td className={`text-right tabular ${r.outstanding_vnd !== '0' ? 'text-red-700' : ''}`}>{v(r.outstanding_vnd)}</Td>
+                <Td className="text-right tabular text-emerald-700">{v(r.cash_in_period_vnd)}</Td>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
+      {detail ? (
+        <CardContent className="border-t border-slate-100 text-xs text-slate-500">
+          <strong>Giảm trừ</strong>: chứng từ giảm tiền phát hành sau (VD giảm giá, trả lại tiền thu trước khi trả phòng sớm), tính theo tháng phát hành chứng từ.{' '}
+          <strong>Doanh thu thuần</strong> = Tiền phải thu − Giảm trừ. <strong>Đã thu</strong> = tiền mặt/chuyển khoản + trừ cọc + cấn trừ tiền dư; hai phần sau không có tiền mới vào
+          nên không nằm trong “Tiền nhận trong tháng”. Tiền dư/giảm trừ dùng để trả nợ tháng khác nằm trong “Đã thu” của tháng được trả. Thông báo trả phòng/điều chỉnh tính theo tháng
+          của ngày lập.
+        </CardContent>
+      ) : null}
     </>
   );
 }
