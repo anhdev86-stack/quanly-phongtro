@@ -1,12 +1,19 @@
 # MASTER PLAN — PHẦN MỀM QUẢN LÝ NHÀ TRỌ
 
-**Phiên bản:** 2.7 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
+**Phiên bản:** 2.8 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
 **Ngày:** 07/10/2026  
 **Ngôn ngữ UI:** Tiếng Việt  
 **Tiền tệ:** VND  
 **Múi giờ nghiệp vụ:** Asia/Ho_Chi_Minh
 
 > Đọc toàn bộ tài liệu trước khi triển khai. Đây là nguồn yêu cầu nghiệp vụ chính thức. Những mặc định kỹ thuật được ghi rõ bên dưới dùng để triển khai mà không phải tự đoán. Nếu có yêu cầu mới của chủ dự án, cập nhật tài liệu và ghi lại quyết định trước khi thay đổi nghiệp vụ.
+
+### Thay đổi so với v2.7 (yêu cầu của chủ dự án, 10/10/2026)
+
+| # | Mục | Thay đổi |
+|---|---|---|
+| 1 | 2.2, 8.1 | **Ân hạn khi lập thông báo muộn.** Thông báo tháng lập/phát hành khi hạn theo lịch (ngày 5, hoặc ngày nhận phòng với thông báo đầu tiên) đã qua thì hạn = ngày phát hành + 7 ngày; không “Quá hạn” ngay khi gửi khách. Quyết định: D-044. |
+| 2 | 13 | Báo cáo doanh thu theo tháng gọn 4 cột: **Tổng tiền thông báo** (chia thành Đã thu + Còn nợ), Đã thu, Còn nợ, Tiền nhận trong tháng; chi tiết (giảm trừ, doanh thu thuần, cách thu) ở “Xem chi tiết”. Chỉ đổi hiển thị. |
 
 ### Thay đổi so với v2.6 (yêu cầu của chủ dự án, 07/10/2026)
 
@@ -163,7 +170,7 @@ QR chỉ là hình thức ghi nhận thanh toán thủ công. Tạo QR không ph
 | Mục | Mặc định |
 |---|---|
 | Ngày phát hành thông báo tháng | Ngày 1 của tháng phát hành |
-| Ngày đến hạn | Ngày 5 của tháng phát hành; ngày không tồn tại trong tháng thì dùng ngày cuối tháng |
+| Ngày đến hạn | Ngày 5 của tháng phát hành; ngày không tồn tại trong tháng thì dùng ngày cuối tháng. Thông báo lập/phát hành sau ngày đó: hạn = ngày phát hành + 7 ngày (D-044) |
 | Thông báo đầu tiên khi nhận phòng | Tiền phòng từ ngày nhận đến hết tháng (chia theo ngày) + dịch vụ thu trước; đến hạn ngày nhận phòng |
 | Chỉ số chốt điện nước | Một đợt chốt cho mỗi **tháng tiêu thụ** M, đọc từ ngày cuối tháng M đến ngày 3 tháng M+1; vào thông báo tháng M+1 (cùng tiền phòng tháng M+1) |
 | Chia ngày | Theo số ngày thực tế của tháng (`ACTUAL_DAYS`) |
@@ -775,7 +782,7 @@ Nếu payment, giá, chỉ số hoặc invoice thay đổi sau khi duyệt: tr�
 |---|---|
 | **Tháng phát hành** (`statement_period`) | Tháng mà thông báo thuộc về, ví dụ tháng 10 |
 | **Khoảng phí** của từng dòng | `[charge_start, charge_end_exclusive)` riêng cho mỗi dòng |
-| **Ngày đến hạn** | Snapshot trên thông báo khi phát hành |
+| **Ngày đến hạn** | Snapshot trên thông báo khi phát hành. Hạn theo lịch đã qua lúc phát hành thì hạn = ngày phát hành + 7 ngày (D-044) |
 
 ### 8.2 Nội dung thông báo tháng M
 

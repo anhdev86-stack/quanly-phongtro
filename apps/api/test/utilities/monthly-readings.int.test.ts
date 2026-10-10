@@ -177,6 +177,50 @@ describe('Điện nước hàng tháng: tháng tiêu thụ, chỉ số nền, ti
     expect(nov.items.filter((i) => i.charge_kind === 'METER').map((i) => i.amount_vnd).sort()).toEqual(['100000', '200000']); // 50 kWh × 4.000, 5 m³ × 20.000
   });
 
+  it('D-044: thông báo lập/phát hành sau ngày đến hạn được thêm 7 ngày; đúng hạn thì giữ ngày 5; nhận phòng phát hành cùng ngày đến hạn ngay', async () => {
+    await setPrices();
+    const r = await room('E103', { ELECTRICITY: '10', WATER: '1' });
+    const tenancyId = await moveIn(r.id, [
+      { type: 'ELECTRICITY', value: '10' },
+      { type: 'WATER', value: '1' },
+    ]);
+    const draftOf = async () => (await owner.agent.get(`/api/v1/invoices?tenancy_id=${tenancyId}&lifecycle=DRAFT`)).body.items[0].id as string;
+    const detail = async (id: string): Promise<InvoiceDetail> => (await owner.agent.get(`/api/v1/invoices/${id}`)).body;
+    // Thông báo đầu tiên: nhận phòng 01/10, phát hành cùng ngày → đến hạn ngay ngày nhận phòng
+    const first = await draftOf();
+    await publishDraft(tenancyId);
+    expect((await detail(first)).due_date).toBe('2026-10-01');
+
+    // Tháng 11 lập ngày 09/11 (sau ngày 5) → nháp hiện hạn 16/11; phát hành ngày 12/11 → hạn chốt 19/11, chưa quá hạn
+    await at('2026-11-09');
+    await post('/api/v1/meter-readings', {
+      period: '2026-11',
+      read_on: '2026-10-31',
+      items: (await sheet('2026-10')).rows.find((x) => x.room_code === 'E103')!.meters.map((m) => ({ meter_id: m.meter_id, value: m.type === 'ELECTRICITY' ? '20' : '2' })),
+    });
+    const gen = await post('/api/v1/billing/generate', { period: '2026-11', tenancy_ids: [tenancyId] });
+    const nov = gen.body.items[0].invoice_id as string;
+    expect((await detail(nov)).due_date).toBe('2026-11-16');
+    await at('2026-11-12');
+    const d = await detail(nov);
+    expect((await post(`/api/v1/invoices/${nov}/publish`, { expected_version: d.version, source_hash: d.source_hash })).status).toBe(200);
+    const published = await detail(nov);
+    expect(published.due_date).toBe('2026-11-19');
+    expect(published.overdue).toBe(false);
+
+    // Tháng 12 lập và phát hành ngày 01/12 (trước ngày 5) → giữ hạn 05/12
+    await at('2026-12-01');
+    await post('/api/v1/meter-readings', {
+      period: '2026-12',
+      read_on: '2026-11-30',
+      items: (await sheet('2026-11')).rows.find((x) => x.room_code === 'E103')!.meters.map((m) => ({ meter_id: m.meter_id, value: m.type === 'ELECTRICITY' ? '30' : '3' })),
+    });
+    const dec =(await post('/api/v1/billing/generate', { period: '2026-12', tenancy_ids: [tenancyId] })).body.items[0].invoice_id as string;
+    const dd = await detail(dec);
+    expect((await post(`/api/v1/invoices/${dec}/publish`, { expected_version: dd.version, source_hash: dd.source_hash })).status).toBe(200);
+    expect((await detail(dec)).due_date).toBe('2026-12-05');
+  });
+
   it('vẫn nhận tham số tháng phát hành cũ (period) để tương thích', async () => {
     const r = await owner.agent.get(`/api/v1/meter-readings/sheet?building_id=${A}&period=2026-11`);
     expect(r.status).toBe(200);

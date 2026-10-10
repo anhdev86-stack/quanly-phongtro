@@ -478,3 +478,13 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   ghi đè giá + lý do, audit `replaced_same_day`; đã dùng thì 409 như trước. Lý do: nhập giá lúc tạo tòa rồi sửa ngay cùng kỳ không bị báo trùng.
   Không đổi số tiền đã phát hành; nháp dùng giá đó phải “Tính lại”.
 - Giao diện: chọn kỳ áp dụng ghi rõ “kỳ M — điện nước tháng M−1”.
+
+## D-044 — Ân hạn 7 ngày khi thông báo lập muộn (chủ dự án yêu cầu 10/10/2026)
+
+- Thông báo tháng: hạn theo lịch (thông báo đầu tiên = ngày nhận phòng; các tháng sau = ngày đến hạn hằng tháng, mặc định ngày 5).
+  Nếu lúc lập nháp / tính lại / **phát hành** mà hạn đó đã qua thì hạn = ngày đó + 7 ngày (`domain/billing/due-date.ts`,
+  `LATE_ISSUE_GRACE_DAYS`). Tính lại ở cả ba thời điểm để nháp hiển thị đúng hạn sẽ áp dụng; hạn chốt khi phát hành.
+- Còn trong hạn thì giữ nguyên (VD phát hành 01/11 → hạn 05/11; nhận phòng và phát hành cùng ngày → đến hạn ngay ngày đó).
+- Không áp cho thông báo trả phòng (FINAL) và chứng từ điều chỉnh: giữ quy tắc cũ. Không đổi số tiền; ảnh hưởng trạng thái quá hạn, mốc nhắc
+  đóng tiền, công nợ quá hạn.
+

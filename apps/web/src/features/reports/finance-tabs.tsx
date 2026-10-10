@@ -103,7 +103,7 @@ export function BreakdownTab({ buildingId }: { buildingId?: string }) {
             </tbody>
           </Table>
         )}
-        <Note>Doanh thu thuần = khoản phải thu trừ giảm trừ của chứng từ đã phát hành, theo tháng của thông báo. Tổng mỗi tháng khớp cột “Tiền phải thu” của báo cáo doanh thu theo tháng.</Note>
+        <Note>Doanh thu thuần = khoản phải thu trừ giảm trừ của chứng từ đã phát hành, theo tháng của thông báo. Tổng mỗi tháng khớp cột “Doanh thu thuần” (bấm “Xem chi tiết”) của báo cáo doanh thu theo tháng.</Note>
       </Card>
     </>
   );

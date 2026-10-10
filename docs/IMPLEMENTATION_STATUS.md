@@ -620,10 +620,20 @@ phiếu thu gốc, số dư nhảy lên con số chưa từng có (số dư cu�
 
 Điều chỉnh hiển thị theo góp ý chủ dự án:
 - Tổng quan: ô “Bảo trì” → “Ngừng cho thuê (bảo trì)” (đếm phòng tạm ngừng cho thuê, khác yêu cầu sửa chữa ở Việc cần xử lý);
-  “Phát sinh tháng” → “Tiền phải thu tháng … (đã lập thông báo)”; “Thực thu trong tháng (phiếu thu)” → “Tiền nhận trong tháng”.
-- Báo cáo doanh thu theo tháng: mặc định 4 cột Tiền phải thu / Đã thu / Còn nợ / Tiền nhận trong tháng (Tiền phải thu = Đã thu + Còn nợ);
+  “Phát sinh tháng” → “Tổng tiền thông báo tháng …”; “Thực thu trong tháng (phiếu thu)” → “Tiền nhận trong tháng”.
+- Báo cáo doanh thu theo tháng: mặc định 4 cột Tổng tiền thông báo / Đã thu / Còn nợ / Tiền nhận trong tháng (tổng chia thành Đã thu và Còn nợ);
   Giảm trừ, Doanh thu thuần, cách thu (tiền mặt/CK, trừ cọc, cấn trừ tiền dư) ở “Xem chi tiết”, có nhắc khi khác 0. CSV đổi tên cột theo màn
   hình, số liệu không đổi. Kiểm tra: lint, typecheck ✅; integration reports 6 ✅; E2E reports, finance, maintenance 9 ✅.
 
 Ghi nhận, chờ chủ dự án quyết (chưa đổi): chốt điện nước và trả phòng **cùng ngày** bị chặn chỉ số cuối (một chỉ số/đồng hồ/ngày); thông báo
 lập sau ngày đến hạn (ngày 5) hiện “Quá hạn” ngay khi phát hành; tùy chọn tính đủ tháng khi nhận/trả phòng giữa tháng.
+
+## Điều chỉnh: ân hạn 7 ngày khi lập thông báo muộn (D-044) ✅ · đổi tên cột báo cáo
+
+- Thông báo tháng lập/tính lại/phát hành khi hạn theo lịch đã qua → hạn = ngày đó + 7 ngày (`domain/billing/due-date.ts`); còn trong hạn giữ
+  nguyên. Thông báo trả phòng và điều chỉnh không đổi. MASTER_PLAN v2.8.
+- Báo cáo doanh thu: “Tiền phải thu” → **“Tổng tiền thông báo”** (chia thành Đã thu + Còn nợ) để không nhầm với “còn phải thu”; Tổng quan
+  “Tổng tiền thông báo tháng …”; CSV cùng tên.
+- Kiểm tra: lint, typecheck ✅; unit api 83 ✅ (thêm `due-date.test.ts` 3); `pnpm test:integration` toàn bộ **338** ✅ trước khi thêm test,
+  thêm test D-044 trong `monthly-readings.int.test.ts` (4/4 ✅: lập 09/11 → hạn 16/11, phát hành 12/11 → 19/11 chưa quá hạn; phát hành 01/12 →
+  05/12; nhận phòng phát hành cùng ngày → hạn ngày nhận); E2E reports, billing, payments, reminders 12 ✅.

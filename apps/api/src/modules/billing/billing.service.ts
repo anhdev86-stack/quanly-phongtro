@@ -19,6 +19,7 @@ import { nextSequence } from '../../common/db/sequences.js';
 import { day, dayOrNull, iso, naturalCompare, paged } from '../../common/dto/mappers.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { subtotal } from '../../domain/billing/reconcile.js';
+import { effectiveDueDate } from '../../domain/billing/due-date.js';
 import { addMonths, type DateOnly, dayOfMonthClamped, firstDayOfMonth, fromDbDate, toDbDate } from '../../domain/dates/date-only.js';
 import type { Invoice, InvoiceItem, InvoiceType, Prisma } from '../../generated/prisma/client.js';
 import { CLOCK, type Clock } from '../../infrastructure/clock/clock.js';
@@ -137,10 +138,8 @@ export class BillingService {
     });
     await assertPeriodOpen(tx, tenancy.workspaceId, monthStart, 'tạo thông báo tháng');
     const result = this.calc.compute(await this.calc.load(tx, tenancyId), monthlyCutoff(monthStart));
-    const start = fromDbDate(tenancy.startDate);
-    // Thông báo đầu tiên đến hạn vào ngày nhận phòng (7.2 bước 8); các tháng sau theo ngày đến hạn của lần thuê.
-    const due = firstDayOfMonth(start) === monthStart ? start : dayOfMonthClamped(monthStart, tenancy.billingDueDay);
     const today = this.clock.today();
+    const due = effectiveDueDate(scheduledDue(tenancy, monthStart), today);
     const sub = subtotal(result.lines);
     const invoice = await this.mapUnique(() =>
       tx.invoice.create({
@@ -190,7 +189,15 @@ export class BillingService {
       const sub = subtotal(result.lines);
       await tx.invoice.update({
         where: { id },
-        data: { subtotalVnd: sub, totalVnd: sub, sourceHash: hash, blockingErrors: result.errors as unknown as Prisma.InputJsonValue, issueDate: toDbDate(this.clock.today()), version: { increment: 1 } },
+        data: {
+          subtotalVnd: sub,
+          totalVnd: sub,
+          sourceHash: hash,
+          blockingErrors: result.errors as unknown as Prisma.InputJsonValue,
+          issueDate: toDbDate(this.clock.today()),
+          ...(await this.monthlyDue(tx, inv)),
+          version: { increment: 1 },
+        },
       });
       await this.audit.record(tx, {
         workspaceId: inv.workspaceId,
@@ -497,8 +504,23 @@ export class BillingService {
   private async assignNumberAndPublish(tx: Prisma.TransactionClient, inv: Invoice, monthKey: DateOnly, userId: string, now: Date) {
     await tx.invoice.update({
       where: { id: inv.id },
-      data: { lifecycle: 'PUBLISHED', number: await this.number(tx, inv.workspaceId, inv.type, monthKey), publishedAt: now, publishedBy: userId, version: { increment: 1 } },
+      data: {
+        lifecycle: 'PUBLISHED',
+        number: await this.number(tx, inv.workspaceId, inv.type, monthKey),
+        publishedAt: now,
+        publishedBy: userId,
+        ...(await this.monthlyDue(tx, inv)),
+        version: { increment: 1 },
+      },
     });
+  }
+
+  /** Thông báo tháng: tính lại hạn theo ngày hôm nay (lập/tính lại/phát hành muộn → thêm 7 ngày, D-044). Loại khác giữ hạn đã có. */
+  private async monthlyDue(tx: Prisma.TransactionClient, inv: Invoice): Promise<{ dueDate?: Date }> {
+    if (inv.type !== 'MONTHLY' || !inv.statementPeriodId) return {};
+    const period = await tx.statementPeriod.findUniqueOrThrow({ where: { id: inv.statementPeriodId } });
+    const tenancy = await tx.tenancy.findUniqueOrThrow({ where: { id: inv.tenancyId } });
+    return { dueDate: toDbDate(effectiveDueDate(scheduledDue(tenancy, fromDbDate(period.monthStart)), this.clock.today())) };
   }
 
   /** Số chứng từ <loại>-<YYYYMM>-<số thứ tự>, cấp trong transaction phát hành (5.4). */
@@ -596,4 +618,10 @@ function itemDto(i: InvoiceItem): InvoiceLine {
     unit_key: i.unitKey,
     corrects_item_id: i.correctsItemId,
   };
+}
+
+/** Hạn theo lịch: thông báo đầu tiên đến hạn ngày nhận phòng (7.2 bước 8); các tháng sau theo ngày đến hạn của lần thuê. */
+function scheduledDue(tenancy: { startDate: Date; billingDueDay: number }, monthStart: DateOnly): DateOnly {
+  const start = fromDbDate(tenancy.startDate);
+  return firstDayOfMonth(start) === monthStart ? start : dayOfMonthClamped(monthStart, tenancy.billingDueDay);
 }
