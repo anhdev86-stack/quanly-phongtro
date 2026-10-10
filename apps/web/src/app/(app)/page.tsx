@@ -64,7 +64,7 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-heading md:text-[26px]">Xin chào, {me.display_name}</h1>
-          <p className="mt-1 text-sm text-muted">Tổng quan nhà trọ · {me.workspace.name}</p>
+          <p className="mt-1 text-sm text-muted">Tổng quan nhà trọ</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <Field id="db-building" label="Tòa" className="w-48">

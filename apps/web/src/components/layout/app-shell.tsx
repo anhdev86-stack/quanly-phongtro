@@ -13,7 +13,7 @@ import { CURRENT_PHASE, NAV_GROUP_LABELS, NAV_ITEMS, type NavGroup } from './nav
 /**
  * Khung ứng dụng — Dark Sidebar + Light Content.
  * Sidebar: ≥1024px đầy đủ 256px; 768–1023px thu gọn thành cột biểu tượng 72px; <768px ẩn, mở dạng ngăn kéo từ nút menu.
- * Header: trắng, cao 64px, thông tin tài khoản gọn bên phải.
+ * Header: trắng, cao 64px, chỉ có thông tin tài khoản gọn bên phải (và nút menu trên điện thoại).
  */
 export function AppShell({ me, children }: { me: MeResponse; children: ReactNode }) {
   const pathname = usePathname();
@@ -118,7 +118,6 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
             <Button variant="ghost" size="sm" className="md:hidden" aria-label="Mở menu" onClick={() => setOpen(true)}>
               <Menu className="size-5" />
             </Button>
-            <span className="truncate text-sm font-medium text-muted">{me.workspace.name}</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3 rounded-lg py-1 pr-1 pl-1">
