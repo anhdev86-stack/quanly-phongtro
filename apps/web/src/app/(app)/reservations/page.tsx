@@ -19,7 +19,7 @@ export default function ReservationsPage() {
     <div className="mx-auto max-w-6xl">
       <PageHeader title="Giữ phòng" description="Tạo lượt giữ phòng từ trang chi tiết phòng. Lịch giữ của cùng một phòng không được chồng nhau." />
       <FilterBar>
-        <Field id="rf-building" label="Tòa" className="sm:w-48">
+        <Field id="rf-building" label="Tòa" className="sm:w-56">
           <Select id="rf-building" value={filters.building_id} onChange={(e) => set({ building_id: e.target.value })}>
             <option value="">Tất cả tòa</option>
             {buildings.data?.map((b) => (

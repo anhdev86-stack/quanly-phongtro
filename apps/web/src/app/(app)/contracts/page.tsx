@@ -58,7 +58,7 @@ function ContractsContent() {
             ))}
           </Select>
         </Field>
-        <Field id="cf-building" label="Tòa" className="sm:w-48">
+        <Field id="cf-building" label="Tòa" className="sm:w-56">
           <Select id="cf-building" value={filters.building_id} onChange={(e) => set({ building_id: e.target.value })}>
             <option value="">Tất cả tòa</option>
             {buildings.data?.map((b) => (

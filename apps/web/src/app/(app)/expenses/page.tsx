@@ -53,7 +53,7 @@ export default function ExpensesPage() {
         <Field id="ex-to" label="Đến ngày" className="sm:w-40">
           <TextInput id="ex-to" type="date" value={f.to} onChange={(e) => set({ to: e.target.value })} />
         </Field>
-        <Field id="ex-building" label="Tòa" className="sm:w-44">
+        <Field id="ex-building" label="Tòa" className="sm:w-56">
           <Select id="ex-building" value={f.building_id} onChange={(e) => set({ building_id: e.target.value })}>
             <option value="">Tất cả</option>
             {buildings.data?.map((b) => (

@@ -55,7 +55,7 @@ function TenanciesContent() {
             <option value="">Tất cả</option>
           </Select>
         </Field>
-        <Field id="tf-building" label="Tòa" className="sm:w-48">
+        <Field id="tf-building" label="Tòa" className="sm:w-56">
           <Select id="tf-building" value={filters.building_id} onChange={(e) => set({ building_id: e.target.value })}>
             <option value="">Tất cả tòa</option>
             {buildings.data?.map((b) => (

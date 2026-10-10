@@ -60,7 +60,7 @@ export default function ReportsPage() {
             </Button>
           ))}
         </div>
-        <Field id="rp-building" label="Tòa" className="w-48">
+        <Field id="rp-building" label="Tòa" className="w-56">
           <Select id="rp-building" value={buildingId} onChange={(e) => setBuildingId(e.target.value)}>
             <option value="">Tất cả tòa</option>
             {buildings.data?.map((x) => (
@@ -99,10 +99,10 @@ function RevenueTab({ buildingId }: { buildingId?: string }) {
   return (
     <>
       <FilterBar>
-        <Field id="rv-from" label="Từ tháng" className="sm:w-40">
+        <Field id="rv-from" label="Từ tháng" className="sm:w-48">
           <TextInput id="rv-from" type="month" value={f.from} onChange={(e) => e.target.value && setF({ ...f, from: e.target.value })} />
         </Field>
-        <Field id="rv-to" label="Đến tháng" className="sm:w-40">
+        <Field id="rv-to" label="Đến tháng" className="sm:w-48">
           <TextInput id="rv-to" type="month" value={f.to} onChange={(e) => e.target.value && setF({ ...f, to: e.target.value })} />
         </Field>
         <div className="flex items-end">

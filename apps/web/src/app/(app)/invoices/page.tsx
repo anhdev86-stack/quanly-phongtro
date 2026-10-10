@@ -60,10 +60,10 @@ function InvoicesContent() {
         }
       />
       <FilterBar>
-        <Field id="iv-period" label="Tháng phát hành" className="sm:w-44">
+        <Field id="iv-period" label="Tháng phát hành" className="sm:w-48">
           <TextInput id="iv-period" type="month" value={filters.period} onChange={(e) => set({ period: e.target.value })} />
         </Field>
-        <Field id="iv-building" label="Tòa" className="sm:w-44">
+        <Field id="iv-building" label="Tòa" className="sm:w-56">
           <Select id="iv-building" value={filters.building_id} onChange={(e) => set({ building_id: e.target.value })}>
             <option value="">Tất cả tòa</option>
             {buildings.data?.map((b) => (

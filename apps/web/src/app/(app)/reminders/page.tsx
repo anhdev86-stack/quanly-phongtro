@@ -94,7 +94,7 @@ function RemindersContent() {
             ))}
           </Select>
         </Field>
-        <Field id="rm-building" label="Tòa" className="sm:w-48">
+        <Field id="rm-building" label="Tòa" className="sm:w-56">
           <Select id="rm-building" value={f.building_id} onChange={(e) => setF({ ...f, building_id: e.target.value, page: 1 })}>
             <option value="">Tất cả tòa</option>
             {buildings.data?.map((b) => (

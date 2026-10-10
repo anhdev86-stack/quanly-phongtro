@@ -663,3 +663,12 @@ reports, transfer 8 ✅.
   transfer (đặt ngày cuối = ngày chuyển), payments, billing ✅.
 
 - Trang phòng có nút “Trả phòng” (cạnh “Chuyển bảo trì”) khi phòng có khách, vào thẳng trang trả phòng. E2E move-out (đi từ trang phòng), property, transfer 11 ✅.
+
+## Điều chỉnh giao diện: phông Be Vietnam Pro, chữ to hơn ✅
+
+- Phông `Be Vietnam Pro` (next/font/google, tự lưu cùng ứng dụng — trình duyệt không gọi Google; **bản build cần mạng để tải phông lúc
+  `next build`**). Cỡ chữ: xs 12→13px, sm 14→15px, base 16→17px (`globals.css` @theme).
+- Chỉnh theo chữ mới: nút không xuống dòng (`whitespace-nowrap`), ô chọn tòa rộng `w-56`, ô chọn tháng `w-48`, nhãn Tổng quan “Ngừng cho thuê”,
+  ô mã tòa co giãn theo độ dài mã.
+- Kiểm tra: lint, typecheck ✅; ảnh chụp trước/sau (đăng nhập, Tổng quan, form ghi nhận thu, phòng, điện nước, thông báo, báo cáo, điện thoại);
+  E2E auth, property, utilities, reports, payments, tenancy 33 ✅.

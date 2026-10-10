@@ -36,7 +36,7 @@ function PaymentsContent() {
             </Button>
           ))}
         </div>
-        <Field id="pay-building" label="Tòa" className="w-48">
+        <Field id="pay-building" label="Tòa" className="w-56">
           <Select id="pay-building" value={buildingId} onChange={(e) => setBuildingId(e.target.value)}>
             <option value="">Tất cả tòa</option>
             {buildings.data?.map((b) => (

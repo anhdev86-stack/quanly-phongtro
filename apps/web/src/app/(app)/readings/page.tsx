@@ -48,7 +48,7 @@ function ReadingsContent() {
         description="Chọn tòa và tháng tiêu thụ. Chỉ số cũ tự lấy từ lần chốt trước; chỉ cần nhập số mới. Tiền ở đây là tạm tính — tiền chính thức tính khi lập thông báo."
       />
       <FilterBar>
-        <Field id="rd-building" label="Tòa" className="sm:w-48">
+        <Field id="rd-building" label="Tòa" className="sm:w-56">
           <Select id="rd-building" value={buildingId} onChange={(e) => setBuilding(e.target.value)}>
             {buildings.data?.map((b) => (
               <option key={b.id} value={b.id}>
@@ -57,7 +57,7 @@ function ReadingsContent() {
             ))}
           </Select>
         </Field>
-        <Field id="rd-month" label="Tháng tiêu thụ" className="sm:w-44">
+        <Field id="rd-month" label="Tháng tiêu thụ" className="sm:w-48">
           <TextInput id="rd-month" type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} />
         </Field>
         <Field id="rd-date" label="Ngày đọc đồng hồ" className="sm:w-44">

@@ -7,7 +7,11 @@
   --color-brand-600: #16a34a;
   --color-brand-700: #15803d;
   --color-brand-800: #166534;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: var(--font-app), 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Chữ to hơn mặc định khoảng 1px cho dễ đọc (chủ trọ dùng điện thoại/máy tính phổ thông). */
+  --text-xs: 0.8125rem; /* 13px */
+  --text-sm: 0.9375rem; /* 15px */
+  --text-base: 1.0625rem; /* 17px */
 }
 
 html,

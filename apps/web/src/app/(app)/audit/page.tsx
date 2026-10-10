@@ -49,7 +49,7 @@ function AuditContent() {
             ))}
           </Select>
         </Field>
-        <Field id="au-building" label="Tòa" className="sm:w-40">
+        <Field id="au-building" label="Tòa" className="sm:w-56">
           <Select id="au-building" value={f.building_id} onChange={(e) => set({ building_id: e.target.value })}>
             <option value="">Tất cả</option>
             {buildings.data?.map((b) => (

@@ -56,7 +56,7 @@ export default function MaintenancePage() {
         }
       />
       <FilterBar>
-        <Field id="mt-building" label="Tòa" className="sm:w-44">
+        <Field id="mt-building" label="Tòa" className="sm:w-56">
           <Select id="mt-building" value={f.building_id} onChange={(e) => set({ building_id: e.target.value })}>
             <option value="">Tất cả</option>
             {buildings.data?.map((b) => (

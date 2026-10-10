@@ -44,7 +44,7 @@ function RoomsContent() {
       />
 
       <FilterBar>
-        <Field id="f-building" label="Tòa" className="sm:w-48">
+        <Field id="f-building" label="Tòa" className="sm:w-56">
           <Select id="f-building" value={filters.building_id} onChange={(e) => set({ building_id: e.target.value })}>
             <option value="">Tất cả tòa</option>
             {buildings.data?.map((b) => (

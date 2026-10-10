@@ -24,10 +24,10 @@ const monthsAgo = (n: number) => {
 function RangeBar({ f, setF, csv, children }: { f: { from: string; to: string }; setF: (v: { from: string; to: string }) => void; csv: string; children?: ReactNode }) {
   return (
     <FilterBar>
-      <Field id={`${csv}-from`} label="Từ tháng" className="sm:w-40">
+      <Field id={`${csv}-from`} label="Từ tháng" className="sm:w-48">
         <TextInput id={`${csv}-from`} type="month" value={f.from} onChange={(e) => e.target.value && setF({ ...f, from: e.target.value })} />
       </Field>
-      <Field id={`${csv}-to`} label="Đến tháng" className="sm:w-40">
+      <Field id={`${csv}-to`} label="Đến tháng" className="sm:w-48">
         <TextInput id={`${csv}-to`} type="month" value={f.to} onChange={(e) => e.target.value && setF({ ...f, to: e.target.value })} />
       </Field>
       {children}

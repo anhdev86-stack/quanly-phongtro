@@ -46,7 +46,7 @@ export default function DashboardPage() {
               ))}
             </Select>
           </Field>
-          <Field id="db-period" label="Tháng" className="w-40">
+          <Field id="db-period" label="Tháng" className="w-48">
             <TextInput id="db-period" type="month" value={period} onChange={(e) => e.target.value && setPeriod(e.target.value)} />
           </Field>
         </div>
@@ -73,14 +73,14 @@ export default function DashboardPage() {
                 <Card className="h-full hover:border-brand-600">
                   <CardContent>
                     <p className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[s]}`}>
-                      {s === 'MAINTENANCE' ? 'Ngừng cho thuê (bảo trì)' : ROOM_STATUS_LABELS[s]}
+                      {s === 'MAINTENANCE' ? 'Ngừng cho thuê' : ROOM_STATUS_LABELS[s]}
                     </p>
                     <p className="mt-1 text-2xl font-semibold tabular" data-testid={`rooms-${s}`}>
                       {d.rooms[s]}
                     </p>
                     {s === 'MAINTENANCE' ? (
                       // Phòng tạm ngừng cho thuê để sửa; yêu cầu sửa vặt khi khách vẫn ở không đổi trạng thái phòng.
-                      <p className="mt-1 text-xs text-slate-500">Yêu cầu sửa chữa: xem Việc cần xử lý</p>
+                      <p className="mt-1 text-xs text-slate-500">Phòng đang bảo trì. Yêu cầu sửa chữa: xem Việc cần xử lý</p>
                     ) : null}
                   </CardContent>
                 </Card>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
           <ul className="grid gap-2 sm:grid-cols-3" data-testid="building-list">
             {me.buildings.map((b) => (
               <li key={b.id} className="flex items-center gap-3 text-sm">
-                <span className="flex size-7 items-center justify-center rounded bg-brand-50 font-semibold text-brand-800">{b.code}</span>
+                <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded bg-brand-50 px-1.5 font-semibold text-brand-800">{b.code}</span>
                 {b.name}
               </li>
             ))}
