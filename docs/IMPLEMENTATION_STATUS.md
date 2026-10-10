@@ -687,3 +687,14 @@ Màu chính #B0D4B8 (`brand-200`): thanh menu, nút chính (chữ xanh đậm `b
 kem #EAE7D6 (nền trang pha nhạt, mục menu đang chọn, trang đăng nhập), ngọc nhạt #D7F9FA (tiêu đề bảng, khung thông tin — `sky-*`).
 Các màu trạng thái Tailwind (emerald/sky/blue/violet/amber) được làm dịu cùng tông trong `globals.css`; red giữ nguyên cho quá hạn/lỗi.
 Liên kết: `font-medium text-brand-600`. Kiểm tra: lint, typecheck ✅; ảnh chụp các trang chính và điện thoại.
+
+## Redesign “Premium Dashboard” — bước 1–3 (chờ duyệt trước bước 4) · trang đăng nhập mới ✅
+
+- Bước 1–3 (commit 524fb47): token Dark Sidebar + Light Content trong `globals.css` (sidebar #111827, primary #10B981, nền #F8FAFC, chữ
+  #0F172A/#64748B, viền #E2E8F0); sidebar tối chia nhóm Vận hành / Tài chính / Hệ thống (máy tính bảng: cột biểu tượng 72px; điện thoại:
+  ngăn kéo); header trắng 64px; Dashboard thẻ trắng. Bỏ tên nhà trọ ở header và dòng phụ Dashboard (daa3c34). Các trang khác chưa áp (bước 4).
+- Trang đăng nhập: hai cột 55/45 (giới thiệu nền #ECFDF5 có slogan, ảnh do chủ dự án cung cấp `public/images/login-boarding-house.webp`,
+  ba mục tính năng; form 400px, ô nhập 48px, nút #047857 chữ trắng). Dưới 1024px chỉ còn dải giới thiệu gọn + form. Giữ nguyên
+  validation, trạng thái đang đăng nhập, thông báo lỗi, API và session.
+- Kiểm tra: `pnpm lint`, `pnpm typecheck` ✅; `next build` (web) ✅; E2E `specs/auth.spec.ts` 12/12 ✅ (desktop + mobile); thử tay trên bản
+  demo ở 1440px và 390px: không tràn ngang, lỗi định dạng, sai mật khẩu báo lỗi, đăng nhập đúng vào Tổng quan.
