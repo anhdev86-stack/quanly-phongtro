@@ -13,7 +13,7 @@ export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>)
 export function Th({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn('border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-slate-600 uppercase', className)}
+      className={cn('border-b border-brand-100 bg-brand-50/80 px-3 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-brand-800 uppercase', className)}
       {...props}
     />
   );
@@ -24,5 +24,5 @@ export function Td({ className, ...props }: TdHTMLAttributes<HTMLTableCellElemen
 }
 
 export function Tr({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn('hover:bg-slate-50/60', className)} {...props} />;
+  return <tr className={cn('transition-colors hover:bg-brand-50/40', className)} {...props} />;
 }

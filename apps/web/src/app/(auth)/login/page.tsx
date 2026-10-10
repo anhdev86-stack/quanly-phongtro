@@ -29,7 +29,7 @@ export default function LoginPage() {
   const { errors } = form.formState;
 
   return (
-    <main className="flex min-h-full items-center justify-center px-4 py-12">
+    <main className="flex min-h-full items-center justify-center bg-gradient-to-br from-brand-100 via-white to-teal-100 px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <span className="flex size-11 items-center justify-center rounded-lg bg-brand-600 text-white">

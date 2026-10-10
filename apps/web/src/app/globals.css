@@ -1,12 +1,20 @@
 @import 'tailwindcss';
 
-/* Phong cách quản lý: nền sáng, nhấn xanh lá, chữ dễ đọc (MASTER_PLAN mục 12). */
+/* Phong cách quản lý: nền sáng, nhấn xanh mint, chữ dễ đọc (MASTER_PLAN mục 12). */
 @theme {
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-600: #16a34a;
-  --color-brand-700: #15803d;
-  --color-brand-800: #166534;
+  /* Tông xanh mint (chủ dự án chọn 10/10/2026). 600 = màu nút chính, 800–950 = thanh menu. */
+  --color-brand-50: #effcf7;
+  --color-brand-100: #d5f7ea;
+  --color-brand-200: #aeeed7;
+  --color-brand-300: #78dfbd;
+  --color-brand-500: #26c497;
+  --color-brand-600: #0fa57c;
+  --color-brand-700: #0b8566;
+  --color-brand-800: #0d6a53;
+  --color-brand-900: #0d5645;
+  --color-brand-950: #053128;
+  /* Nền trang ngả mint rất nhẹ cho đỡ đơn điệu. */
+  --color-canvas: #f1f8f5;
   --font-sans: var(--font-app), 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   /* Chữ to hơn mặc định khoảng 1px cho dễ đọc (chủ trọ dùng điện thoại/máy tính phổ thông). */
   --text-xs: 0.8125rem; /* 13px */
@@ -20,7 +28,7 @@ body {
 }
 
 body {
-  background-color: var(--color-slate-50);
+  background-color: var(--color-canvas);
   color: var(--color-slate-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

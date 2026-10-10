@@ -672,3 +672,11 @@ reports, transfer 8 ✅.
   ô mã tòa co giãn theo độ dài mã.
 - Kiểm tra: lint, typecheck ✅; ảnh chụp trước/sau (đăng nhập, Tổng quan, form ghi nhận thu, phòng, điện nước, thông báo, báo cáo, điện thoại);
   E2E auth, property, utilities, reports, payments, tenancy 33 ✅.
+
+## Điều chỉnh giao diện: tông xanh mint, nhiều màu hơn ✅
+
+Bảng màu `brand-*` đổi sang xanh mint (nút chính `#0fa57c`, nền trang `#f1f8f5`). Thanh menu nền mint đậm chuyển màu, mục đang chọn nền trắng;
+thanh trên cùng có ảnh đại diện chữ cái; tiêu đề trang có vạch màu; tiêu đề bảng nền mint nhạt. Tổng quan: ô “Tổng phòng” nền mint đậm có thanh
+lấp đầy, mỗi trạng thái phòng một màu + biểu tượng, ô tiền có biểu tượng và màu nhấn. Trang đăng nhập nền chuyển màu mint.
+Kiểm tra: lint, typecheck ✅; ảnh chụp đăng nhập, Tổng quan, phòng, điện nước, form ghi nhận thu, báo cáo, điện thoại; E2E auth, property,
+reports, payments, maintenance, permissions 34 ✅.

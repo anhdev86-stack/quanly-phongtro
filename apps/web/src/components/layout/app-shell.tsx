@@ -35,11 +35,11 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
               key={item.href}
               aria-disabled="true"
               title={`Sẽ có ở Phase ${phaseLabel(item.availableFromPhase)}`}
-              className="flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm text-slate-400"
+              className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-brand-200/50"
             >
               <Icon className="size-4" aria-hidden />
               <span className="flex-1">{item.label}</span>
-              <span className="rounded bg-slate-100 px-1.5 text-[10px] font-medium text-slate-400">P{phaseLabel(item.availableFromPhase)}</span>
+              <span className="rounded bg-white/10 px-1.5 text-[10px] font-medium">P{phaseLabel(item.availableFromPhase)}</span>
             </span>
           );
         }
@@ -50,11 +50,11 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
             onClick={() => setOpen(false)}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium',
-              active ? 'bg-brand-50 text-brand-800' : 'text-slate-700 hover:bg-slate-100',
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              active ? 'bg-white text-brand-800 shadow-sm' : 'text-brand-50/90 hover:bg-white/10 hover:text-white',
             )}
           >
-            <Icon className="size-4" aria-hidden />
+            <Icon className={cn('size-4', active ? 'text-brand-600' : 'text-brand-300')} aria-hidden />
             {item.label}
           </Link>
         );
@@ -64,7 +64,7 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
 
   return (
     <div className="flex min-h-full">
-      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
+      <aside className="hidden w-64 shrink-0 bg-gradient-to-b from-brand-800 via-brand-900 to-brand-950 lg:block">
         <Brand />
         {nav}
       </aside>
@@ -78,10 +78,10 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
             tabIndex={-1}
             onClick={() => setOpen(false)}
           />
-          <aside className="relative h-full w-72 bg-white shadow-xl">
+          <aside className="relative h-full w-72 overflow-y-auto bg-gradient-to-b from-brand-800 via-brand-900 to-brand-950 shadow-xl">
             <div className="flex items-center justify-between pr-2">
               <Brand />
-              <Button variant="ghost" size="sm" aria-label="Đóng menu" onClick={() => setOpen(false)}>
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" aria-label="Đóng menu" onClick={() => setOpen(false)}>
                 <X className="size-4" />
               </Button>
             </div>
@@ -91,12 +91,12 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4">
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 shadow-sm backdrop-blur">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="lg:hidden" aria-label="Mở menu" onClick={() => setOpen(true)}>
               <Menu className="size-5" />
             </Button>
-            <span className="truncate text-sm text-slate-500">{me.workspace.name}</span>
+            <span className="truncate text-sm font-medium text-brand-800">{me.workspace.name}</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
@@ -105,6 +105,12 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
               </p>
               <p className="text-xs text-slate-500">{me.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}</p>
             </div>
+            <span
+              aria-hidden
+              className="hidden size-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-semibold text-white shadow-sm sm:flex"
+            >
+              {initials(me.display_name)}
+            </span>
             <Button variant="outline" size="sm" onClick={onLogout} disabled={logout.isPending}>
               <LogOut className="size-4" aria-hidden />
               Đăng xuất
@@ -119,13 +125,19 @@ export function AppShell({ me, children }: { me: MeResponse; children: ReactNode
 
 function Brand() {
   return (
-    <div className="flex h-14 items-center gap-2 border-b border-slate-100 px-4">
-      <span className="flex size-8 items-center justify-center rounded-md bg-brand-600 text-white">
+    <div className="flex h-14 items-center gap-2 border-b border-white/10 px-4">
+      <span className="flex size-8 items-center justify-center rounded-lg bg-white text-brand-700 shadow-sm">
         <Building2 className="size-4" aria-hidden />
       </span>
-      <span className="font-semibold">Quản lý nhà trọ</span>
+      <span className="font-semibold text-white">Quản lý nhà trọ</span>
     </div>
   );
+}
+
+/** "Chủ trọ Demo" → "CD": chữ cái đầu của hai từ cuối, làm ảnh đại diện. */
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return words.slice(-2).map((w) => w[0]!.toUpperCase()).join('') || '?';
 }
 
 /** 8.5 là Phase 8B (MASTER_PLAN 16). */
