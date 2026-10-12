@@ -36,6 +36,9 @@ export function QrTransferInfo({ qr, size }: { qr: VietQrDto; size?: number }) {
         <dd className="font-semibold tabular">{formatVnd(qr.amount_vnd)}</dd>
         <dt className="text-slate-500">Nội dung</dt>
         <dd className="font-medium tabular">{qr.content}</dd>
+        {qr.test_mode ? (
+          <dd className="col-span-2 mt-1 rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-950">Môi trường thử nghiệm — không chuyển tiền thật</dd>
+        ) : null}
         {qr.is_demo ? (
           <dd className="col-span-2 mt-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">Tài khoản demo — không chuyển tiền thật. Cấu hình tài khoản thật ở Cấu hình → Tài khoản nhận tiền.</dd>
         ) : null}

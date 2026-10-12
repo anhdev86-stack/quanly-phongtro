@@ -1,6 +1,6 @@
 'use client';
 
-import { PAYMENT_METHOD_LABELS, POSTING_STATUS_LABELS } from '@ql-tro/shared';
+import { PAYMENT_METHOD_LABELS, PERMISSIONS, POSTING_STATUS_LABELS } from '@ql-tro/shared';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
@@ -11,13 +11,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field, Select, TextInput } from '@/components/ui/form';
 import { Table, Td, Th, Tr } from '@/components/ui/table';
+import { useCan } from '@/features/auth/permissions';
+import { BankTransactionsTab } from '@/features/bank/bank-transactions-tab';
 import { useDebts, usePayments } from '@/features/payments/api';
 import { useBuildings } from '@/features/property/api';
 import { formatBusinessDate, formatVnd, todayLocal } from '@/lib/format';
 
 function PaymentsContent() {
   const search = useSearchParams();
-  const [tab, setTab] = useState<'debts' | 'payments'>(search.get('tab') === 'payments' ? 'payments' : 'debts');
+  const can = useCan();
+  const bank = can(PERMISSIONS.BANK_TRANSACTIONS_VIEW);
+  const initial = search.get('tab');
+  const [tab, setTab] = useState<'debts' | 'payments' | 'bank'>(initial === 'payments' ? 'payments' : initial === 'bank' ? 'bank' : 'debts');
   const buildings = useBuildings();
   const [buildingId, setBuildingId] = useState('');
   return (
@@ -29,25 +34,30 @@ function PaymentsContent() {
             [
               ['debts', 'Công nợ'],
               ['payments', 'Phiếu thu'],
+              ['bank', 'Giao dịch ngân hàng'],
             ] as const
-          ).map(([k, l]) => (
-            <Button key={k} role="tab" aria-selected={tab === k} size="sm" variant={tab === k ? 'default' : 'outline'} onClick={() => setTab(k)}>
-              {l}
-            </Button>
-          ))}
-        </div>
-        <Field id="pay-building" label="Tòa" className="w-56">
-          <Select id="pay-building" value={buildingId} onChange={(e) => setBuildingId(e.target.value)}>
-            <option value="">Tất cả tòa</option>
-            {buildings.data?.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.code} — {b.name}
-              </option>
+          )
+            .filter(([k]) => k !== 'bank' || bank)
+            .map(([k, l]) => (
+              <Button key={k} role="tab" aria-selected={tab === k} size="sm" variant={tab === k ? 'default' : 'outline'} onClick={() => setTab(k)}>
+                {l}
+              </Button>
             ))}
-          </Select>
-        </Field>
+        </div>
+        {tab === 'bank' ? null : (
+          <Field id="pay-building" label="Tòa" className="w-56">
+            <Select id="pay-building" value={buildingId} onChange={(e) => setBuildingId(e.target.value)}>
+              <option value="">Tất cả tòa</option>
+              {buildings.data?.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.code} — {b.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
       </div>
-      {tab === 'debts' ? <DebtsTab buildingId={buildingId} /> : <PaymentsTab buildingId={buildingId} />}
+      {tab === 'debts' ? <DebtsTab buildingId={buildingId} /> : tab === 'bank' && bank ? <BankTransactionsTab /> : <PaymentsTab buildingId={buildingId} />}
     </>
   );
 }

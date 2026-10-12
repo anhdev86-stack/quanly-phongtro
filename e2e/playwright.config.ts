@@ -39,7 +39,17 @@ export default defineConfig({
       url: `http://localhost:${E2E_API_PORT}/api/v1/health/live`,
       cwd: ROOT,
       // Kho tệp E2E riêng (apps/api/.data/files-e2e), không lẫn tệp dev.
-      env: { DATABASE_URL: E2E_DATABASE_URL, API_PORT: String(E2E_API_PORT), NODE_ENV: 'test', LOG_LEVEL: 'warn', STORAGE_DIR: '.data/files-e2e' },
+      env: {
+        DATABASE_URL: E2E_DATABASE_URL,
+        API_PORT: String(E2E_API_PORT),
+        NODE_ENV: 'test',
+        LOG_LEVEL: 'warn',
+        STORAGE_DIR: '.data/files-e2e',
+        // D-047: giao dịch ngân hàng bằng nhà cung cấp giả lập.
+        BANK_INTEGRATION_MODE: 'mock',
+        BANK_PROVIDER: 'mock',
+        BANK_WEBHOOK_API_KEY: 'e2e-bank-webhook-key-0123456789',
+      },
       reuseExistingServer: true,
       timeout: 180_000,
     },

@@ -13,6 +13,7 @@
  * Việc còn lại để thử trên giao diện: chốt chỉ số tháng tiêu thụ 09/2026 rồi lập thông báo tháng 10/2026.
  */
 import { execFileSync, spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -126,6 +127,25 @@ function run(command, args, env, shell = false) {
 const step = process.argv[2];
 if (step === 'db' || step === 'reset') await resetDatabase();
 if (step === 'data' || step === 'reset') await createData();
-if (step === 'api') run(process.execPath, ['apps/api/dist/main.js'], { DATABASE_URL: DEMO_DATABASE_URL, API_PORT: '4200', STORAGE_DIR: '.data/files-demo', NODE_ENV: 'development', REMINDER_JOB_ENABLED: 'false', ZALO_ZNS_ACCESS_TOKEN: '', ZALO_ZNS_TEMPLATE_ID: '', SMS_API_URL: '', SMS_API_KEY: '', SMS_BRANDNAME: '' });
+// D-047: demo bật tích hợp ngân hàng ở chế độ mock (nhà cung cấp giả lập, không tiền thật). Khóa webhook sinh ngẫu nhiên mỗi lần chạy,
+// chỉ công cụ giả lập trong chính API dùng tới — không lưu vào git hay .env.
+if (step === 'api')
+  run(process.execPath, ['apps/api/dist/main.js'], {
+    DATABASE_URL: DEMO_DATABASE_URL,
+    API_PORT: '4200',
+    STORAGE_DIR: '.data/files-demo',
+    NODE_ENV: 'development',
+    REMINDER_JOB_ENABLED: 'false',
+    ZALO_ZNS_ACCESS_TOKEN: '',
+    ZALO_ZNS_TEMPLATE_ID: '',
+    SMS_API_URL: '',
+    SMS_API_KEY: '',
+    SMS_BRANDNAME: '',
+    BANK_INTEGRATION_MODE: 'mock',
+    BANK_PROVIDER: 'mock',
+    BANK_WEBHOOK_API_KEY: randomBytes(24).toString('hex'),
+    SEPAY_API_TOKEN: '',
+    BANK_MOCK_WEBHOOK_URL: '',
+  });
 if (step === 'web') run('pnpm', ['--filter', '@ql-tro/web', 'exec', 'next', 'dev', '--port', '3200'], { API_INTERNAL_URL: API, NEXT_DIST_DIR: '.next-demo' }, process.platform === 'win32');
 if (!['db', 'data', 'reset', 'api', 'web'].includes(step)) console.log('Dùng: node apps/api/prisma/tools/demo-utilities.mjs db | data | reset | api | web');

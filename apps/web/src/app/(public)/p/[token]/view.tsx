@@ -71,7 +71,9 @@ export function PublicInvoiceView({ token }: { token: string }) {
           <QrTransferInfo qr={inv.qr} />
         </section>
       ) : inv.remaining_vnd === '0' ? (
-        <p className="mt-4 rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Thông báo đã được thanh toán đủ. Cảm ơn bạn!</p>
+        <p className="mt-4 rounded-md bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <strong className="font-semibold">Đã thanh toán.</strong> Thông báo đã được thanh toán đủ. Cảm ơn bạn!
+        </p>
       ) : null}
       <p className="mt-6 text-center text-xs text-slate-500">Chứng từ nội bộ, không phải hóa đơn GTGT.</p>
     </main>
