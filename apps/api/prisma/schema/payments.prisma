@@ -5,6 +5,13 @@ enum PostingStatus {
   REVERSED
 }
 
+/// Nguồn phiếu thu (D-047).
+enum PaymentSource {
+  MANUAL
+  BANK_AUTO
+  BANK_RECONCILE
+}
+
 enum CreditApplicationStatus {
   ACTIVE
   REVERSED
@@ -28,10 +35,12 @@ model Payment {
   /// Người nhận tiền (cầm tiền mặt / quản lý tài khoản nhận chuyển khoản). Mặc định người ghi phiếu; dữ liệu cũ = created_by.
   receivedBy     String        @map("received_by") @db.Uuid
   createdBy      String        @map("created_by") @db.Uuid
+  source         PaymentSource @default(MANUAL)
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  tenancy     Tenancy             @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  tenancy     Tenancy                 @relation(fields: [tenancyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   allocations PaymentAllocation[]
+  bankLink    BankTransactionPayment?
 
   @@unique([workspaceId, number])
   @@index([tenancyId])

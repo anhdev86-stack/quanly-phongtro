@@ -55,6 +55,12 @@ import { PricesService } from './utilities/prices.service.js';
 import { SettingsService } from './utilities/settings.service.js';
 import { SubscriptionsService } from './utilities/subscriptions.service.js';
 import { UtilitiesController } from './utilities/utilities.controller.js';
+import { APP_CONFIG, type AppConfig } from '../config/env.js';
+import { PrismaService } from '../infrastructure/prisma/prisma.service.js';
+import { BANK_ADAPTER, createBankAdapter } from './bank/bank-adapter.js';
+import { BankController } from './bank/bank.controller.js';
+import { BankReversalObserver } from './bank/bank-reversal.observer.js';
+import { BankTransactionsService } from './bank/bank-transactions.service.js';
 
 /**
  * Các nghiệp vụ phụ thuộc chéo nhau (phòng ↔ giữ chỗ ↔ cọc ↔ lần thuê ↔ tính phí) nên nằm chung một module DI.
@@ -62,6 +68,7 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
  */
 @Module({
   controllers: [
+    BankController,
     BuildingsController,
     RoomsController,
     ReservationsController,
@@ -113,6 +120,10 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     NoticesService,
     SettlementsService,
     SettlementEventsObserver,
+    BankReversalObserver,
+    BankTransactionsService,
+    // D-047: off → null; mock/test/live theo cấu hình (thiếu khóa test/live đã bị chặn khi khởi động).
+    { provide: BANK_ADAPTER, useFactory: (config: AppConfig, prisma: PrismaService) => createBankAdapter(config, prisma), inject: [APP_CONFIG, PrismaService] },
     ReportsService,
     ReportsFinanceService,
     ExpensesService,
@@ -122,7 +133,11 @@ import { UtilitiesController } from './utilities/utilities.controller.js';
     AuditLogsService,
     RemindersService,
     { provide: DASHBOARD_TODO, useExisting: RemindersService },
-    { provide: REVERSAL_OBSERVERS, useFactory: (events: SettlementEventsObserver) => [events], inject: [SettlementEventsObserver] },
+    {
+      provide: REVERSAL_OBSERVERS,
+      useFactory: (events: SettlementEventsObserver, bank: BankReversalObserver) => [events, bank],
+      inject: [SettlementEventsObserver, BankReversalObserver],
+    },
     { provide: RESERVATION_EXTRAS, useClass: NoticeReservationExtras },
     { provide: DEPOSIT_REQUIREMENT, useClass: ContractDepositRequirement },
     { provide: RENTAL_MODE, useClass: ContractRentalMode },

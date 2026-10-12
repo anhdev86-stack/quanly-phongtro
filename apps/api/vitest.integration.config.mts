@@ -22,6 +22,10 @@ export default defineConfig({
       NODE_ENV: 'test',
       LOG_LEVEL: 'silent',
       REMINDER_JOB_ENABLED: 'false',
+      // D-047: tích hợp ngân hàng chạy bằng nhà cung cấp giả lập (không gọi dịch vụ ngoài).
+      BANK_INTEGRATION_MODE: 'mock',
+      BANK_PROVIDER: 'mock',
+      BANK_WEBHOOK_API_KEY: 'test-bank-webhook-key-0123456789',
       // Kho tệp của test: thư mục tạm riêng, không đụng dữ liệu dev.
       STORAGE_DIR: path.join(os.tmpdir(), 'ql-tro-test-files'),
       ...(testDatabaseUrl ? { DATABASE_URL: testDatabaseUrl } : {}),

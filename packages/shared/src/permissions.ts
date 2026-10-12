@@ -40,6 +40,9 @@ export const PERMISSIONS = {
   CREDIT_REFUND: 'credit.refund',
   DEPOSIT_RECORD: 'deposit.record',
   DEPOSIT_REFUND: 'deposit.refund',
+  /** Giao dịch ngân hàng tự động (D-047): xem danh sách/chi tiết; đối chiếu thủ công, đồng bộ, giả lập (mock). Mặc định chỉ chủ trọ. */
+  BANK_TRANSACTIONS_VIEW: 'bank_transactions.view',
+  BANK_TRANSACTIONS_RECONCILE: 'bank_transactions.reconcile',
 
   SETTLEMENTS_VIEW: 'settlements.view',
   SETTLEMENT_MANAGE: 'settlement.manage',
@@ -220,6 +223,8 @@ export const PERMISSION_GROUPS: { label: string; permissions: [PermissionCode, s
       [PERMISSIONS.CREDIT_REFUND, 'Hoàn tiền dư'],
       [PERMISSIONS.DEPOSIT_RECORD, 'Ghi nhận cọc'],
       [PERMISSIONS.DEPOSIT_REFUND, 'Hoàn cọc'],
+      [PERMISSIONS.BANK_TRANSACTIONS_VIEW, 'Xem giao dịch ngân hàng (trong tòa được giao)'],
+      [PERMISSIONS.BANK_TRANSACTIONS_RECONCILE, 'Đối chiếu giao dịch ngân hàng'],
       [PERMISSIONS.EXPENSES_VIEW, 'Xem chi phí'],
       [PERMISSIONS.EXPENSES_RECORD, 'Ghi chi phí'],
     ],

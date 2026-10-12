@@ -43,7 +43,7 @@ describe('OpenAPI (MASTER_PLAN mục 10: mọi endpoint có request/response và
     expect(problems).toEqual([]);
   });
 
-  it('chỉ login, refresh, logout, health và xem thông báo qua link là public (MASTER_PLAN 10)', () => {
+  it('chỉ login, refresh, logout, health, xem thông báo qua link và webhook ngân hàng (xác thực bằng khóa, D-047) là public (MASTER_PLAN 10)', () => {
     const publicOps = Object.entries(paths)
       .flatMap(([p, methods]) => Object.entries(methods).map(([m, op]) => ({ key: `${m.toUpperCase()} ${p}`, op })))
       .filter((x) => x.op['x-public'] === true)
@@ -56,6 +56,7 @@ describe('OpenAPI (MASTER_PLAN mục 10: mọi endpoint có request/response và
       'POST /api/v1/auth/login',
       'POST /api/v1/auth/logout',
       'POST /api/v1/auth/refresh',
+      'POST /api/v1/bank-webhooks/{provider}',
     ]);
   });
 });

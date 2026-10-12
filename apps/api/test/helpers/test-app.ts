@@ -5,6 +5,7 @@ import { COOKIE_NAMES, CSRF_HEADER } from '@ql-tro/shared';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module.js';
 import { configureApp } from '../../src/app.setup.js';
+import { APP_CONFIG, type AppConfig, parseEnv } from '../../src/config/env.js';
 import { CLOCK, FixedClock } from '../../src/infrastructure/clock/clock.js';
 import { PrismaService } from '../../src/infrastructure/prisma/prisma.service.js';
 import { LoginRateLimiter } from '../../src/modules/auth/login-rate-limiter.js';
@@ -24,12 +25,14 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
-export async function createTestApp(): Promise<TestApp> {
+/** `config`: ghi đè vài biến môi trường cho app này (VD chạy thử chế độ live của tích hợp ngân hàng). */
+export async function createTestApp(options: { config?: Partial<AppConfig> } = {}): Promise<TestApp> {
   const clock = new FixedClock(DEFAULT_TEST_INSTANT);
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule, ProbeModule] })
+  let builder = Test.createTestingModule({ imports: [AppModule, ProbeModule] })
     .overrideProvider(CLOCK)
-    .useValue(clock)
-    .compile();
+    .useValue(clock);
+  if (options.config) builder = builder.overrideProvider(APP_CONFIG).useValue({ ...parseEnv(), ...options.config });
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ bufferLogs: true });
   configureApp(app, { swagger: true });
   await app.init();

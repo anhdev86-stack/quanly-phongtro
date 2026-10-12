@@ -42,6 +42,15 @@ export interface ReversalObserver {
 }
 export const REVERSAL_OBSERVERS = Symbol('REVERSAL_OBSERVERS');
 
+/** Tùy chọn khi phiếu thu sinh từ giao dịch ngân hàng (D-047); mặc định là phiếu ghi tay của người dùng. */
+export interface PaymentCreateOptions {
+  source?: 'MANUAL' | 'BANK_AUTO' | 'BANK_RECONCILE';
+  /** Người thao tác ghi vào nhật ký; null = hệ thống (webhook). Mặc định `user.id`. */
+  auditActorId?: string | null;
+  /** Thông tin thêm cho nhật ký (nguồn BANK_WEBHOOK, mã giao dịch…). */
+  auditExtra?: Record<string, unknown>;
+}
+
 /**
  * Phiếu thu (MASTER_PLAN 9.1): xác nhận đã thực nhận, tạo payment POSTED + allocation trong một transaction; không vượt
  * `remaining` (khóa tenancy → các thông báo theo id); đảo toàn bộ, có lý do, cần finance.reverse. Cần Idempotency-Key.
@@ -67,7 +76,7 @@ export class PaymentsService {
   }
 
   /** Ghi phiếu thu trong transaction có sẵn (dùng cả cho thu nợ sau quyết toán). */
-  async createInTx(tx: Prisma.TransactionClient, user: AuthUser, input: z.output<typeof paymentCreateSchema>) {
+  async createInTx(tx: Prisma.TransactionClient, user: AuthUser, input: z.output<typeof paymentCreateSchema>, options: PaymentCreateOptions = {}) {
     if (input.paid_at > this.clock.today()) throw new AppError('BUSINESS_RULE_VIOLATION', 'Ngày thu không được ở tương lai.', { paid_at: ['Ngày ở tương lai.'] });
     await lockRows(tx, 'tenancies', [input.tenancy_id]);
     const tenancy = await tx.tenancy.findFirst({ where: { id: input.tenancy_id, room: this.rooms.roomWhere(user) } });
@@ -108,16 +117,17 @@ export class PaymentsService {
         note: input.note,
         receivedBy,
         createdBy: user.id,
+        source: options.source ?? 'MANUAL',
         allocations: { create: input.allocations.map((a) => ({ invoiceId: a.invoice_id, amountVnd: BigInt(a.amount_vnd) })) },
       },
     });
     await this.audit.record(tx, {
       workspaceId: user.workspaceId,
-      actorId: user.id,
+      actorId: options.auditActorId === undefined ? user.id : options.auditActorId,
       action: 'payment.create',
       entityType: 'payment',
       entityId: payment.id,
-      after: { number, ...input },
+      after: { number, ...input, ...(options.source && options.source !== 'MANUAL' ? { source: options.source } : {}), ...options.auditExtra },
     });
     for (const o of this.observers) await o.afterPayment?.(tx, user, tenancy.id, payment.id);
     return payment;
@@ -259,7 +269,8 @@ export class PaymentsService {
       reversed_at: iso(p.reversedAt),
       reversal_reason: p.reversalReason,
       received_by_name: names.get(p.receivedBy) ?? null,
-      created_by_name: names.get(p.createdBy) ?? null,
+      created_by_name: p.source === 'BANK_AUTO' ? 'Tự động (ngân hàng)' : (names.get(p.createdBy) ?? null),
+      source: p.source,
       created_at: iso(p.createdAt)!,
       allocations: p.allocations.map((a) => ({
         invoice_id: a.invoiceId,

@@ -68,6 +68,7 @@ model Invoice {
   creditsReceived    CreditApplication[] @relation("CreditTarget")
   creditRefunds      CreditRefund[]      @relation("CreditRefunds")
   shareLinks         ShareLink[]
+  bankTransactions   BankTransaction[]
   reminders          ReminderMessage[]
 
   @@unique([workspaceId, number])

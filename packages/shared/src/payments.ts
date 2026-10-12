@@ -82,6 +82,8 @@ export const paymentSchema = z.object({
   /** Người nhận tiền (D-045). */
   received_by_name: z.string().nullable(),
   created_by_name: z.string().nullable(),
+  /** MANUAL: người dùng ghi; BANK_AUTO: tự động từ giao dịch ngân hàng; BANK_RECONCILE: đối chiếu tay một giao dịch ngân hàng (D-047). */
+  source: z.enum(['MANUAL', 'BANK_AUTO', 'BANK_RECONCILE']),
   created_at: z.string(),
   allocations: z.array(z.object({ invoice_id: z.string(), invoice_number: z.string().nullable(), period: z.string().nullable(), amount_vnd: z.string() })),
 });
@@ -245,6 +247,8 @@ export const vietQrSchema = z.object({
   content: z.string(),
   /** Đang dùng tài khoản demo — không chuyển tiền thật. */
   is_demo: z.boolean(),
+  /** Tích hợp ngân hàng đang ở môi trường thử nghiệm (mock/test) — hiện “Môi trường thử nghiệm — không chuyển tiền thật” (D-047). */
+  test_mode: z.boolean(),
 });
 export type VietQrDto = z.infer<typeof vietQrSchema>;
 

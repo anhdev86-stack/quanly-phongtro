@@ -30,6 +30,18 @@ describe('cấu hình môi trường (Phase 9 — rà soát bảo mật)', () =>
     }
   });
 
+  it('D-047: tích hợp ngân hàng — mặc định tắt; mock/test/live thiếu cấu hình thì dừng khởi động, không tự chuyển sang mock', () => {
+    expect(parseEnv({ ...base }).BANK_INTEGRATION_MODE).toBe('off');
+    const key = 'webhook-key-0123456789';
+    expect(parseEnv({ ...base, BANK_INTEGRATION_MODE: 'mock', BANK_PROVIDER: 'mock', BANK_WEBHOOK_API_KEY: key })).toMatchObject({ BANK_INTEGRATION_MODE: 'mock' });
+    expect(() => parseEnv({ ...base, BANK_INTEGRATION_MODE: 'mock', BANK_PROVIDER: 'mock' })).toThrow(/BANK_WEBHOOK_API_KEY/);
+    expect(() => parseEnv({ ...base, BANK_INTEGRATION_MODE: 'mock', BANK_PROVIDER: 'sepay', BANK_WEBHOOK_API_KEY: key })).toThrow(/BANK_PROVIDER/);
+    expect(() => parseEnv({ ...base, BANK_INTEGRATION_MODE: 'live', BANK_PROVIDER: 'mock', BANK_WEBHOOK_API_KEY: key })).toThrow(/mock/);
+    expect(() => parseEnv({ ...base, BANK_INTEGRATION_MODE: 'live', BANK_PROVIDER: 'sepay', BANK_WEBHOOK_API_KEY: key })).toThrow(/SEPAY_API_TOKEN/);
+    expect(() => parseEnv({ ...base, BANK_INTEGRATION_MODE: 'test' })).toThrow(/BANK_PROVIDER/);
+    expect(parseEnv({ ...base, BANK_INTEGRATION_MODE: 'live', BANK_PROVIDER: 'sepay', BANK_WEBHOOK_API_KEY: key, SEPAY_API_TOKEN: 'sepay-token-0123456789' })).toMatchObject({ BANK_INTEGRATION_MODE: 'live' });
+  });
+
   it('log không chứa token của link xem thông báo', () => {
     expect(maskPublicToken('/api/v1/public/invoices/AbC123_-xyz?x=1')).toBe('/api/v1/public/invoices/[REDACTED]?x=1');
     expect(maskPublicToken('/api/v1/invoices/123')).toBe('/api/v1/invoices/123');

@@ -1,0 +1,117 @@
+// Giao dịch ngân hàng tự động (D-047): nhận qua webhook/đồng bộ từ nhà cung cấp, đối chiếu theo mã thanh toán, ghi phiếu thu.
+
+enum BankEnvironment {
+  MOCK
+  TEST
+  LIVE
+}
+
+enum BankDirection {
+  IN
+  OUT
+}
+
+enum BankTransactionStatus {
+  /// Đã lưu, chưa đối chiếu (hoặc đang xử lý).
+  RECEIVED
+  MATCHED
+  PENDING_REVIEW
+  ERROR
+  NOT_APPLICABLE
+}
+
+enum BankTransactionSource {
+  WEBHOOK
+  SYNC
+}
+
+enum BankPaymentLinkKind {
+  /// Phiếu thu được tạo từ giao dịch này (tự động hoặc đối chiếu tay).
+  CREATED
+  /// Liên kết với phiếu thu ghi tay có sẵn — không tạo khoản thu mới.
+  LINKED_EXISTING
+}
+
+/// Một giao dịch ngân hàng đã chuẩn hóa. Khóa chống trùng: (provider, environment, account_number, provider_transaction_id).
+model BankTransaction {
+  id                    String                @id @default(uuid(7)) @db.Uuid
+  workspaceId           String                @map("workspace_id") @db.Uuid
+  provider              String
+  environment           BankEnvironment
+  providerTransactionId String                @map("provider_transaction_id")
+  accountNumber         String                @map("account_number")
+  direction             BankDirection
+  amountVnd             BigInt                @map("amount_vnd")
+  currency              String                @default("VND")
+  content               String
+  referenceCode         String?               @map("reference_code")
+  occurredAt            DateTime              @map("occurred_at") @db.Timestamptz(3)
+  source                BankTransactionSource
+  /// Payload gốc của nhà cung cấp (không gồm header xác thực). Không trả ra frontend, không ghi log.
+  rawPayload            Json                  @map("raw_payload")
+  status                BankTransactionStatus @default(RECEIVED)
+  reason                String?
+  paymentCode           String?               @map("payment_code")
+  /// Thông báo khớp mã (kể cả khi chưa tự ghi nhận được) — dùng để giới hạn hiển thị theo tòa.
+  invoiceId             String?               @map("invoice_id") @db.Uuid
+  /// Phần không áp dụng (đã xử lý ngoài hệ thống, VD trả lại người gửi).
+  dismissedVnd          BigInt                @default(0) @map("dismissed_vnd")
+  resolvedBy            String?               @map("resolved_by") @db.Uuid
+  resolvedAt            DateTime?             @map("resolved_at") @db.Timestamptz(3)
+  resolutionNote        String?               @map("resolution_note")
+  /// Id trong “ngân hàng giả” khi giao dịch tạo bằng công cụ giả lập.
+  mockTransactionId     BigInt?               @map("mock_transaction_id")
+  receivedAt            DateTime              @default(now()) @map("received_at") @db.Timestamptz(3)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  invoice  Invoice?                 @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  payments BankTransactionPayment[]
+
+  @@unique([provider, environment, accountNumber, providerTransactionId])
+  @@index([workspaceId, status, occurredAt])
+  @@index([invoiceId])
+  @@map("bank_transactions")
+}
+
+/// Phiếu thu gắn với giao dịch ngân hàng. Một phiếu thu chỉ gắn tối đa một giao dịch; tổng phiếu POSTED ≤ số tiền giao dịch.
+model BankTransactionPayment {
+  id                String              @id @default(uuid(7)) @db.Uuid
+  bankTransactionId String              @map("bank_transaction_id") @db.Uuid
+  paymentId         String              @unique @map("payment_id") @db.Uuid
+  kind              BankPaymentLinkKind
+  createdBy         String?             @map("created_by") @db.Uuid
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  bankTransaction BankTransaction @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict)
+  payment         Payment         @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([bankTransactionId])
+  @@map("bank_transaction_payments")
+}
+
+/// Mốc đồng bộ (lấy bù giao dịch qua API) theo nhà cung cấp/môi trường/tài khoản.
+model BankSyncState {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  provider       String
+  environment    BankEnvironment
+  accountNumber  String          @map("account_number")
+  /// Id giao dịch lớn nhất đã xử lý xong (theo thứ tự tăng dần của nhà cung cấp).
+  lastProviderId String?         @map("last_provider_id")
+  lastSyncedAt   DateTime?       @map("last_synced_at") @db.Timestamptz(3)
+  lastError      String?         @map("last_error")
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([provider, environment, accountNumber])
+  @@map("bank_sync_states")
+}
+
+/// “Ngân hàng giả” cho môi trường mock: nguồn dữ liệu của API đối soát giả lập. Không dùng ở test/live.
+model MockBankTransaction {
+  id        BigInt   @id @default(autoincrement())
+  /// Payload đúng định dạng webhook SePay.
+  payload   Json
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("mock_bank_transactions")
+}

@@ -35,6 +35,35 @@ export const envSchema = z
     SMS_API_URL: optional(z.string().url()),
     SMS_API_KEY: optional(z.string().min(1)),
     SMS_BRANDNAME: optional(z.string().min(1)),
+    /**
+     * Giao dịch ngân hàng tự động (D-047). off: tắt; mock: nhà cung cấp giả lập (có công cụ giả lập, không tiền thật);
+     * test/live: nhà cung cấp thật (môi trường thử nghiệm / thật) — thiếu cấu hình thì dừng khởi động, KHÔNG tự chuyển sang mock.
+     */
+    BANK_INTEGRATION_MODE: z.enum(['off', 'mock', 'test', 'live']).default('off'),
+    BANK_PROVIDER: optional(z.enum(['mock', 'sepay'])),
+    /** Khóa xác thực webhook: nhà cung cấp gửi header `Authorization: Apikey <khóa>` (định dạng SePay). */
+    BANK_WEBHOOK_API_KEY: optional(z.string().min(16, 'BANK_WEBHOOK_API_KEY phải có ít nhất 16 ký tự.')),
+    /** SePay: API token (Bearer) để lấy bù giao dịch qua `GET /transactions/list`. */
+    SEPAY_API_TOKEN: optional(z.string().min(16)),
+    SEPAY_API_BASE_URL: z.string().url().default('https://my.sepay.vn/userapi'),
+    /** Mock: địa chỉ webhook công cụ giả lập gọi tới (mặc định chính API này qua loopback). */
+    BANK_MOCK_WEBHOOK_URL: optional(z.string().url()),
+  })
+  .superRefine((env, ctx) => {
+    const mode = env.BANK_INTEGRATION_MODE;
+    if (mode === 'off') return;
+    const need = (key: keyof typeof env, message: string) => {
+      if (!env[key]) ctx.addIssue({ code: 'custom', path: [key], message });
+    };
+    need('BANK_PROVIDER', `BANK_INTEGRATION_MODE=${mode} cần BANK_PROVIDER.`);
+    need('BANK_WEBHOOK_API_KEY', `BANK_INTEGRATION_MODE=${mode} cần BANK_WEBHOOK_API_KEY.`);
+    if (mode === 'mock' && env.BANK_PROVIDER && env.BANK_PROVIDER !== 'mock') {
+      ctx.addIssue({ code: 'custom', path: ['BANK_PROVIDER'], message: 'Chế độ mock chỉ dùng BANK_PROVIDER=mock.' });
+    }
+    if (mode !== 'mock') {
+      if (env.BANK_PROVIDER === 'mock') ctx.addIssue({ code: 'custom', path: ['BANK_PROVIDER'], message: `Chế độ ${mode} không được dùng nhà cung cấp mock.` });
+      if (env.BANK_PROVIDER === 'sepay') need('SEPAY_API_TOKEN', `BANK_PROVIDER=sepay (${mode}) cần SEPAY_API_TOKEN.`);
+    }
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;

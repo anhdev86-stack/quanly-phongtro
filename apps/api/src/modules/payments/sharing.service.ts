@@ -7,6 +7,7 @@ import { iso } from '../../common/dto/mappers.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { buildVietQr, toTransferText, transferContent } from '../../domain/payments/vietqr.js';
 import type { Invoice, PaymentAccount } from '../../generated/prisma/client.js';
+import { APP_CONFIG, type AppConfig } from '../../config/env.js';
 import { CLOCK, type Clock } from '../../infrastructure/clock/clock.js';
 import { type Db, PrismaService } from '../../infrastructure/prisma/prisma.service.js';
 import { runInTransaction } from '../../infrastructure/prisma/transaction.js';
@@ -39,6 +40,7 @@ export class SharingService {
     private readonly balances: InvoiceBalances,
     private readonly audit: AuditService,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
   // ------------------------------------------------------------------ Tài khoản nhận tiền
@@ -109,6 +111,7 @@ export class SharingService {
       amount_vnd: remaining.toString(),
       content,
       is_demo: account.isDemo,
+      test_mode: this.config.BANK_INTEGRATION_MODE === 'mock' || this.config.BANK_INTEGRATION_MODE === 'test',
     };
   }
 
