@@ -127,3 +127,9 @@ docs            Tiến độ, quyết định, runbook, kịch bản demo
 ```
 
 Quy ước code và kiến trúc: [CLAUDE.md](CLAUDE.md).
+
+## Tự động ghi nhận chuyển khoản (D-047)
+
+Mặc định tắt (`BANK_INTEGRATION_MODE=off`). Bật `mock` để thử với nhà cung cấp giả lập (không tiền thật) — xem `.env.example`; bản demo
+(`demo-utilities.mjs api`) và E2E đã bật sẵn mock. Bật SePay thật: [docs/RUNBOOK.md](docs/RUNBOOK.md#tự-động-ghi-nhận-chuyển-khoản-vietqr-d-047).
+Đã kiểm chứng bằng mock; chưa xác minh với ngân hàng thật.

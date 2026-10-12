@@ -360,6 +360,25 @@ Lưu ý:
 - **Tab Phiếu thu**: tra phiếu thu theo khoảng ngày, theo trạng thái (Đã ghi / Đã đảo). Trên mỗi phiếu có người nhận tiền.
 - **Sao kê công nợ** của từng khách nằm ở trang lần thuê: liệt kê theo ngày các khoản phát sinh, đã trả và còn lại.
 
+### Giao dịch ngân hàng (tự động ghi nhận chuyển khoản)
+
+Khi chủ trọ bật tính năng này, khách chuyển khoản theo mã QR thì phần mềm **tự ghi phiếu thu** — không cần bấm “Ghi nhận thu”.
+Hiện mới chạy ở **môi trường thử nghiệm**: QR ghi “Môi trường thử nghiệm — không chuyển tiền thật”.
+
+- **Thu tiền & Công nợ → tab Giao dịch ngân hàng** [Chủ trọ]: mọi giao dịch nhận được, kèm trạng thái:
+  - *Đã đối chiếu*: đã ghi phiếu thu (phiếu thu ghi “Tự động (ngân hàng)”).
+  - *Chờ đối chiếu*: phần mềm không chắc nên không tự ghi — ví dụ nội dung thiếu/sai mã, khách chuyển thừa, thông báo đã trả đủ,
+    hoặc thông báo đã có phiếu thu chuyển khoản ghi tay. Bấm vào dòng để xem lý do.
+  - *Không áp dụng*: tiền ra, hoặc đã đánh dấu không liên quan. *Lỗi*: bấm **Xử lý lại**.
+- Đối chiếu một giao dịch “Chờ đối chiếu”:
+  - **Ghi nhận vào thông báo**: chọn thông báo còn nợ (thông báo khớp mã có dấu ★) và số tiền.
+  - **Liên kết phiếu thu có sẵn**: khi đã ghi tay phiếu thu cho chính khoản chuyển này — chỉ liên kết, không cộng tiền lần hai.
+  - **Không áp dụng**: phần tiền không liên quan hoặc đã trả lại khách (bắt buộc lý do).
+- Khách chuyển **thừa**: phần mềm ghi đủ số còn nợ, phần dư nằm ở “Chờ đối chiếu” để chủ trọ quyết định.
+- Giao dịch đã đối chiếu xong thì không xử lý lại được. Đảo phiếu thu tự động thì giao dịch quay về “Chờ đối chiếu”.
+- **Đồng bộ giao dịch**: lấy bù các giao dịch nhà cung cấp chưa kịp gửi; giao dịch đã có không bị ghi trùng.
+- Dịch vụ ngân hàng gặp sự cố vẫn **Ghi nhận thu** thủ công như bình thường.
+
 ### Tiền khách trả dư (credit)
 
 Phần trả dư được giữ làm credit của lần thuê. Ở chi tiết thông báo, chủ trọ có hai lựa chọn:

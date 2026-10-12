@@ -1,12 +1,18 @@
 # MASTER PLAN — PHẦN MỀM QUẢN LÝ NHÀ TRỌ
 
-**Phiên bản:** 2.9 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
-**Ngày:** 07/10/2026  
+**Phiên bản:** 2.10 — Đặc tả triển khai MVP + V1.1 cho Claude Code  
+**Ngày:** 12/10/2026  
 **Ngôn ngữ UI:** Tiếng Việt  
 **Tiền tệ:** VND  
 **Múi giờ nghiệp vụ:** Asia/Ho_Chi_Minh
 
 > Đọc toàn bộ tài liệu trước khi triển khai. Đây là nguồn yêu cầu nghiệp vụ chính thức. Những mặc định kỹ thuật được ghi rõ bên dưới dùng để triển khai mà không phải tự đoán. Nếu có yêu cầu mới của chủ dự án, cập nhật tài liệu và ghi lại quyết định trước khi thay đổi nghiệp vụ.
+
+### Thay đổi so với v2.9 (yêu cầu của chủ dự án, 12/10/2026)
+
+| # | Mục | Thay đổi |
+|---|---|---|
+| 1 | 1.2, 9.6.1, 11.1 | **Tự động ghi nhận chuyển khoản qua VietQR** (trước đây ngoài V1.1): nhà cung cấp gửi giao dịch qua webhook → lưu → đối chiếu theo mã thanh toán → ghi phiếu thu bằng nghiệp vụ thu tiền hiện có. Có adapter (mock trước, SePay sau), chờ đối chiếu, đối chiếu tay, đồng bộ lấy bù. **Đã kiểm chứng bằng mock; chưa xác minh với ngân hàng/nhà cung cấp thật.** Quyết định: D-047. |
 
 ### Thay đổi so với v2.8 (yêu cầu của chủ dự án, 10/10/2026)
 
@@ -130,7 +136,7 @@ Phần mềm lưu điều khoản do hai bên thỏa thuận. Phần mềm khôn
 | Báo cáo | Dashboard, công nợ, cọc và khoản phải hoàn, thu tiền theo ngày, **doanh thu theo tháng**, xuất CSV các báo cáo này | Chi phí, doanh thu theo tòa/phòng/khoản thu, dòng tiền, lấp đầy đầy đủ, báo cáo phục vụ kê khai thuế |
 | Vận hành | Backup/restore database, runbook | Yêu cầu bảo trì, tệp đính kèm riêng tư (hợp đồng scan, ảnh CCCD) |
 
-**Ngoài V1.1:** ứng dụng mobile native, cổng người thuê, **đối soát ngân hàng tự động** (tự ghi nhận tiền vào), Zalo/SMS cho mục đích khác ngoài nhắc đóng tiền, smart meter/lock, ký điện tử, AI, multi-owner SaaS, hóa đơn điện tử.
+**Ngoài V1.1:** ứng dụng mobile native, cổng người thuê, Zalo/SMS cho mục đích khác ngoài nhắc đóng tiền, smart meter/lock, ký điện tử, AI, multi-owner SaaS, hóa đơn điện tử.
 
 **Phải đúng ngay từ MVP**, vì sửa về sau rất tốn kém: mô hình dữ liệu, ràng buộc database, idempotency, bất biến của chứng từ đã phát hành, audit backend, tiền lưu bằng số nguyên.
 
@@ -1099,7 +1105,7 @@ Bắt buộc có `Idempotency-Key` cho: nhận phòng, tiền giữ chỗ, gener
 - QR xuất hiện ở: trang chi tiết thông báo, trang in/lưu PDF, trang xem công khai qua link (bên dưới), và link trong tin nhắc đóng tiền.
 - Bên cạnh QR luôn ghi rõ ngân hàng, số tài khoản, tên chủ tài khoản, số tiền, nội dung, để khách chuyển tay nếu không quét được.
 
-**Ghi nhận tiền:** QR **không** làm thay đổi trạng thái. Khi thấy tiền vào tài khoản, chủ trọ/quản lý bấm “Ghi nhận thu” (mục 9.1), chọn phương thức QR, nhập mã giao dịch ngân hàng vào `reference`. Màn hình thu tiền gợi ý sẵn số tiền và nội dung theo thông báo để đối chiếu nhanh.
+**Ghi nhận tiền:** QR **không** làm thay đổi trạng thái. Khi bật tự động ghi nhận (9.6.1), giao dịch tiền vào hợp lệ từ nhà cung cấp tự tạo phiếu thu; nếu không, khi thấy tiền vào tài khoản, chủ trọ/quản lý bấm “Ghi nhận thu” (mục 9.1), chọn phương thức QR, nhập mã giao dịch ngân hàng vào `reference`. Màn hình thu tiền gợi ý sẵn số tiền và nội dung theo thông báo để đối chiếu nhanh.
 
 **Link xem thông báo** (`share_links`):
 
@@ -1107,6 +1113,33 @@ Bắt buộc có `Idempotency-Key` cho: nhận phòng, tiền giữ chỗ, gener
 - Hết hạn theo mục 2.2; thu hồi được bất cứ lúc nào.
 - Trang công khai `/p/<token>` chỉ hiển thị: tên nhà trọ, mã phòng, tháng, các dòng phí, tổng, đã trả, còn phải trả, hạn đóng, QR. **Không** hiển thị CCCD, số điện thoại, địa chỉ hay thông tin người khác.
 - Token sai, hết hạn hoặc bị thu hồi đều trả cùng một trang “Link không còn hiệu lực”. Có giới hạn số lần truy cập theo IP. Trang có `noindex`, không cache công khai.
+
+### 9.6.1 Tự động ghi nhận chuyển khoản (D-047)
+
+**Mục tiêu:** khách mở thông báo → quét QR → chuyển khoản → nhà cung cấp gửi giao dịch → hệ thống đối chiếu → ghi phiếu thu, cập nhật công nợ.
+Không phải hệ thống thanh toán riêng: mọi khoản thu đi qua `PaymentsService.createInTx` (không vượt `remaining`, khóa, audit).
+
+- **Mã thanh toán** = số thông báo bỏ gạch (`TB-202610-0001` → `TB2026100001`; FINAL `TT…`, điều chỉnh nợ `DCT…`). Duy nhất, ổn định, nằm trong
+  nội dung QR `<mã> <phòng>` ≤ 25 ký tự. Hạn đóng tiền và hạn link là hai khái niệm riêng; QR không tự hết hạn — giao dịch đến muộn hay chuyển thêm
+  từ QR cũ vẫn được lưu và xử lý.
+- **Adapter nhà cung cấp** (`modules/bank/bank-adapter.ts`): tự xác thực webhook, tự đọc payload về dạng chuẩn hóa (mã giao dịch, tài khoản,
+  chiều, số tiền, loại tiền, nội dung, mã tham chiếu, thời gian), tự lấy bù qua API. Mock dùng đúng định dạng/xác thực SePay. Chế độ
+  `BANK_INTEGRATION_MODE` = off | mock | test | live; test/live thiếu khóa thì dừng khởi động, không tự dùng mock.
+- **Webhook** `POST /api/v1/bank-webhooks/:provider` (public, xác thực theo adapter): lưu bền vững (unique provider + môi trường + tài khoản +
+  mã giao dịch) **trước** khi trả `{"success": true}`; gửi lại/đồng thời không ghi trùng. Không tin dữ liệu client, trang redirect hay ảnh chụp.
+- **Đối chiếu tự động** (chỉ tiền VÀO, VND, đúng tài khoản nhận đang dùng, đúng một mã):
+  - mã khớp, đủ/thiếu tiền → phiếu thu đúng số thực nhận (`source = BANK_AUTO`, người nhận = người quản lý tài khoản nhận, audit actor = hệ thống, nguồn `BANK_WEBHOOK`);
+  - thừa tiền → ghi đủ số còn nợ, **phần dư “Chờ đối chiếu”** (chưa có nghiệp vụ biến tiền thừa thành credit — cần chủ dự án quyết nếu muốn);
+  - thiếu/sai/nhiều mã, thông báo đã hủy hoặc đã trả đủ, sai tài khoản → “Chờ đối chiếu”, không đoán theo số tiền; tiền ra / sai loại tiền → “Không áp dụng”;
+  - thông báo đã có phiếu thu chuyển khoản ghi tay ±7 ngày chưa liên kết → chỉ liên kết khi chắc chắn (cùng mã tham chiếu + cùng số tiền), còn lại “Chờ đối chiếu”.
+- **Đối chiếu tay** (quyền `bank_transactions.reconcile`, mặc định chủ trọ): ghi vào thông báo (`BANK_RECONCILE`), liên kết phiếu thu có sẵn
+  (không tạo khoản thu mới), “Không áp dụng” phần dư (lý do), “Xử lý lại” giao dịch lỗi. Đã liên kết đủ thì không xử lý lại. Đảo phiếu thu liên
+  kết → giao dịch về “Chờ đối chiếu”.
+- **Đồng bộ lấy bù**: cùng luồng chống trùng; mốc (`bank_sync_states`) chỉ tiến sau khi lưu xong trang — lỗi giữa chừng chạy lại không mất giao dịch.
+- **Phạm vi xem**: chủ trọ thấy tất cả; người được cấp `bank_transactions.view` mà giới hạn theo tòa chỉ thấy giao dịch đã khớp thông báo
+  trong tòa được giao. Công cụ giả lập chỉ chạy khi mode = mock (backend chặn ở test/live).
+- Giao diện: Thu tiền & Công nợ → tab “Giao dịch ngân hàng”. QR/trang công khai ở mock/test ghi “Môi trường thử nghiệm — không chuyển tiền thật”.
+  Ghi nhận thu thủ công luôn giữ nguyên khi dịch vụ ngân hàng không hoạt động.
 
 ### 9.7 Nhắc đóng tiền qua Zalo/SMS
 
@@ -1194,7 +1227,7 @@ Bắt buộc có `Idempotency-Key` cho: nhận phòng, tiền giữ chỗ, gener
 
 ### 11.1 Permission
 
-Permission chi tiết theo dạng `module.action`, gồm thêm: `sensitive_data.view`, `files.identity.view`, `finance.reverse`, `settlement.approve`, `deposit.refund`, `credit.refund`, `holding.forfeit`, `contracts.cancel_signed`, `period.reopen`, `meter_prices.manage`, `payment_accounts.manage`, `invoices.share`, `reminders.view`, `reminders.manage`.
+Permission chi tiết theo dạng `module.action`, gồm thêm: `sensitive_data.view`, `files.identity.view`, `finance.reverse`, `settlement.approve`, `deposit.refund`, `credit.refund`, `holding.forfeit`, `contracts.cancel_signed`, `period.reopen`, `meter_prices.manage`, `payment_accounts.manage`, `invoices.share`, `reminders.view`, `reminders.manage`, `bank_transactions.view`, `bank_transactions.reconcile` (D-047, mặc định chỉ chủ trọ).
 
 ### 11.2 Vai trò: OWNER (Chủ trọ) và MANAGER (Quản lý)
 

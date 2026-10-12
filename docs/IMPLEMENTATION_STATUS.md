@@ -714,3 +714,29 @@ Liên kết: `font-medium text-brand-600`. Kiểm tra: lint, typecheck ✅; ản
 Tài liệu mới: `docs/GIOI_THIEU_DU_AN.md`, `docs/HUONG_DAN_SU_DUNG.md` (+ bản PDF, ảnh ở `docs/images/` chụp từ bản demo).
 
 Đã xóa `docs/HUONG_DAN_DEMO.md` theo yêu cầu chủ dự án (thay bằng `docs/HUONG_DAN_SU_DUNG.md`).
+
+## Tự động ghi nhận chuyển khoản qua VietQR — mock (D-047, 12/10/2026) ✅
+
+**Đã kiểm chứng bằng mock. Chưa xác minh với ngân hàng/SePay thật** (chưa có chủ trọ, tài khoản ngân hàng, dịch vụ trả phí).
+
+- Backend (253eb02): adapter nhà cung cấp (`MockBankAdapter` cùng định dạng/xác thực SePay; `SepayAdapter` theo tài liệu công khai, chưa chạy thật),
+  webhook `POST /api/v1/bank-webhooks/:provider` lưu bền vững rồi đối chiếu, mã thanh toán = số thông báo bỏ gạch, ghi phiếu thu qua
+  `PaymentsService.createInTx` (`source` BANK_AUTO/BANK_RECONCILE, audit nguồn BANK_WEBHOOK), chờ đối chiếu/đối chiếu tay/không áp dụng/xử lý lại,
+  đồng bộ lấy bù có mốc, công cụ giả lập chỉ ở mock (chặn ở backend), quyền `bank_transactions.view/.reconcile` (chủ trọ), cấu hình off/mock/test/live.
+- Migration `20261012020000_bank_transactions` (chỉ thêm bảng/cột, `payments.source` mặc định MANUAL; cấp 2 quyền mới cho OWNER). Đã sao lưu
+  `backups/ql_tro-20261012-112955.dump`, `backups/ql_tro_demo-20261012-112955.dump` rồi `prisma migrate deploy` cho `ql_tro` và `ql_tro_demo`;
+  `migrate diff` trên DB test: rỗng.
+- Web (6c696dc): Thu tiền & Công nợ → tab “Giao dịch ngân hàng” (lọc trạng thái, chi tiết + lý do, đối chiếu tay, đồng bộ, giả lập, gửi lại webhook);
+  QR/trang công khai ở mock ghi “Môi trường thử nghiệm — không chuyển tiền thật”; trang công khai đã trả đủ hiện “Đã thanh toán.”.
+- Demo `:4200` và E2E chạy ở chế độ mock (khóa webhook demo sinh ngẫu nhiên mỗi lần chạy). Dev `:4000` để `off`.
+
+| Kiểm tra | Kết quả |
+|---|---|
+| Unit `src/domain/bank` (mã thanh toán, định dạng SePay, kiểm tra trước) + `env.test` (mock/test/live thiếu khóa dừng khởi động) | ✅ |
+| Integration `test/bank/bank-transactions.int.test.ts` | ✅ 14/14 — đủ/thiếu/thừa/nhiều lần; sai/thiếu/nhiều mã; tiền ra; sai tài khoản; webhook giả/khóa sai/payload sai/sai nhà cung cấp; trùng + đồng thời; gửi lại sau lỗi; QR cũ/đã trả đủ; ghi tay trước webhook; đảo phiếu thu; mất webhook + đồng bộ (cả lỗi giữa chừng); giả lập qua HTTP thật; phân quyền theo tòa; chế độ live chặn giả lập |
+| `pnpm test:integration` (toàn bộ) | ✅ 31 file, 356 test (cập nhật test OpenAPI: webhook là endpoint public có xác thực khóa) |
+| E2E `specs/bank.spec.ts` (desktop + mobile) | ✅ 2/2 |
+| `pnpm lint`, `pnpm typecheck` | ✅ |
+
+Cảnh báo `pg` “client.query() when the client is already executing” xuất hiện cả ở test không dùng tính năng này (VD `test/property`) — có từ trước,
+không do D-047. Live: xem RUNBOOK “Tự động ghi nhận chuyển khoản”.

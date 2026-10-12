@@ -190,6 +190,35 @@ Mỗi lượt build image dùng vài GB build cache; kiểm tra dung lượng �
   đặt `ZALO_ZNS_*` / `SMS_*` trong `.env.production` (không lưu DB, không commit), hoàn thiện adapter, chủ trọ tự gửi thử tới số
   của mình trên môi trường thử rồi mới bật.
 
+## Tự động ghi nhận chuyển khoản (VietQR, D-047)
+
+**Trạng thái:** đã kiểm chứng bằng mock (integration 14 test + E2E). **Chưa xác minh với ngân hàng/SePay thật.**
+
+Chế độ (`BANK_INTEGRATION_MODE`): `off` (mặc định) · `mock` (giả lập, có công cụ giả lập) · `test` / `live` (SePay thật). Thiếu khóa ở test/live
+→ API không khởi động (không tự chuyển sang mock). Ghi nhận thu thủ công luôn dùng được khi dịch vụ lỗi.
+
+Demo mock: `node apps/api/prisma/tools/demo-utilities.mjs api` đã bật sẵn mock (khóa webhook ngẫu nhiên mỗi lần chạy).
+
+### Bật thật (sau khi có chủ trọ và tài khoản)
+
+1. **Chủ trọ** đăng ký SePay, xác minh, **liên kết tài khoản ngân hàng nhận tiền** (đúng tài khoản ở Cấu hình → Tài khoản nhận tiền; không dùng
+   tài khoản demo — ở live hệ thống từ chối tự ghi nhận vào tài khoản demo).
+2. Trong SePay cấu hình **mã thanh toán**: tiền tố `TB`, `TT`, `DCT`; hậu tố 10 chữ số (VD `TB2026100001`) — để SePay điền trường `code`.
+   (Hệ thống vẫn tự dò mã trong nội dung.)
+3. Tạo **webhook**: URL `https://<tên miền>/api/v1/bank-webhooks/sepay`, sự kiện có tiền vào (có thể cả tiền ra — sẽ được đánh dấu không áp dụng),
+   xác thực **API Key**: sinh khóa ngẫu nhiên ≥ 32 ký tự, đặt `BANK_WEBHOOK_API_KEY` trong `.env.production`. Webhook phải qua **HTTPS** (Caddy).
+4. Tạo **API token** SePay → `SEPAY_API_TOKEN` (dùng cho nút “Đồng bộ giao dịch”). Không commit, không lưu DB.
+5. Đặt `BANK_INTEGRATION_MODE=test`, `BANK_PROVIDER=sepay`, khởi động lại api. Kiểm thử bằng **số tiền nhỏ** chuyển tới chính tài khoản:
+   - đúng mã → phiếu thu “Tự động (ngân hàng)”, thông báo giảm nợ;
+   - gửi lại webhook từ giao diện SePay → không ghi trùng;
+   - nội dung không mã → “Chờ đối chiếu”; tắt webhook một lúc rồi bấm “Đồng bộ giao dịch” → lấy bù.
+   Xác minh lại các điểm chưa kiểm chứng: định dạng `transactionDate`, giá trị `transferType` cho tiền ra, xác thực header token của API danh sách,
+   thứ tự/giới hạn trả về của `transactions/list`.
+6. Đạt hết → đổi `BANK_INTEGRATION_MODE=live`. Theo dõi tab “Giao dịch ngân hàng” vài ngày đầu; giao dịch “Lỗi” bấm “Xử lý lại”.
+
+Thông tin cần chủ trọ cung cấp: tài khoản ngân hàng nhận tiền (ngân hàng, số TK, tên chủ TK), tài khoản SePay đã xác minh và gói dịch vụ,
+khóa webhook và API token (tự điền vào server), tên miền HTTPS của hệ thống, người được cấp quyền đối chiếu (nếu không chỉ chủ trọ).
+
 ## Docker mất cấu hình vị trí ổ dữ liệu (Windows, WSL 2)
 
 Dấu hiệu: `docker volume ls` trống/khác thường, database dev mất bảng; `%APPDATA%\Docker\settings-store.json` không còn khóa

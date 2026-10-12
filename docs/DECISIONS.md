@@ -509,3 +509,20 @@ trong interactive transaction), không phải code dự án. Code dự án khôn
   tạo dòng CREDIT theo ngày; tháng chưa phát hành (nháp) được FINAL bù đủ tháng. Mặc định nằm ở giao diện (API vẫn nhận ngày bất kỳ).
 - Báo trả phòng: ngày dự kiến mặc định cuối tháng hiện tại.
 
+## D-047 — Tự động ghi nhận chuyển khoản qua VietQR (chủ dự án yêu cầu 12/10/2026)
+
+- Chưa có chủ trọ/tài khoản ngân hàng/dịch vụ trả phí → làm và kiểm chứng bằng **mock**; chưa giao dịch thật.
+- **Nhà cung cấp đề xuất cho live: SePay.** Theo dõi tài khoản ngân hàng của chủ trọ, webhook cho mọi giao dịch (header `Authorization: Apikey`,
+  chống trùng theo `id`, phản hồi `{"success": true}`, thử lại tối đa 7 lần/5 giờ), API `transactions/list` có `since_id` để lấy bù — khớp mô hình
+  VietQR tĩnh + mã thanh toán trong nội dung. payOS dùng mô hình “link thanh toán” (orderCode, QR của payOS, chữ ký HMAC-SHA256 trên trường đã sắp
+  xếp): cần phiên thanh toán riêng cho từng thông báo → để sau, thêm adapter riêng nếu chủ trọ chọn. Không giả định các nhà cung cấp cùng payload.
+- Mock dùng **đúng định dạng và cách xác thực của SePay** để bật thật chỉ đổi cấu hình; “ngân hàng giả” (`mock_bank_transactions`) làm nguồn cho
+  đồng bộ giả lập (mô phỏng webhook bị mất).
+- Mã thanh toán = số thông báo bỏ gạch; dò trong nội dung sau khi bỏ ký tự không phải chữ/số (ngân hàng hay chèn tiền tố/dấu chấm).
+- Dữ liệu: `bank_transactions` (unique `provider, environment, account_number, provider_transaction_id`), `bank_transaction_payments`
+  (một phiếu thu gắn tối đa một giao dịch; tổng phiếu POSTED + phần không áp dụng ≤ số tiền giao dịch), `bank_sync_states`,
+  `mock_bank_transactions`; `payments.source` = MANUAL | BANK_AUTO | BANK_RECONCILE. `bank_transactions` khóa sau cùng trong LOCK_ORDER.
+- Trả thừa: không tạo quy tắc tiền mới (CLAUDE.md) — ghi đủ số còn nợ, phần dư chờ chủ trọ xử lý (ghi vào thông báo khác, hoặc không áp dụng +
+  lý do khi đã trả lại khách). Nếu muốn tự chuyển phần dư thành credit/trả trước, cần chủ dự án quyết.
+- Người nhận tiền của khoản tự động = người cấu hình tài khoản nhận (D-045); audit actor = null, nguồn `BANK_WEBHOOK`; phiếu thu hiện “Tự động (ngân hàng)”.
+- Quyền mới `bank_transactions.view`, `bank_transactions.reconcile` chỉ gán OWNER (migration `20261012020000_bank_transactions`); quản lý cần cấp riêng.
