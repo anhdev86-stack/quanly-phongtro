@@ -82,6 +82,11 @@ function DebtSection({ invoice, paying, setPaying }: { invoice: InvoiceDetail; p
                 <Td>
                   Phiếu thu {p.number} · {PAYMENT_METHOD_LABELS[p.method]}
                   {p.reference ? <span className="text-slate-500"> · {p.reference}</span> : null}
+                  {p.source === 'BANK_AUTO' ? (
+                    <div className="text-xs font-medium text-emerald-700">Tự động ghi nhận từ giao dịch ngân hàng</div>
+                  ) : p.source === 'BANK_RECONCILE' ? (
+                    <div className="text-xs text-slate-500">Đối chiếu từ giao dịch ngân hàng</div>
+                  ) : null}
                   {p.received_by_name ? <div className="text-xs text-slate-500">Người nhận: {p.received_by_name}</div> : null}
                   {p.status === 'REVERSED' ? (
                     <Badge tone="gray" className="ml-1">

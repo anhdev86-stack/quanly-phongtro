@@ -51,8 +51,12 @@ Quản lý chỉ thấy dữ liệu của các tòa được giao.
   - **Tài chính**: Thông báo tiền phòng, Thu tiền & Công nợ, Cọc & Trả phòng, Chi phí, Báo cáo, Nhắc đóng tiền.
   - **Hệ thống**: Nhật ký, Cấu hình.
 - Trên máy tính bảng, menu thu gọn thành cột biểu tượng; rê chuột vào biểu tượng để xem tên mục.
-- Trên điện thoại, bấm nút ☰ (**Mở menu**) để mở menu.
+- Trên điện thoại, bấm nút ☰ (**Mở menu**) để mở menu. Các bảng dữ liệu hiện thành từng thẻ, mỗi dòng ghi tên cột bên trái —
+  không phải vuốt ngang.
 - Mục nào bạn không có quyền sẽ không hiện trong menu.
+
+> **Mở trên điện thoại:** dùng cùng đường link với máy tính, giao diện tự sắp xếp theo màn hình. Khi chạy thử trên máy tính ở nhà,
+> điện thoại phải cùng mạng Wi-Fi và mở bằng địa chỉ IP của máy tính (ví dụ `http://192.168.1.50:3200`), không dùng `127.0.0.1`.
 
 ### Tổng quan
 
@@ -77,7 +81,8 @@ tháng 10, các dịch vụ và các dòng điều chỉnh (nếu có).
 | Sau khi chốt đủ | **Lập thông báo tháng M+1**: Xem trước → Tạo nháp ([mục 10](#10-thông-báo-tiền-phòng)) | Cả hai |
 | Ngay sau đó | Kiểm tra nháp → **Phát hành** | Chủ trọ |
 | Sau khi phát hành | Gửi khách **link** hoặc bản in có mã QR | Cả hai |
-| Đến hạn là ngày 5 | Khách chuyển khoản hoặc trả tiền mặt → **Ghi nhận thu** ([mục 11](#11-thu-tiền-và-công-nợ)) | Cả hai |
+| Đến hạn là ngày 5 | Khách quét QR chuyển khoản → **hệ thống tự ghi nhận**, thông báo tự thành “Đã thu đủ”. Khách trả tiền mặt → **Ghi nhận thu** ([mục 11](#11-thu-tiền-và-công-nợ)) | Cả hai |
+| Hằng ngày / khi có báo | Xem **Thu tiền & Công nợ → Giao dịch ngân hàng**, xử lý các dòng **Chờ đối chiếu** | Chủ trọ |
 | Sau hạn | Xem **Thu tiền & Công nợ → Chỉ quá hạn**; hệ thống nhắc qua Zalo/SMS nếu đã bật | Cả hai |
 | Cuối tháng | Xem **Báo cáo**, xuất CSV nếu cần | Chủ trọ |
 
@@ -311,10 +316,19 @@ Lưu ý:
   - **Điều chỉnh ngay** [Chủ trọ]: lập thông báo điều chỉnh khi cần sửa một thông báo đã phát hành.
   - **Hủy thông báo** [Chủ trọ]: chỉ hủy được khi chưa thu đồng nào.
 - Thẻ **Thanh toán**:
-  - **Mã VietQR** có sẵn số tiền còn phải trả và nội dung chuyển khoản dạng `<số thông báo> <mã phòng>`.
+  - **Mã VietQR** có sẵn số tiền còn phải trả (tính lại mỗi lần mở) và nội dung chuyển khoản dạng `<số thông báo> <mã phòng>`.
+    Mã thông báo trong nội dung (ví dụ `TB2026100001`) là **mã thanh toán** để hệ thống tự nhận ra khoản chuyển thuộc thông báo nào.
+    Đang ở môi trường thử nghiệm thì QR ghi “Môi trường thử nghiệm — không chuyển tiền thật”.
   - Nút **Sao chép link gửi khách**: dán link vào Zalo/tin nhắn. Khách mở link xem thông báo và mã QR mà không cần đăng nhập.
     Link có thời hạn; bấm **Thu hồi** để vô hiệu link ngay.
-  - Danh sách phiếu thu đã ghi cho thông báo này.
+  - Danh sách phiếu thu đã ghi cho thông báo này; phiếu tự động ghi “Tự động ghi nhận từ giao dịch ngân hàng”.
+  - Đã thu đủ thì mã QR tự ẩn.
+
+![Mã QR trên thông báo](images/20-qr-thong-bao.jpg)
+
+Khách mở link trên điện thoại sẽ thấy các khoản, số còn phải trả và mã QR:
+
+![Khách xem link trên điện thoại](images/21-khach-xem-link-qr.jpg)
 
 > Thông báo đã phát hành **không sửa được số tiền**. Phát hiện sai thì dùng **Điều chỉnh ngay**: phần mềm lập dòng điều chỉnh
 > (cộng hoặc trừ) có liên kết với thông báo gốc.
@@ -346,7 +360,8 @@ Chỉ ghi khi **tiền đã thực nhận**: đã cầm tiền mặt, hoặc đ�
 Lưu ý:
 
 - Không có nút “đánh dấu đã thu”: phải có phiếu thu thì trạng thái mới đổi.
-- Khách quét QR **không** tự ghi nhận vào phần mềm. Thấy tiền vào tài khoản rồi mới bấm **Ghi nhận thu**.
+- Khách chuyển khoản qua QR: khi đã bật tự động ghi nhận, **không cần bấm Ghi nhận thu** (xem phần “Giao dịch ngân hàng” bên dưới).
+  Nếu chưa bật, thấy tiền vào tài khoản rồi mới bấm **Ghi nhận thu**. Khách gửi ảnh chụp chuyển khoản không phải căn cứ để ghi thu.
 - Ghi sai thì **Đảo phiếu thu** kèm lý do [Chủ trọ]. Phiếu thu không bị xóa mà được đánh dấu “Đã đảo”.
 
 ### Thu tiền & Công nợ
@@ -365,6 +380,23 @@ Lưu ý:
 Khi chủ trọ bật tính năng này, khách chuyển khoản theo mã QR thì phần mềm **tự ghi phiếu thu** — không cần bấm “Ghi nhận thu”.
 Hiện mới chạy ở **môi trường thử nghiệm**: QR ghi “Môi trường thử nghiệm — không chuyển tiền thật”.
 
+**Trạng thái tự cập nhật thế nào:**
+
+1. Khách quét QR, chuyển khoản đúng nội dung có mã thông báo.
+2. Ngân hàng báo tiền vào → hệ thống tìm mã thông báo trong nội dung → ghi phiếu thu “Tự động (ngân hàng)”.
+3. Thông báo đổi sang **Thu một phần** hoặc **Đã thu đủ**; công nợ, báo cáo, tổng quan cập nhật theo; mã QR còn lại số tiền chưa trả
+   (hoặc ẩn đi khi đã đủ). Khách mở lại link thấy **“Đã thanh toán.”**
+
+![Thông báo tự chuyển sang Đã thu đủ](images/25-thong-bao-tu-dong-da-thu.jpg)
+
+![Khách mở lại link: Đã thanh toán](images/26-khach-da-thanh-toan.jpg)
+
+**Theo dõi giao dịch:**
+
+![Danh sách giao dịch ngân hàng](images/22-giao-dich-ngan-hang.jpg)
+
+![Chi tiết giao dịch đã đối chiếu](images/23-chi-tiet-giao-dich.jpg)
+
 - **Thu tiền & Công nợ → tab Giao dịch ngân hàng** [Chủ trọ]: mọi giao dịch nhận được, kèm trạng thái:
   - *Đã đối chiếu*: đã ghi phiếu thu (phiếu thu ghi “Tự động (ngân hàng)”).
   - *Chờ đối chiếu*: phần mềm không chắc nên không tự ghi — ví dụ nội dung thiếu/sai mã, khách chuyển thừa, thông báo đã trả đủ,
@@ -378,6 +410,12 @@ Hiện mới chạy ở **môi trường thử nghiệm**: QR ghi “Môi trư�
 - Giao dịch đã đối chiếu xong thì không xử lý lại được. Đảo phiếu thu tự động thì giao dịch quay về “Chờ đối chiếu”.
 - **Đồng bộ giao dịch**: lấy bù các giao dịch nhà cung cấp chưa kịp gửi; giao dịch đã có không bị ghi trùng.
 - Dịch vụ ngân hàng gặp sự cố vẫn **Ghi nhận thu** thủ công như bình thường.
+
+![Giao dịch chờ đối chiếu: lý do và cách xử lý](images/24-cho-doi-chieu.jpg)
+
+Trên điện thoại, danh sách giao dịch hiện thành thẻ:
+
+![Giao dịch ngân hàng trên điện thoại](images/27-dien-thoai-giao-dich.jpg)
 
 ### Tiền khách trả dư (credit)
 
@@ -560,9 +598,18 @@ Tiền phòng thu trước cho tháng đang ở. Điện nước phải đợi c
 Tiền phòng tháng 9 đã thu đủ từ thông báo tháng 9. Khi trả phòng, phần còn lại thường chỉ là tiền điện nước tháng 9 tính đến ngày
 bàn giao, cùng các khoản hư hỏng nếu có. Tất cả nằm trong quyết toán trả phòng.
 
+**Khách đã chuyển khoản qua QR, thông báo có tự cập nhật không?**
+Có, khi đã bật tự động ghi nhận: thông báo tự sang “Đã thu đủ” (hoặc “Thu một phần”), khách mở lại link thấy “Đã thanh toán”.
+Hiện tính năng chạy ở môi trường thử nghiệm; bật với tiền thật cần đăng ký SePay (xem RUNBOOK).
+
 **Đã thấy khách chuyển khoản nhưng thông báo vẫn “Chưa thu”?**
-Phần mềm không tự đọc tài khoản ngân hàng. Bấm **Ghi nhận thu** trên thông báo, chọn phương thức Chuyển khoản hoặc Quét QR và
-nhập mã giao dịch.
+Mở **Thu tiền & Công nợ → Giao dịch ngân hàng**: nếu giao dịch ở “Chờ đối chiếu” (thường do khách ghi sai/thiếu nội dung), bấm vào
+dòng → **Ghi nhận vào thông báo**. Nếu không thấy giao dịch, bấm **Đồng bộ giao dịch**. Chưa bật tự động thì bấm **Ghi nhận thu** trên
+thông báo, chọn Chuyển khoản hoặc Quét QR và nhập mã giao dịch.
+
+**Khách chuyển thừa tiền?**
+Phần mềm ghi đủ số còn nợ; phần dư nằm ở “Chờ đối chiếu”. Chủ trọ ghi phần dư vào thông báo khác của khách, hoặc trả lại khách rồi
+bấm **Không áp dụng** kèm lý do.
 
 **Ghi nhận thu nhầm số tiền?**
 Chủ trọ bấm **Đảo phiếu thu** (ghi lý do), rồi ghi nhận lại số đúng.
@@ -577,6 +624,7 @@ Không bắt buộc. Phần mềm tự xem là thuê theo tháng và tiếp tụ
 Đó là quyền mặc định của chủ trọ. Chủ trọ có thể cấp riêng ở **Cấu hình → Người dùng & phân quyền → Quyền**.
 
 **Dùng trên điện thoại được không?**
-Được. Chốt chỉ số điện nước được thiết kế cho điện thoại; các trang khác cũng tự co theo màn hình.
+Được, trên cả iPhone và Android, bằng trình duyệt (Safari, Chrome, Samsung Internet), không cần cài app. Giao diện tự sắp xếp theo
+màn hình: menu thành nút ☰, bảng thành thẻ. Chốt chỉ số điện nước được thiết kế riêng cho điện thoại.
 
 ![Tổng quan trên điện thoại](images/18-dien-thoai-tong-quan.jpg)

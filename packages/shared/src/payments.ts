@@ -132,6 +132,8 @@ export const invoiceSettlementsSchema = z.object({
       status: z.enum(['POSTED', 'REVERSED']),
       /** Người nhận tiền (D-045). */
       received_by_name: z.string().nullable(),
+      /** Nguồn phiếu thu (D-047): BANK_AUTO = tự động từ giao dịch ngân hàng. */
+      source: z.enum(['MANUAL', 'BANK_AUTO', 'BANK_RECONCILE']),
     }),
   ),
   deposits: z.array(z.object({ deposit_transaction_id: z.string(), amount_vnd: z.string(), paid_at: z.string().nullable(), active: z.boolean() })),

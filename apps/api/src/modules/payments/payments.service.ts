@@ -203,6 +203,7 @@ export class PaymentsService {
         reference: a.payment.reference,
         status: a.payment.status,
         received_by_name: receivers.get(a.payment.receivedBy) ?? null,
+        source: a.payment.source,
       })),
       deposits: deposits.map((d) => ({ deposit_transaction_id: d.depositTransactionId, amount_vnd: d.amountVnd.toString(), paid_at: dayOrNull(d.depositTransaction.paidAt), active: !dead.has(d.depositTransactionId) })),
       credits_received: received.map((c) => ({ id: c.id, credit_invoice_id: c.creditInvoiceId, credit_invoice_number: c.creditInvoice.number, amount_vnd: c.amountVnd.toString(), status: c.status })),

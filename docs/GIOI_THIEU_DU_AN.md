@@ -16,7 +16,7 @@ nhận phòng, hợp đồng, chốt điện nước, thông báo tiền phòng,
 | Mục | Nội dung |
 |---|---|
 | Người dùng | Chủ trọ (toàn quyền, mọi tòa) và Quản lý (trong tòa được giao) |
-| Thiết bị | Máy tính là chính; dùng tốt trên máy tính bảng và điện thoại (chốt chỉ số điện nước ưu tiên điện thoại) |
+| Thiết bị | Một đường link dùng cho máy tính, máy tính bảng và điện thoại; giao diện tự sắp xếp theo màn hình (trên điện thoại menu thành nút ☰, bảng thành thẻ). Chốt chỉ số điện nước ưu tiên điện thoại |
 | Ngôn ngữ, tiền tệ | Tiếng Việt; tiền VND không có số lẻ; ngày theo giờ Việt Nam |
 | Chứng từ | Thông báo tiền phòng, phiếu thu, biên bản quyết toán trả phòng. Đây là **chứng từ nội bộ**, không phải hóa đơn GTGT hay hóa đơn điện tử |
 
@@ -61,14 +61,51 @@ không tự mất tiền: hoàn hay giữ lại do chủ trọ quyết định v
 - Quy tắc thu: **tiền phòng thu trước, điện nước thu sau.** Thông báo tháng 10 gồm tiền phòng tháng 10 và điện nước tháng 9,
   cộng dịch vụ và các dòng điều chỉnh nếu có.
 - Thông báo đã phát hành không bị sửa số tiền. Chênh lệch về sau được ghi thành dòng điều chỉnh có liên kết.
-- Mỗi thông báo có **mã VietQR** (đúng số tiền và nội dung chuyển khoản), **link gửi khách** có thời hạn, và **trang in / lưu PDF**.
+- Mỗi thông báo có **mã VietQR** (đúng số tiền còn nợ và nội dung chuyển khoản), **link gửi khách** có thời hạn, và **trang in / lưu PDF**.
 
 ![Chi tiết thông báo tiền phòng](images/09-chi-tiet-thong-bao.jpg)
 
+### Thanh toán bằng mã QR — tự động cập nhật trạng thái
+
+Khách không cần cài app: mở link thông báo trên điện thoại, quét mã QR bằng app ngân hàng là chuyển đúng số tiền, đúng nội dung.
+Khi tiền vào tài khoản, ngân hàng (qua dịch vụ trung gian) báo về hệ thống và **thông báo tự chuyển sang “Đã thu đủ”** — chủ trọ
+không phải ngồi đối chiếu sao kê.
+
+1. **Mã QR trên thông báo**: chứa tài khoản nhận, **số tiền còn nợ tại thời điểm mở** và nội dung chuyển khoản là mã thông báo
+   (ví dụ `TB2026100001 A303`). Khách trả một phần thì lần mở sau QR chỉ còn số tiền còn lại.
+
+   ![Mã QR trên thông báo](images/20-qr-thong-bao.jpg)
+
+2. **Khách mở link trên điện thoại** (không cần đăng nhập) → quét QR → chuyển khoản.
+
+   ![Khách xem thông báo và mã QR trên điện thoại](images/21-khach-xem-link-qr.jpg)
+
+3. **Hệ thống nhận giao dịch và đối chiếu**: tìm mã thông báo trong nội dung chuyển khoản → tự ghi phiếu thu
+   “Tự động (ngân hàng)” → công nợ giảm ngay. Mọi giao dịch hiện ở **Thu tiền & Công nợ → Giao dịch ngân hàng**.
+
+   ![Danh sách giao dịch ngân hàng](images/22-giao-dich-ngan-hang.jpg)
+
+4. **Trạng thái cập nhật ở mọi nơi**: thông báo thành “Đã thu đủ”, mã QR tự ẩn; khách mở lại link thấy **“Đã thanh toán.”**
+
+   ![Thông báo tự chuyển sang Đã thu đủ](images/25-thong-bao-tu-dong-da-thu.jpg)
+
+   ![Khách mở lại link: Đã thanh toán](images/26-khach-da-thanh-toan.jpg)
+
+5. **Trường hợp không chắc chắn thì không tự đoán**: chuyển thiếu mã/sai mã, chuyển thừa, thông báo đã trả đủ… được đưa vào
+   **“Chờ đối chiếu”** kèm lý do để chủ trọ xử lý bằng một cú bấm. Cùng một giao dịch gửi lại nhiều lần cũng chỉ ghi một lần.
+
+   ![Giao dịch chờ đối chiếu và cách xử lý](images/24-cho-doi-chieu.jpg)
+
+> **Hiện trạng:** tính năng đã chạy hoàn chỉnh ở **môi trường thử nghiệm** (ngân hàng giả lập, QR ghi “Môi trường thử nghiệm —
+> không chuyển tiền thật”). Muốn dùng với tiền thật, chủ trọ cần đăng ký dịch vụ SePay và liên kết tài khoản ngân hàng nhận tiền
+> (các bước trong [RUNBOOK.md](RUNBOOK.md)). Trong lúc chưa bật hoặc khi dịch vụ gặp sự cố, vẫn ghi nhận thu thủ công như bình thường.
+
 ### Thu tiền và công nợ
 
-- Ghi nhận thu nhiều lần (thu một phần được) bằng tiền mặt, chuyển khoản hoặc quét QR. Mỗi phiếu thu ghi rõ **người nhận tiền**.
-- Không có nút “đánh dấu đã thu”: trạng thái chỉ đổi khi có phiếu thu thật. Tạo hay quét QR **không** được xem là đã nhận tiền.
+- Chuyển khoản qua QR được **tự động ghi nhận** (xem mục trên). Tiền mặt và các khoản khác: chủ trọ/quản lý bấm **Ghi nhận thu**,
+  thu nhiều lần được (thu một phần). Mỗi phiếu thu ghi rõ **người nhận tiền** và nguồn (ghi tay hay tự động từ ngân hàng).
+- Không có nút “đánh dấu đã thu”: trạng thái chỉ đổi khi có tiền thật — ngân hàng báo tiền vào, hoặc người thu ghi phiếu thu.
+  Việc khách quét QR hay gửi ảnh chụp chuyển khoản **không** làm đổi trạng thái.
 - Ghi sai thì đảo phiếu thu kèm lý do, không xóa.
 - Công nợ theo từng lần thuê, gồm cả khách đã trả phòng mà còn nợ; tách riêng phần quá hạn.
 
@@ -101,6 +138,7 @@ không tự mất tiền: hoàn hay giữ lại do chủ trọ quyết định v
 |---|---|---|
 | Thấy ngay phòng trống, tiền phải thu, nợ quá hạn của mọi tòa trên một màn hình | Danh sách “Việc cần xử lý” nhắc chốt chỉ số, thông báo nháp, nợ quá hạn, tạm trú… | Nhận thông báo rõ từng khoản, có khoảng ngày tính tiền |
 | Tiền tính tự động theo một quy tắc, không cộng tay, không sót phòng | Chốt điện nước ngay trên điện thoại khi đi từng phòng | Quét QR đúng số tiền, đúng nội dung chuyển khoản |
+| Khách chuyển khoản là tự gạch nợ, không phải dò sao kê ngân hàng | Biết ngay phòng nào đã trả mà không cần hỏi chủ trọ | Chuyển xong mở lại link thấy ngay “Đã thanh toán” |
 | Mỗi phiếu thu ghi người nhận tiền; mọi sửa đổi có nhật ký | Chỉ thấy tòa được giao, không lo thao tác nhầm tòa khác | Xem thông báo qua link mà không cần tài khoản |
 | Cọc và tiền giữ chỗ tách khỏi doanh thu, biết rõ khoản nào phải hoàn | Thao tác theo từng bước có kiểm tra, khó nhập sai | Khi trả phòng có biên bản quyết toán minh bạch |
 | Báo cáo doanh thu, dòng tiền, lấp đầy; xuất CSV | | |
@@ -122,6 +160,7 @@ không tự mất tiền: hoàn hay giữ lại do chủ trọ quyết định v
 | Chốt chỉ số điện nước | Có | Có (không thay đồng hồ) |
 | Thông báo tiền phòng | Tạo, phát hành, điều chỉnh, hủy | Tạo nháp, xem, gửi link cho khách |
 | Thu tiền | Ghi nhận, đảo | Ghi nhận |
+| Giao dịch ngân hàng (tự động ghi nhận) | Xem, đối chiếu, đồng bộ | Không (chủ trọ cấp riêng được; chỉ thấy giao dịch của tòa được giao) |
 | Trả phòng | Duyệt, hoàn tất, hoàn cọc | Báo trả, lập nháp quyết toán |
 | Báo cáo, chi phí, cấu hình, người dùng | Có | Không (chi phí chỉ xem) |
 
@@ -130,8 +169,9 @@ Chủ trọ có thể **cấp thêm hoặc thu hồi từng quyền** cho từng
 ## 5. Phạm vi và giới hạn
 
 - Không xuất hóa đơn GTGT hay hóa đơn điện tử. Chưa có mẫu báo cáo kê khai thuế; mẫu này chờ chủ trọ xác nhận.
-- Không tự đối soát ngân hàng: khi thấy tiền vào, chủ trọ hoặc quản lý tự ghi nhận phiếu thu.
-- Chưa có ứng dụng riêng cho người thuê; khách xem thông báo qua link.
+- Tự động ghi nhận chuyển khoản mới chạy ở **môi trường thử nghiệm**; dùng với tiền thật cần chủ trọ đăng ký SePay và liên kết
+  tài khoản ngân hàng. Khách chuyển thừa: phần dư chờ chủ trọ quyết định (chưa tự chuyển thành tiền trả trước).
+- Chưa có app cài từ App Store/CH Play; dùng qua trình duyệt trên mọi thiết bị. Người thuê xem thông báo qua link, không cần tài khoản.
 - Nhắc đóng tiền qua Zalo/SMS cần chủ trọ đăng ký nhà cung cấp và mẫu tin. Trước khi đăng ký, hệ thống chỉ ghi nhật ký, không gửi tin thật.
 
 ## 6. Công nghệ
@@ -140,6 +180,7 @@ Chủ trọ có thể **cấp thêm hoặc thu hồi từng quyền** cho từng
 |---|---|
 | Giao diện web | Next.js, Tailwind CSS, phông Be Vietnam Pro |
 | Máy chủ | NestJS (nơi duy nhất tính tiền chính thức) |
+| Nhận giao dịch ngân hàng | Webhook theo chuẩn SePay; hiện chạy bằng ngân hàng giả lập |
 | Cơ sở dữ liệu | PostgreSQL, Prisma |
 | Kiểm thử | Test đơn vị, test tích hợp trên PostgreSQL thật, test E2E bằng Playwright |
 | Triển khai | Docker; sao lưu/khôi phục theo [RUNBOOK.md](RUNBOOK.md) |

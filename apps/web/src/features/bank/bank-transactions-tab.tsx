@@ -418,7 +418,7 @@ function SimulateDialog({ open, onClose, cfg, onCreated }: { open: boolean; onCl
           ? `Đã tạo giao dịch #${r.mock_id} trong ngân hàng giả nhưng KHÔNG gửi webhook. Bấm “Đồng bộ giao dịch” để lấy bù.`
           : r.delivery === 'BAD_SIGNATURE'
             ? `Webhook gửi kèm khóa sai → máy chủ trả HTTP ${r.webhook_status}, không ghi nhận.`
-            : `Webhook trả HTTP ${r.webhook_status}. Trạng thái: ${r.transaction ? r.transaction.status : 'chưa có'}.`;
+            : `Webhook trả HTTP ${r.webhook_status}. Trạng thái: ${r.transaction ? BANK_TRANSACTION_STATUS_LABELS[r.transaction.status] : 'chưa có'}.`;
       toast.success(msg);
       onClose();
       if (r.transaction) onCreated(r.transaction.id);

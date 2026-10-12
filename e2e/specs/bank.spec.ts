@@ -42,7 +42,7 @@ test.describe('D-047 — giao dịch ngân hàng (mock)', () => {
     await pick.selectOption((await pick.locator('option', { hasText: number }).getAttribute('value'))!);
     await expect(dialog(page).getByLabel('Nội dung chuyển khoản')).toHaveValue(`${payCode} ${code}`);
     await dialog(page).getByRole('button', { name: 'Tạo giao dịch' }).click();
-    await expect(page.getByText(/Webhook trả HTTP 200\. Trạng thái: MATCHED\./)).toBeVisible();
+    await expect(page.getByText(/Webhook trả HTTP 200\. Trạng thái: Đã đối chiếu\./)).toBeVisible();
 
     // Chi tiết mở ngay: đã đối chiếu, có phiếu thu; gửi lại webhook → vẫn một phiếu thu
     await expect(dialog(page).getByText('Đã đối chiếu')).toBeVisible();
