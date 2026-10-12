@@ -740,3 +740,15 @@ Tài liệu mới: `docs/GIOI_THIEU_DU_AN.md`, `docs/HUONG_DAN_SU_DUNG.md` (+ b�
 
 Cảnh báo `pg` “client.query() when the client is already executing” xuất hiện cả ở test không dùng tính năng này (VD `test/property`) — có từ trước,
 không do D-047. Live: xem RUNBOOK “Tự động ghi nhận chuyển khoản”.
+
+## Giao diện web trên điện thoại (12/10/2026) ✅
+
+Chủ dự án chọn làm giao diện web dùng tốt trên điện thoại (chưa làm app, chưa triển khai thật).
+
+- Rà 33 trang ở 390px trên bản demo (chỉ xem): không trang nào tràn ngang, nhưng 11 trang có bảng phải vuốt ngang, bộ lọc chiếm cả màn hình đầu.
+- `components/ui/table.tsx`: dưới 640px mỗi dòng bảng hiện thành thẻ, nhãn cột lấy tự động từ tiêu đề (`data-label`), ô đầu làm tiêu đề thẻ,
+  dòng gộp cột (nhóm “Thu trước/Thu sau”) hiện như tiêu đề; gán rõ role table/row/cell để trình đọc màn hình vẫn đọc là bảng, nhãn chỉ để nhìn
+  (`content: attr() / ''`). `stack={false}` để giữ dạng bảng. Desktop, máy tính bảng ≥ 640px và bản in không đổi.
+- `FilterBar`: điện thoại xếp 2 cột (ô tìm kiếm, nhóm nút chiếm cả hàng). Thiết bị cảm ứng: nút trong nội dung cao tối thiểu 40px.
+- Kiểm tra: rà lại 390px — 0 bảng phải vuốt ngang; 768px — không tràn trang (3 bảng rộng cuộn trong khung). Lint, typecheck, test web, build ✅;
+  E2E các spec có bảng (billing, contracts, finance, move-out, payments, permissions, reports, tenancy, utilities, bank) desktop + mobile: 31 đạt, 5 bỏ qua theo thiết kế.

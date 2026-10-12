@@ -80,7 +80,13 @@ export function DescriptionList({ items, className }: { items: { label: ReactNod
   );
 }
 
-/** Thanh lọc gọn trên điện thoại, dàn hàng trên desktop. */
+/**
+ * Thanh lọc: điện thoại xếp 2 cột cho gọn (ô tìm kiếm, nhóm nút, ô có chú thích dài chiếm cả hàng); desktop dàn hàng.
+ */
 export function FilterBar({ children }: { children: ReactNode }) {
-  return <div className="mb-4 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-end">{children}</div>;
+  return (
+    <div className="mb-4 grid grid-cols-2 items-end gap-2 sm:flex sm:flex-wrap sm:items-end [&>*]:min-w-0 [&>*:has(input[type=search])]:col-span-2 [&>*:not(:has(label))]:col-span-2">
+      {children}
+    </div>
+  );
 }
